@@ -1,0 +1,107 @@
+services:
+  #==============================================
+  postgres_user:
+    image: postgres:17.9-alpine
+    container_name: salob-db-user
+    env_file:
+      - ./user-service/.env
+    ports:
+      - "5434:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis_user:
+    image: redis:8.6.2-alpine
+    container_name: salob-redis-user
+    env_file:
+      - ./user-service/.env
+    command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
+    ports:
+      - "6380:6379"
+    volumes:
+      - user_redis_data:/data
+    restart: unless-stopped
+  #==============================================
+  postgres_food:
+    image: postgres:17.9-alpine
+    container_name: salob-db-food
+    env_file:
+      - ./food-service/.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - food_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis_food:
+    image: redis:8.6.2-alpine
+    container_name: salob-redis-food
+    env_file:
+      - ./food-service/.env
+    command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
+    ports:
+      - "6381:6379"
+    volumes:
+      - food_redis_data:/data
+    restart: unless-stopped
+  #==============================================
+  redis_api_gateway:
+    image: redis:8.6.2-alpine
+    container_name: salob-redis-api-gateway
+    env_file:
+      - ./api-gateway/.env
+    command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
+    ports:
+      - "6382:6379"
+    volumes:
+      - gateway_redis_data:/data
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: salob-rabbitmq
+    env_file:
+      - ./rabbitmq/.env
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: salob-minio
+    env_file:
+      - ./minio/.env
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: salob-minio-init
+    env_file:
+      - ./minio/.env
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "/scripts/init-buckets.sh"]
+    volumes:
+      - ./minio/init-buckets.sh:/scripts/init-buckets.sh:ro
+    restart: "no"
+
+volumes:
+  food_db_data:
+  user_db_data:
+  food_redis_data:
+  user_redis_data:
+  gateway_redis_data:
+  rabbitmq_data:
+  minio_data:
