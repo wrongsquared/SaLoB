@@ -1,0 +1,64 @@
+{
+  "vhosts": [
+    {
+      "name": "salob"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "salob.events",
+      "vhost": "salob",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "salob.dlx",
+      "vhost": "salob",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "salob.orders",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "salob.dlx",
+        "x-dead-letter-routing-key": "orders.dead"
+      }
+    },
+    {
+      "name": "salob.orders.dlq",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "salob.events",
+      "vhost": "salob",
+      "destination": "salob.orders",
+      "destination_type": "queue",
+      "routing_key": "orders.created",
+      "arguments": {}
+    },
+    {
+      "source": "salob.dlx",
+      "vhost": "salob",
+      "destination": "salob.orders.dlq",
+      "destination_type": "queue",
+      "routing_key": "orders.dead",
+      "arguments": {}
+    }
+  ]
+}
