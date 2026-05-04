@@ -6,7 +6,7 @@ services:
     env_file:
       - ./user-service/.env
     ports:
-      - "5434:5432"
+      - "5433:5432"
     volumes:
       - user_db_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -29,7 +29,7 @@ services:
     env_file:
       - ./food-service/.env
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - food_db_data:/var/lib/postgresql/data
     restart: unless-stopped
