@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
   #==============================================
   postgres_food:
-    image: postgres:17.9-alpine
+    image: postgis/postgis:17-3.5
     container_name: salob-db-food
     env_file:
       - ./food-service/.env
