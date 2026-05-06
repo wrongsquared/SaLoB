@@ -3,6 +3,10 @@ spring:
     name: api-gateway
   config:
     import: "optional:file:.env[.properties]"
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME}
+      password: ${SPRING_SECURITY_USER_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST}

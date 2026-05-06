@@ -1,6 +1,10 @@
 spring:
   application:
     name: food-service
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME}
+      password: ${SPRING_SECURITY_USER_PASSWORD}
   config:
     import: "optional:file:.env[.properties]"
   datasource:
@@ -11,7 +15,7 @@ spring:
     hibernate:
       ddl-auto: update
     flyway:
-      enabled: false
+      enabled: true
     threads:
       virtual:
         enabled: true
