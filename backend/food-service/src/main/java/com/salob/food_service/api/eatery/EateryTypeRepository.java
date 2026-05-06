@@ -1,6 +1,6 @@
-package com.salob.food_service.eatery.repositories;
+package com.salob.food_service.api.eatery;
 
-import com.salob.food_service.eatery.EateryType;
+import com.salob.food_service.domain.EateryType;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

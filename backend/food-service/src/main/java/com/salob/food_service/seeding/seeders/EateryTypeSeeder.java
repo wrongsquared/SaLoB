@@ -1,7 +1,7 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.eatery.EateryType;
-import com.salob.food_service.eatery.repositories.EateryTypeRepository;
+import com.salob.food_service.api.eatery.EateryTypeRepository;
+import com.salob.food_service.domain.EateryType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,9 +16,16 @@ public class EateryTypeSeeder {
     @Transactional
     public void seed() {
         List.of(
-                "Hawker Stall", "Cafe", "Restaurant", "Food Court",
-                "Bakery", "Bistro", "Kopitiam", "Bubble Tea Shop",
-                "Dessert Shop", "Fast Food"
+            "Hawker Stall",
+            "Cafe",
+            "Restaurant",
+            "Food Court",
+            "Bakery",
+            "Bistro",
+            "Kopitiam",
+            "Bubble Tea Shop",
+            "Dessert Shop",
+            "Fast Food"
         ).forEach(this::seedTypeIfMissing);
     }
 

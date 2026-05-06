@@ -1,7 +1,5 @@
-package com.salob.food_service.food;
+package com.salob.food_service.domain;
 
-import com.salob.food_service.common.BaseEntity;
-import com.salob.food_service.eatery.Eatery;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;

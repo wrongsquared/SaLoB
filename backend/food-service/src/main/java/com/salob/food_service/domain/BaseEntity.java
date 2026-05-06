@@ -1,4 +1,4 @@
-package com.salob.food_service.common;
+package com.salob.food_service.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;

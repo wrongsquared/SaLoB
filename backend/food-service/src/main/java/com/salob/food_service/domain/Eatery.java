@@ -1,7 +1,5 @@
-package com.salob.food_service.eatery;
+package com.salob.food_service.domain;
 
-import com.salob.food_service.common.BaseEntity;
-import com.salob.food_service.food.FoodEntry;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

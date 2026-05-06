@@ -1,6 +1,5 @@
-package com.salob.food_service.food;
+package com.salob.food_service.domain;
 
-import com.salob.food_service.common.BaseEntity;
 import jakarta.persistence.*;
 import java.util.UUID;
 import lombok.*;
