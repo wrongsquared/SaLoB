@@ -6,7 +6,7 @@ services:
     env_file:
       - ./user-service/.env
     ports:
-      - "5434:5432"
+      - "5433:5432"
     volumes:
       - user_db_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -24,12 +24,12 @@ services:
     restart: unless-stopped
   #==============================================
   postgres_food:
-    image: postgres:17.9-alpine
+    image: postgis/postgis:17-3.5
     container_name: salob-db-food
     env_file:
       - ./food-service/.env
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - food_db_data:/var/lib/postgresql/data
     restart: unless-stopped

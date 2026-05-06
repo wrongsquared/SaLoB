@@ -1,3 +1,58 @@
 spring:
   application:
     name: api-gateway
+  config:
+    import: "optional:file:.env[.properties]"
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME}
+      password: ${SPRING_SECURITY_USER_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  cloud:
+    gateway:
+      routes:
+        # ==========================================
+        # ROUTE 1: USER SERVICE
+        # ==========================================
+        - id: user-service-route
+          uri: ${USER_SERVICE_URL}
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10   # How many requests per second to allow
+                redis-rate-limiter.burstCapacity: 20   # Maximum burst allowed in a single second
+                redis-rate-limiter.requestedTokens: 1  # How many tokens each request costs
+                key-resolver: "#{@userKeyResolver}"    # References the Java bean we will create below
+
+        # ==========================================
+        # ROUTE 2: FOOD SERVICE
+        # ==========================================
+        - id: food-service-route
+          uri: ${FOOD_SERVICE_URL}
+          predicates:
+            - Path=/api/v1/foods/**, /api/v1/stores/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 30  # How many requests per second to allow
+                redis-rate-limiter.burstCapacity: 50  # Maximum burst allowed in a single second
+                key-resolver: "#{@userKeyResolver}"
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: ${CLIENT_URL}
+            allowedMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+            allowedHeaders: "*"
+            allowCredentials: true
+      httpclient:
+        connect-timeout: 2000 # 2 seconds to establish connection
+        response-timeout: 5000 # 5 seconds to wait for a response
+
+server:
+  port: ${APP_PORT}
