@@ -26,10 +26,10 @@ public class FoodEntrySeeder {
     private final FoodEntryRepository foodEntryRepository;
 
     @Transactional
-    public void seed(List<Food> foods, List<Eatery> eateries) {
+    public List<FoodEntry> seed(List<UUID> userIDs, List<Food> foods, List<Eatery> eateries) {
         if (foods.isEmpty() || eateries.isEmpty()) {
             log.warn("Skipping food entry seeding because foods or eateries are missing");
-            return;
+            return new ArrayList<>();
         }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -49,13 +49,11 @@ public class FoodEntrySeeder {
                         .eatery(eatery)
                         .food(food)
                         .sgCents(priceCents)
-                        .submitterId(UUID.randomUUID())
+                        .submitterId(userIDs.get(random.nextInt(userIDs.size())))
                         .build()
                 );
             }
         }
-
-        foodEntryRepository.saveAll(entries);
-        log.info("Seeded {} food entries", entries.size());
+        return foodEntryRepository.saveAll(entries);
     }
 }

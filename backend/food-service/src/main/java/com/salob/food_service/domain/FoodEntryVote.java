@@ -17,7 +17,6 @@ import lombok.*;
     }
 )
 public class FoodEntryVote extends BaseEntity {
-
     @Column(name = "voter_id", updatable = false, nullable = false)
     private UUID voterId;
 

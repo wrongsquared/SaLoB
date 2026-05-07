@@ -5,6 +5,7 @@ import com.salob.food_service.domain.Food;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -13,6 +14,7 @@ public class FoodSeeder {
     private final FoodRepository foodRepository;
 
     public List<Food> seed() {
+        var foods = new ArrayList<Food>();
         List.of(
                 "Chicken Rice",
                 "Hokkien Mee",
@@ -76,16 +78,10 @@ public class FoodSeeder {
                 "Moussaka",
                 "Risotto",
                 "Tandoori Chicken"
-        ).forEach(this::seedFoodIfMissing);
-
-        return foodRepository.findAll();
-    }
-
-    private void seedFoodIfMissing(String foodLabel) {
-        if (foodRepository.existsByLabel(foodLabel))  {
-            return;
-        }
-        var food = Food.builder().label(foodLabel).build();
-        foodRepository.save(food);
+        ).forEach(foodLabel -> {
+            Food food = Food.builder().label(foodLabel).build();
+            foods.add(food);
+        });
+        return foodRepository.saveAll(foods);
     }
 }

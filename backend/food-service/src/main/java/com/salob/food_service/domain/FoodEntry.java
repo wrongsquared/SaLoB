@@ -39,9 +39,9 @@ public class FoodEntry extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "foodEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<FoodEntryMedia> foodEntryMedia = new ArrayList<>();
+    private List<FoodEntryMedia> media = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "foodEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<FoodEntryVote> foodEntryVotes = new ArrayList<>();
+    private List<FoodEntryVote> votes = new ArrayList<>();
 }
