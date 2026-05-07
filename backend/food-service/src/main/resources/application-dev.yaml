@@ -1,3 +1,4 @@
 app:
   seed:
     enabled: true
+    reset: true

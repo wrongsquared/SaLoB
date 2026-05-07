@@ -1,8 +1,7 @@
 package com.salob.food_service.api.eatery;
 
 import com.salob.food_service.api.eatery.dto.EateryMapDto;
-import com.salob.food_service.api.eatery.services.EateryService;
-import com.salob.food_service.api.eatery.services.RateLimiter;
+import com.salob.food_service.api.eatery.helpers.RateLimiter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

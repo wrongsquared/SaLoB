@@ -1,6 +1,5 @@
-package com.salob.food_service.api.eatery.services;
+package com.salob.food_service.api.eatery;
 
-import com.salob.food_service.api.eatery.EateryRepository;
 import com.salob.food_service.api.eatery.dto.EateryMapDto;
 import java.util.ArrayList;
 import java.util.List;

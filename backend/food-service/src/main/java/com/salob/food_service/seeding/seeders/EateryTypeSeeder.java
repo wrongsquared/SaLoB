@@ -14,7 +14,7 @@ public class EateryTypeSeeder {
     private final EateryTypeRepository eateryTypeRepository;
 
     @Transactional
-    public void seed() {
+    public List<EateryType> seed() {
         List.of(
             "Hawker Stall",
             "Cafe",
@@ -27,6 +27,7 @@ public class EateryTypeSeeder {
             "Dessert Shop",
             "Fast Food"
         ).forEach(this::seedTypeIfMissing);
+        return eateryTypeRepository.findAll();
     }
 
     private void seedTypeIfMissing(String label) {

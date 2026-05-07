@@ -1,4 +1,4 @@
-package com.salob.food_service.api.eatery.services;
+package com.salob.food_service.api.eatery.helpers;
 
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.stereotype.Component;

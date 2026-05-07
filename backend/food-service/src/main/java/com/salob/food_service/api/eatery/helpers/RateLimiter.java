@@ -1,4 +1,4 @@
-package com.salob.food_service.api.eatery.services;
+package com.salob.food_service.api.eatery.helpers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

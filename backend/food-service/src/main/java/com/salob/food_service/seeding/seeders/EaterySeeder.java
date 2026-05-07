@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.salob.food_service.api.eatery.EateryRepository;
-import com.salob.food_service.api.eatery.EateryTypeRepository;
 import com.salob.food_service.domain.Eatery;
 import com.salob.food_service.domain.EateryType;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +21,11 @@ public class EaterySeeder {
     private record EaterySeedSpec(String name, String typeLabel, double lat, double lon) {}
 
     private final EateryRepository eateryRepository;
-    private final EateryTypeRepository eateryTypeRepository;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Transactional
-    public void seed() {
-        Map<String, EateryType> typesByLabel = eateryTypeRepository
-            .findAll()
+    public List<Eatery> seed(List<EateryType> eateryTypes) {
+        Map<String, EateryType> typesByLabel = eateryTypes
             .stream()
             .collect(Collectors.toMap(EateryType::getLabel, type -> type));
 
@@ -125,6 +122,8 @@ public class EaterySeeder {
             new EaterySeedSpec("Milksha (Suntec)", "Bubble Tea Shop", 1.2935, 103.8572)
         );
         eateries.forEach(spec -> seedEateryIfMissing(spec, typesByLabel));
+
+        return eateryRepository.findAll();
     }
 
     private void seedEateryIfMissing(EaterySeedSpec spec, Map<String, EateryType> typesByLabel) {
