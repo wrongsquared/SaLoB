@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.salob.food_service.api.eatery.EateryRepository;
-import com.salob.food_service.domain.Eatery;
-import com.salob.food_service.domain.EateryType;
+import com.salob.food_service.features.eatery.EateryRepository;
+import com.salob.food_service.features.eatery.domain.Eatery;
+import com.salob.food_service.features.eatery.domain.EateryType;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;

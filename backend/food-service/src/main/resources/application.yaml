@@ -30,13 +30,18 @@ spring:
         max-idle: 8
         min-idle: 0
 
+grpc:
+  server:
+    port: ${GRPC_PORT}
+    enable-reflection: true
+
 server:
   port: ${APP_PORT}
 
 # Logging configuration - enable DEBUG for cache issues
-logging:
-  level:
-    root: INFO
-    com.salob.food_service: DEBUG
-    org.springframework.cache: DEBUG
+#logging:
+#  level:
+#    root: INFO
+#    com.salob.food_service: DEBUG
+#    org.springframework.cache: DEBUG
 

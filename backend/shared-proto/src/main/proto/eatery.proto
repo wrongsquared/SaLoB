@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.salob.proto.eatery;
+
+option java_multiple_files = true;
+option java_package = "com.salob.proto.eatery";
+
+message EateryRequest {
+  string eatery_id = 1;
+}
+
+message EateryResponse {
+  string id = 1;
+  string name = 2;
+  double lat = 3;
+  double lon = 4;
+}
+
+service EateryService {
+  rpc GetEatery(EateryRequest) returns (EateryResponse);
+}

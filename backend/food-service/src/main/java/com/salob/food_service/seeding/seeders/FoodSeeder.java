@@ -1,7 +1,7 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.api.food.FoodRepository;
-import com.salob.food_service.domain.Food;
+import com.salob.food_service.features.food.FoodRepository;
+import com.salob.food_service.features.food.domain.Food;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
