@@ -16,9 +16,9 @@ public class GatewayRoutesConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("user-service-route", r -> r.path("/api/users/**")
+                .route("user-service-route", r -> r.path("/api/auth/**", "/api/users/**")
                         .uri(userServiceUrl))
-                .route("food-service-route", r -> r.path("/api/eateries/**", "/**") // Added fallback just in case
+                .route("food-service-route", r -> r.path("/api/eateries/**", "/api/foods/**")
                         .uri(foodServiceUrl))
                 .build();
     }

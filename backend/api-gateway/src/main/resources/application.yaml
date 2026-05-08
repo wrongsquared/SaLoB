@@ -14,9 +14,4 @@ spring:
         response-timeout: 5000
 server:
   port: ${APP_PORT:8081}
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: "*"
 
