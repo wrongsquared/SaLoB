@@ -15,6 +15,9 @@ spring:
   threads:
     virtual:
       enabled: true
-
 server:
   port: ${APP_PORT}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
