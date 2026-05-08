@@ -21,7 +21,7 @@ import java.time.Duration;
 @Configuration
 @EnableCaching
 @Slf4j
-public class CacheConfig {
+public class RedisConfig {
 
     /**
      * Configure RedisCacheManager with proper JSON serialization.
@@ -48,7 +48,6 @@ public class CacheConfig {
         log.info("=== Cache Configuration ===");
         log.info("ObjectMapper configured with polymorphic type support");
 
-        // Use our custom serializer (not deprecated)
         var serializer = new JacksonRedisSerializer(objectMapper);
         log.info("Using custom JacksonRedisSerializer");
 

@@ -15,6 +15,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  grpc:
+    server:
+      port: ${GRPC_PORT}
+      enable-reflection: true
 server:
   port: ${APP_PORT}
 eureka:

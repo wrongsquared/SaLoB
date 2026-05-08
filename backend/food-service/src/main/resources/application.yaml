@@ -29,12 +29,10 @@ spring:
         max-active: 8
         max-idle: 8
         min-idle: 0
-
-grpc:
-  server:
-    port: ${GRPC_PORT}
-    enable-reflection: true
-
+  grpc:
+    server:
+      port: ${GRPC_PORT}
+      enable-reflection: true
 server:
   port: ${APP_PORT}
 

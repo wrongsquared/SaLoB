@@ -39,6 +39,7 @@ dependencies {
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 	implementation 'org.springframework.grpc:spring-grpc-client-spring-boot-starter'
 	implementation 'org.springframework.grpc:spring-grpc-server-web-spring-boot-starter'
+	implementation 'com.salob:shared-proto:0.0.1-SNAPSHOT'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
