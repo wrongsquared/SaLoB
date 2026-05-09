@@ -1,5 +1,6 @@
 package com.salob.user_service.common.http_exceptions;
 
+import com.auth0.jwt.exceptions.JWTCreationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,4 +16,18 @@ public class GlobalHttpExceptionHandler {
         log.error(msg);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(msg);
     }
+
+//    @ExceptionHandler(JWTCreationException.class)
+//    public ResponseEntity<String> handleJwtException(Exception ex) {
+//        String msg = "Error creating JWT token: " + ex.getMessage();
+//        log.error(msg);
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(msg);
+//    }
+//
+//    @ExceptionHandler(JWTCreationException.class)
+//    public ResponseEntity<String> handleJwtException(Exception ex) {
+//        String msg = "Error creating JWT token: " + ex.getMessage();
+//        log.error(msg);
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(msg);
+//    }
 }
