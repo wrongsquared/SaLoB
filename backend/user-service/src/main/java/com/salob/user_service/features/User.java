@@ -1,6 +1,7 @@
-package com.salob.user_service.features.users;
+package com.salob.user_service.features;
 
 import com.salob.user_service.features.auth.AuthProvider;
+import com.salob.user_service.features.users.UserRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

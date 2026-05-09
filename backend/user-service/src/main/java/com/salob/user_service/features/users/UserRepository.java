@@ -1,5 +1,6 @@
 package com.salob.user_service.features.users;
 
+import com.salob.user_service.features.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

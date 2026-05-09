@@ -42,6 +42,7 @@ dependencies {
 	implementation 'org.springframework.grpc:spring-grpc-server-web-spring-boot-starter'
 	implementation 'com.salob:shared-proto:0.0.1-SNAPSHOT'
 	implementation 'com.auth0:java-jwt:4.5.2'
+	implementation 'net.datafaker:datafaker:2.5.4'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'

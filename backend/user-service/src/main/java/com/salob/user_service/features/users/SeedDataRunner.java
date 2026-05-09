@@ -1,12 +1,14 @@
-package com.salob.user_service.common;
+package com.salob.user_service.features.users;
 
-import com.salob.user_service.features.users.User;
-import com.salob.user_service.features.users.UserRepository;
+import com.salob.user_service.features.User;
+import com.salob.user_service.features.auth.AuthProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import java.util.ArrayList;
 @RequiredArgsConstructor
 public class SeedDataRunner implements CommandLineRunner {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
@@ -37,14 +40,17 @@ public class SeedDataRunner implements CommandLineRunner {
     @Transactional
     private void seedUsers() {
         var users = new ArrayList<User>();
-        for (int i = 0; i < 20; i++) {
+
+        for (int i = 0; i < 30; i++) {
             String username = "user_" + i;
 
             users.add(
                     User.builder()
                             .username(username)
-                            .email("")
-                            .passwordHash("")
+                            .email(username + "@gmail.com")
+                            .passwordHash(passwordEncoder.encode(username))
+                            .role(UserRole.CONTRIBUTOR)
+                            .authProvider(AuthProvider.LOCAL)
                             .build()
             );
         }

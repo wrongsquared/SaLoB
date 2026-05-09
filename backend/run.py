@@ -54,9 +54,9 @@ if __name__ == "__main__":
     # Eureka server first
     run_service(discovery_service)
     print("Waiting for Discovery Server to initialize...")
-    time.sleep(2)
+    time.sleep(0.8)
     
     # Start everything else
     for service in other_services:
         run_service(service)
-        time.sleep(1) # Small gap so the CPU doesn't spike to 100% instantly
+        time.sleep(0.5) # Small gap so the CPU doesn't spike to 100% instantly
