@@ -34,4 +34,10 @@ public class EateryGrpcHandler extends EateryServiceGrpc.EateryServiceImplBase {
             responseObserver.onError(e);
         }
     }
+
+    // DEBUG
+//    @PostConstruct
+//    public void init() {
+//        System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
+//    }
 }

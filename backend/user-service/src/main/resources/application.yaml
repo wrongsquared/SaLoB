@@ -25,7 +25,7 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
-
 jwt:
   secret: ${JWT_SECRET}
   exp-seconds: ${JWT_EXPIRATION_SECONDS}
+debug: true
