@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service-container
+          image: user-service:1.0 # The image you loaded earlier
+          imagePullPolicy: Never # CRITICAL: Don't look online for this image
+          ports: # Listening on
+            - containerPort: 8080
+            - containerPort: 9090
+          envFrom:
+            - secretRef:
+                name: user-service-secrets # Refers to kustomization yaml

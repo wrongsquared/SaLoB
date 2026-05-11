@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: food-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: food-service
+  template:
+    metadata:
+      labels:
+        app: food-service
+    spec:
+      containers:
+        - name: food-service-container
+          image: food-service:1.0 # From our local docker registry
+          imagePullPolicy: Never # CRITICAL: Don't look online for this image
+          ports: # Listening on
+            - containerPort: 8080
+            - containerPort: 9090
+          envFrom:
+            - secretRef:
+                name: food-service-secrets # Refers to kustomization yaml

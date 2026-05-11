@@ -1,0 +1,36 @@
+./gradlew publishToMavenLocal
+./gradlew bootRun
+./gradlew clean bootJar
+
+docker build -t api-gateway:1.0 .
+minikube image load api-gateway:1.0
+
+docker build -t food-service:1.0 .
+minikube image load food-service:1.0
+
+docker build -t user-service:1.0 .
+minikube image load user-service:1.0
+------------------------------------------------
+kubectl apply -k k8s/
+kubectl rollout restart deployment food-service
+------------------------------------------------
+minikube stop
+minikube start
+
+minikube service api-gateway --url
+minikube service list
+minikube dashboard
+------------------------------------------------
+kubectl logs <pod-name>
+kubectl logs -f <pod-name>
+kubectl logs -f deployment/food-service
+kubectl describe pod <pod-name> # 2. Find out WHY a pod failed to start
+kubectl exec -it <pod-name> -- /bin/bash
+------------------------------------------------
+kubectl get all
+kubectl get pods
+kubectl get pods -w
+kubectl get secrets
+kubectl get endpoints
+------------------------------------------------
+nc -vz host.minikube.internal 6379

@@ -1,4 +1,4 @@
-package com.salob.user_service.config;
+package com.salob.api_gateway.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,15 +12,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Validates Redis connectivity at application startup with detailed diagnostics.
- *
- * Why this matters:
- * - Redis connection pool doesn't fail fast by default
- * - App starts fine even if Redis is down (lazy initialization)
- * - First actual cache operation fails with unclear error
- * - This component ensures we know immediately if Redis is unavailable
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j

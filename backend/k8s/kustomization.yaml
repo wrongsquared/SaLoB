@@ -1,0 +1,24 @@
+resources:
+  - ./api-gateway/deployment.yaml
+  - ./api-gateway/service.yaml
+  - ./food-service/deployment.yaml
+  - ./food-service/service.yaml
+  - ./user-service/deployment.yaml
+  - ./user-service/service.yaml
+
+# This automatically reads the local .env files and creates K8s Secrets
+secretGenerator:
+  - name: api-gateway-secrets
+    envs:
+      - ./api-gateway/.env.k8s
+  - name: food-service-secrets
+    envs:
+      - ./food-service/.env.k8s
+  - name: user-service-secrets
+    envs:
+      - ./user-service/.env.k8s
+
+# Forces a common label on everything for easy cleanup
+metadata:
+  labels:
+    app.kubernetes.io/part-of: salob

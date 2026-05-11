@@ -1,10 +1,22 @@
 services:
   #==============================================
+  redis_api_gateway:
+    image: redis:8.6.2-alpine
+    container_name: salob-redis-api-gateway
+    env_file:
+      - ./api-gateway/.env.local
+    command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
+    ports:
+      - "6380:6379"
+    volumes:
+      - gateway_redis_data:/data
+    restart: unless-stopped
+  #==============================================
   postgres_user:
     image: postgres:17.9-alpine
     container_name: salob-db-user
     env_file:
-      - ./user-service/.env
+      - ./user-service/.env.local
     ports:
       - "5433:5432"
     volumes:
@@ -15,10 +27,10 @@ services:
     image: redis:8.6.2-alpine
     container_name: salob-redis-user
     env_file:
-      - ./user-service/.env
+      - ./user-service/.env.local
     command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
     ports:
-      - "6380:6379"
+      - "6381:6379"
     volumes:
       - user_redis_data:/data
     restart: unless-stopped
@@ -27,7 +39,7 @@ services:
     image: postgis/postgis:17-3.5
     container_name: salob-db-food
     env_file:
-      - ./food-service/.env
+      - ./food-service/.env.local
     ports:
       - "5434:5432"
     volumes:
@@ -38,31 +50,19 @@ services:
     image: redis:8.6.2-alpine
     container_name: salob-redis-food
     env_file:
-      - ./food-service/.env
-    command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
-    ports:
-      - "6381:6379"
-    volumes:
-      - food_redis_data:/data
-    restart: unless-stopped
-  #==============================================
-  redis_api_gateway:
-    image: redis:8.6.2-alpine
-    container_name: salob-redis-api-gateway
-    env_file:
-      - ./api-gateway/.env
+      - ./food-service/.env.local
     command: sh -c "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
     ports:
       - "6382:6379"
     volumes:
-      - gateway_redis_data:/data
+      - food_redis_data:/data
     restart: unless-stopped
-
+  #==============================================
   rabbitmq:
     image: rabbitmq:3-management
     container_name: salob-rabbitmq
     env_file:
-      - ./rabbitmq/.env
+      - ./rabbitmq/.env.local
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -76,7 +76,7 @@ services:
     image: minio/minio:latest
     container_name: salob-minio
     env_file:
-      - ./minio/.env
+      - ./minio/.env.local
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -89,7 +89,7 @@ services:
     image: minio/mc:latest
     container_name: salob-minio-init
     env_file:
-      - ./minio/.env
+      - ./minio/.env.local
     depends_on:
       - minio
     entrypoint: ["/bin/sh", "/scripts/init-buckets.sh"]
