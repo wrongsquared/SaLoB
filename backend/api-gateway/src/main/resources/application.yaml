@@ -13,8 +13,4 @@ spring:
         connect-timeout: 2000
         response-timeout: 5000
 server:
-  port: ${APP_PORT:8081}
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+  port: ${APP_PORT}
