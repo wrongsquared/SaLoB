@@ -21,3 +21,7 @@ spring:
         response-timeout: 5000
 server:
   port: ${APP_PORT}
+app:
+  routing:
+    food-service: ${FOOD_SERVICE_URI}
+    user-service: ${USER_SERVICE_URI}
