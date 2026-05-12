@@ -36,28 +36,6 @@ public class EateryService {
         return eateryRepository.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
     }
 
-    public EateryDetailedDTO getEateryDetailed(UUID id) {
-        Eatery eatery = findById(id);
-
-        List<FoodEntryPreviewDTO> foodPreviews = eatery.getFoodEntries().stream()
-            .map(food -> new FoodEntryPreviewDTO(
-                    food.getId(),
-                    food.getFood().getLabel(),
-                    food.getSgCents(),
-                    food.getUpvoteCount(),
-                    food.getDownvoteCount()
-            ))
-            .toList();;
-        return new EateryDetailedDTO(
-                eatery.getId(),
-                eatery.getName(),
-                eatery.getAddress(),
-                eatery.getType().getLabel(),
-                eatery.getPhotoObjKey(),
-                foodPreviews
-        );
-    }
-
     /**
      * Find eateries within a bounding box, with intelligent caching.
      *
@@ -121,6 +99,30 @@ public class EateryService {
             throw e;
         }
     }
+
+    public EateryDetailedDTO getEateryDetailed(UUID id) {
+        Eatery eatery = findById(id);
+
+        List<FoodEntryPreviewDTO> foodPreviews = eatery.getFoodEntries().stream()
+                .map(food -> new FoodEntryPreviewDTO(
+                        food.getId(),
+                        food.getFood().getLabel(),
+                        food.getSgCents(),
+                        food.getUpvoteCount(),
+                        food.getDownvoteCount()
+                ))
+                .toList();;
+        return new EateryDetailedDTO(
+                eatery.getId(),
+                eatery.getName(),
+                eatery.getAddress(),
+                eatery.getType().getLabel(),
+                eatery.getPhotoObjKey(),
+                foodPreviews
+        );
+    }
+
+    
 
     /**
      * Convert a database query result row into a DTO.

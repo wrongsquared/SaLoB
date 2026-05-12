@@ -1,7 +1,10 @@
 package com.salob.food_service.features.eatery;
 
+import com.salob.food_service.common.Utils;
+import com.salob.food_service.features.eatery.domain.Eatery;
 import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.features.eatery.dto.FoodDetailedDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import java.util.List;
 import java.util.UUID;
@@ -27,19 +30,6 @@ public class EateryController {
     private final RateLimiter rateLimiter;
 
     /**
-     * Example: /api/eateries/fg233ae7-a797-48b8-b6ee-c0ecc4a983e8
-     */
-    @GetMapping("/{eateryId}")
-    public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@PathVariable UUID eateryId, HttpServletRequest request) {
-        String clientIP = getClientIp(request);
-        if (!rateLimiter.isRequestAllowed(clientIP)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
-
-        return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
-    }
-
-    /**
      * Fetch eateries within a bounding box (map view).
      *
      * This endpoint is designed for map interfaces that need eateries within a
@@ -62,7 +52,7 @@ public class EateryController {
             @RequestParam double maxLon,
             HttpServletRequest request
     ) {
-        String clientIp = getClientIp(request);
+        String clientIp = Utils.getClientIp(request);
         if (!rateLimiter.isRequestAllowed(clientIp)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
@@ -75,21 +65,19 @@ public class EateryController {
         return ResponseEntity.ok(eateries);
     }
 
-//    public ResponseEntity
-
     /**
-     * Extract client IP from HTTP request.
-     *
-     * Handles proxies (X-Forwarded-For header) which is important in production
-     * where requests may go through load balancers or reverse proxies.
+     * Example: /api/eateries/fg233ae7-a797-48b8-b6ee-c0ecc4a983e8
      */
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            // X-Forwarded-For can have multiple IPs; take the first one
-            return xForwardedFor.split(",")[0].trim();
+    @GetMapping("/{eateryId}")
+    public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@PathVariable UUID eateryId, HttpServletRequest request) {
+        String clientIP = Utils.getClientIp(request);
+        if (!rateLimiter.isRequestAllowed(clientIP)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
-        return request.getRemoteAddr();
+
+        return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
+
+
 }
 

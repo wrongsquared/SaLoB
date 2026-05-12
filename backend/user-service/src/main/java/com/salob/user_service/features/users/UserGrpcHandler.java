@@ -1,8 +1,6 @@
 package com.salob.user_service.features.users;
 
-import com.salob.proto.user.UserIDsRequest;
-import com.salob.proto.user.UserIDsResponse;
-import com.salob.proto.user.UserServiceGrpc;
+import com.salob.proto.user.*;
 import io.grpc.stub.StreamObserver;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +29,22 @@ public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
         }
     }
 
-    @PostConstruct
-    public void init() {
-        System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
+    @Override
+    public void getUserWtfScore(UserWtfRequest request, StreamObserver<UserWtfResponse> responseObserver) {
+        try {
+            UUID userId = UUID.fromString(request.getUserId());
+            double wtfScore = userService.getUserWtfScore(userId);
+            UserWtfResponse response = UserWtfResponse.newBuilder().setWtfScore(wtfScore).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error fetching WTF score for user: {}", e.getMessage());
+            responseObserver.onError(e);
+        }
     }
+
+    //    @PostConstruct
+//    public void init() {
+//        System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
+//    }
 }

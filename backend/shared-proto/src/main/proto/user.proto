@@ -4,13 +4,22 @@ package com.salob.proto.eatery;
 
 option java_multiple_files = true;
 option java_package = "com.salob.proto.user";
-
+//----------------------------------------
 message UserIDsRequest {}
 
 message UserIDsResponse {
   repeated string ids = 1;
 }
+//----------------------------------------
+message UserWtfRequest {
+  string user_id = 1;
+}
 
+message UserWtfResponse {
+  double wtf_score = 1;
+}
+//----------------------------------------
 service UserService {
   rpc GetAllUserIDs(UserIDsRequest) returns (UserIDsResponse);
+  rpc GetUserWtfScore(UserWtfRequest) returns (UserWtfResponse);
 }

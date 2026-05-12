@@ -30,4 +30,10 @@ public class UserService {
                         .build())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
+
+    public double getUserWtfScore(UUID id) {
+        return userRepo.findById(id)
+                .map(User::getWtfScore)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
 }
