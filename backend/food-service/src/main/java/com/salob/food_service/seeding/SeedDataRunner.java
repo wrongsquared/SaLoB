@@ -15,10 +15,15 @@ import com.salob.food_service.seeding.seeders.FoodEntrySeeder;
 import com.salob.food_service.seeding.seeders.FoodEntryVoteSeeder;
 import com.salob.food_service.seeding.seeders.FoodSeeder;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.IntStream;
+
+import com.salob.proto.user.UserIDsRequest;
+import com.salob.proto.user.UserIDsResponse;
+import com.salob.proto.user.UserServiceGrpc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -44,6 +49,9 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class SeedDataRunner implements CommandLineRunner {
+    @GrpcClient("user-service")
+    private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
+
     private final EateryTypeSeeder eateryTypeSeeder;
     private final EaterySeeder eaterySeeder;
     private final FoodSeeder foodSeeder;
@@ -60,7 +68,7 @@ public class SeedDataRunner implements CommandLineRunner {
         resetDatabase();
         log.info("Starting seeding process...");
 
-        List<UUID> userIDs = generateDemoUserIds(80);
+        List<UUID> userIDs = retrieveAllIDsFromUserService();
         List<EateryType> eateryTypes = eateryTypeSeeder.seed();
         List<Eatery> eateries = eaterySeeder.seed(eateryTypes);
         List<Food> foods = foodSeeder.seed();
@@ -108,14 +116,25 @@ public class SeedDataRunner implements CommandLineRunner {
     }
 
     /**
-     * Generate synthetic user IDs for demo voting.
-     *
-     * In production, these would come from an actual User entity.
-     * For testing, we generate random UUIDs.
+     * User-Service MUST be running, we're making a gRPC call there to fetch all the user IDs
      */
-    private List<UUID> generateDemoUserIds(int count) {
-        return IntStream.range(0, count)
-            .mapToObj(i -> UUID.randomUUID())
-            .toList();
+    private List<UUID> retrieveAllIDsFromUserService() {
+        try {
+            UserIDsResponse allUserIDs = userServiceStub.getAllUserIDs(UserIDsRequest.newBuilder().build());
+            return allUserIDs.getIdsList().stream()
+                    .map(uuidStr -> {
+                        try {
+                            return UUID.fromString(uuidStr);
+                        } catch (IllegalArgumentException e) {
+                            log.warn("Invalid UUID string from user service: {}", uuidStr);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to fetch user IDs, ensure that user-service is running. Error: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 }

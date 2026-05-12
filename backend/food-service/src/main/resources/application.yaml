@@ -30,10 +30,14 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-  grpc:
-    server:
-      port: ${GRPC_PORT}
-      enable-reflection: true
+grpc:
+  client:
+    user-service:
+      address: ${USER_SERVICE_GRPC_ADDRESS}
+      negotiation-type: plaintext
+  server:
+    port: ${GRPC_PORT}
+    reflection-enabled: true
 server:
   port: ${APP_PORT}
 

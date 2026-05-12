@@ -26,10 +26,14 @@ spring:
   threads:
     virtual:
       enabled: true
-  grpc:
-    server:
-      port: ${GRPC_PORT}
-      enable-reflection: true
+grpc:
+  client:
+    food-service:
+      address: ${FOOD_SERVICE_GRPC_ADDRESS}
+      negotiation-type: plaintext
+  server:
+    port: ${GRPC_PORT}
+    reflection-enabled: true
 server:
   port: ${APP_PORT}
 jwt:

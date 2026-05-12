@@ -7,7 +7,7 @@ import com.salob.proto.eatery.EateryResponse;
 import com.salob.proto.eatery.EateryServiceGrpc;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
-import org.springframework.grpc.server.service.GrpcService;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.util.UUID;
 

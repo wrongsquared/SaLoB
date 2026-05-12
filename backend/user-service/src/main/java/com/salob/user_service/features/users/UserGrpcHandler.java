@@ -7,7 +7,7 @@ import io.grpc.stub.StreamObserver;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.grpc.server.service.GrpcService;
+import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.util.List;
 import java.util.UUID;

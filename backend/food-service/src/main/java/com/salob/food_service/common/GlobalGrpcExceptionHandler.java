@@ -2,21 +2,14 @@ package com.salob.food_service.common;
 
 import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
 import io.grpc.Status;
-import io.grpc.StatusException;
-import org.springframework.grpc.server.exception.GrpcExceptionHandler;
-import org.springframework.stereotype.Component;
+import net.devh.boot.grpc.server.advice.GrpcAdvice;
+import net.devh.boot.grpc.server.advice.GrpcExceptionHandler;
 
-@Component
-public class GlobalGrpcExceptionHandler implements GrpcExceptionHandler {
-
-    @Override
-    public StatusException handleException(Throwable ex) {
-        if (ex instanceof EateryNotFoundException) {
-            return Status.NOT_FOUND
-                    .withDescription(ex.getMessage())
-                    .asException();
-        }
-        return Status.INTERNAL.asException();
+@GrpcAdvice
+public class GlobalGrpcExceptionHandler {
+    @GrpcExceptionHandler(EateryNotFoundException.class)
+    public Status handleEateryNotFound(EateryNotFoundException e) {
+        return Status.NOT_FOUND.withDescription(e.getMessage()).withCause(e);
     }
 }
 
