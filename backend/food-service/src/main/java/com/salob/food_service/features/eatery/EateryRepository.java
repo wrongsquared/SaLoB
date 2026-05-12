@@ -32,20 +32,20 @@ public interface EateryRepository extends JpaRepository<Eatery, UUID> {
      */
     @Query(
         value = """
-            SELECT
-              e.id,
-              e.name,
-              ST_Y(e.location) as latitude,
-              ST_X(e.location) as longitude,
-              et.label as typeLabel,
-              e.is_closed as isClosed
-            FROM eateries e
-            JOIN eatery_types et ON e.type_id = et.id
-            WHERE ST_Contains(
-              ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
-              e.location
-            )
-            ORDER BY e.name
+         SELECT
+          e.id,
+          e.name,
+          ST_Y(e.location) as latitude,
+          ST_X(e.location) as longitude,
+          et.label as typeLabel
+        FROM eateries e
+        JOIN eatery_types et ON e.type_id = et.id
+        WHERE ST_Contains(
+          ST_MakeEnvelope(:minLon, :minLat, :maxLon, :maxLat, 4326),
+          e.location
+        )
+        AND e.is_open = TRUE
+        ORDER BY e.name
             """,
         nativeQuery = true
     )

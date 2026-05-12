@@ -1,11 +1,13 @@
 package com.salob.food_service.features.eatery;
 
 import com.salob.food_service.features.eatery.domain.Eatery;
-import com.salob.food_service.features.eatery.dto.EateryMapDto;
+import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
+import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.salob.food_service.features.eatery.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,14 +26,36 @@ import org.springframework.stereotype.Service;
  * The @Service annotation tells Spring to manage this as a singleton bean,
  * making it injectable into controllers and other services.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class EateryService {
     private final EateryRepository eateryRepository;
 
     public Eatery findById(UUID id) {
         return eateryRepository.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
+    }
+
+    public EateryDetailedDTO getEateryDetailed(UUID id) {
+        Eatery eatery = findById(id);
+
+        List<FoodEntryPreviewDTO> foodPreviews = eatery.getFoodEntries().stream()
+            .map(food -> new FoodEntryPreviewDTO(
+                    food.getId(),
+                    food.getFood().getLabel(),
+                    food.getSgCents(),
+                    food.getUpvoteCount(),
+                    food.getDownvoteCount()
+            ))
+            .toList();;
+        return new EateryDetailedDTO(
+                eatery.getId(),
+                eatery.getName(),
+                eatery.getAddress(),
+                eatery.getType().getLabel(),
+                eatery.getPhotoObjKey(),
+                foodPreviews
+        );
     }
 
     /**
@@ -62,7 +86,7 @@ public class EateryService {
         value = "eateries_bbox",
         keyGenerator = "bboxKeyGenerator"
     )
-    public List<EateryMapDto> findEateriesWithinBounds(
+    public List<EateryPreviewDTO> findEateriesWithinBounds(
             double minLat,
             double maxLat,
             double minLon,
@@ -80,7 +104,7 @@ public class EateryService {
 
             // IMPORTANT: Use ArrayList (mutable), NOT .toList() (ImmutableCollections$ListN)
             // Jackson can deserialize ArrayList but NOT internal immutable list types
-            List<EateryMapDto> result = new ArrayList<>();
+            List<EateryPreviewDTO> result = new ArrayList<>();
             for (Object[] row : rows) {
                 result.add(mapRowToDto(row));
             }
@@ -104,17 +128,16 @@ public class EateryService {
      * The repository returns Object[] because of the native SQL query.
      * We need to manually map columns to the DTO record.
      *
-     * @param row raw database result (e.g., [id, name, lat, lon, typeLabel, isClosed])
+     * @param row raw database result (e.g., [eateryId, name, lat, lon, typeLabel, isClosed])
      * @return strongly-typed DTO
      */
-    private EateryMapDto mapRowToDto(Object[] row) {
-        return new EateryMapDto(
-            (UUID) row[0],           // id
+    private EateryPreviewDTO mapRowToDto(Object[] row) {
+        return new EateryPreviewDTO(
+            (UUID) row[0],           // eateryId
             (String) row[1],         // name
             ((Number) row[2]).doubleValue(),  // latitude (ST_Y as Double)
             ((Number) row[3]).doubleValue(),  // longitude (ST_X as Double)
-            (String) row[4],         // typeLabel
-            (Boolean) row[5]         // isClosed
+            (String) row[4]         // typeLabel
         );
     }
 }

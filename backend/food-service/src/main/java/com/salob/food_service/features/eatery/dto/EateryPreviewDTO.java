@@ -19,14 +19,15 @@ import java.util.UUID;
  * - API contract is explicit and stable (won't accidentally expose internal fields)
  * - Can evolve frontend needs without exposing DB schema
  */
-@Getter @Setter
-@AllArgsConstructor @NoArgsConstructor
-public final class EateryMapDto {
-    UUID id;
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public final class EateryPreviewDTO {
+    UUID eateryId;
     String name;
     double latitude;
     double longitude;
     String typeLabel;
-    boolean isClosed;
 }
 

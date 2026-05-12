@@ -30,13 +30,21 @@ public class Eatery extends BaseEntity {
     @Column(name = "location", columnDefinition = "geometry(Point, 4326)", nullable = false)
     private Point location;
 
+    @NotNull
+    @Column(name = "address")
+    private String address; // Cached address for display purposes
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_id", updatable = false, nullable = false)
     private EateryType type;
 
     @Builder.Default
-    @Column(name = "is_closed", nullable = false)
-    private boolean isClosed = false;
+    @Column(name = "is_open", nullable = false)
+    private boolean isOpen = true;
+
+    @Builder.Default
+    @Column(name = "photo_obj_key")
+    private String photoObjKey = "";
 
     @Builder.Default
     @OneToMany(mappedBy = "eatery", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -1,15 +1,15 @@
 package com.salob.food_service.features.eatery;
 
-import com.salob.food_service.features.eatery.dto.EateryMapDto;
+import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
+import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import java.util.List;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -19,12 +19,25 @@ import jakarta.servlet.http.HttpServletRequest;
  * geospatial queries for map interfaces.
  */
 @RestController
-@RequestMapping("/api/eateries")
 @RequiredArgsConstructor
+@RequestMapping("/api/eateries")
 public class EateryController {
 
     private final EateryService eateryService;
     private final RateLimiter rateLimiter;
+
+    /**
+     * Example: /api/eateries/fg233ae7-a797-48b8-b6ee-c0ecc4a983e8
+     */
+    @GetMapping("/{eateryId}")
+    public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@PathVariable UUID eateryId, HttpServletRequest request) {
+        String clientIP = getClientIp(request);
+        if (!rateLimiter.isRequestAllowed(clientIP)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+
+        return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
+    }
 
     /**
      * Fetch eateries within a bounding box (map view).
@@ -42,32 +55,27 @@ public class EateryController {
      * Example: /api/eateries/within-bounds?minLat=1.27&maxLat=1.32&minLon=103.80&maxLon=103.86
      */
     @GetMapping("/within-bounds")
-    public ResponseEntity<List<EateryMapDto>> getEateriesWithinBounds(
+    public ResponseEntity<List<EateryPreviewDTO>> getEateriesWithinBounds(
             @RequestParam double minLat,
             @RequestParam double maxLat,
             @RequestParam double minLon,
             @RequestParam double maxLon,
             HttpServletRequest request
     ) {
-        // Extract client IP for rate limiting
         String clientIp = getClientIp(request);
-
-        // Check rate limit
         if (!rateLimiter.isRequestAllowed(clientIp)) {
-            // 429 Too Many Requests - rate limited
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
 
-        // Validate bounding box is sensible
         if (minLat >= maxLat || minLon >= maxLon) {
             return ResponseEntity.badRequest().build();
         }
 
-        // Delegate to service layer for business logic (caching, DB query)
-        List<EateryMapDto> eateries = eateryService.findEateriesWithinBounds(minLat, maxLat, minLon, maxLon);
-
+        List<EateryPreviewDTO> eateries = eateryService.findEateriesWithinBounds(minLat, maxLat, minLon, maxLon);
         return ResponseEntity.ok(eateries);
     }
+
+//    public ResponseEntity
 
     /**
      * Extract client IP from HTTP request.
