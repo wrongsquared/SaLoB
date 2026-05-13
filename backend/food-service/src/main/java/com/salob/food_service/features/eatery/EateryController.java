@@ -26,11 +26,6 @@ public class EateryController {
     private final EateryService eateryService;
     private final RateLimiter rateLimiter;
 
-    @GetMapping("/ping")
-    public ResponseEntity<?> getPing() {
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-
     /**
      * Fetch eateries within a bounding box (map view).
      *
@@ -76,7 +71,6 @@ public class EateryController {
         if (!rateLimiter.isRequestAllowed(clientIP)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
-
         return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
 
