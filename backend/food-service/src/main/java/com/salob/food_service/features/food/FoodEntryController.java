@@ -1,7 +1,7 @@
 package com.salob.food_service.features.food;
 
 import com.salob.food_service.common.Utils;
-import com.salob.food_service.features.eatery.dto.FoodDetailedDTO;
+import com.salob.food_service.features.eatery.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +20,15 @@ public class FoodEntryController {
     private final FoodEntryService foodEntryService;
     private final RateLimiter rateLimiter;
 
-    @GetMapping("/{foodEntryId}")
-    public ResponseEntity<FoodDetailedDTO> getFoodEntryDetailed(
+    @GetMapping("/ping")
+    public ResponseEntity<Void> ping() {
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/historical-data/{foodEntryId}")
+    public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(
             @PathVariable UUID foodEntryId,
-            @RequestParam(required = true) Instant startDate,
+            @RequestParam Instant startDate,
             HttpServletRequest request
     ) {
         String clientIP = Utils.getClientIp(request);
@@ -39,6 +44,8 @@ public class FoodEntryController {
         // 1-year hard limit - clamp
         Instant oneYearAgo = Instant.now().minus(Duration.ofDays(365));
         Instant clampedStartDate = startDate.isBefore(oneYearAgo) ? oneYearAgo : startDate;
-        return ResponseEntity.ok(foodEntryService.getFoodEntryDetailed(foodEntryId, clampedStartDate));
+
+        FoodEntryHistoricalDTO foodEntryDetailed = foodEntryService.getFoodEntryHistoricalData(foodEntryId, clampedStartDate);
+        return ResponseEntity.ok(foodEntryDetailed);
     }
 }

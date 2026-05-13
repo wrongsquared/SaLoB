@@ -8,6 +8,10 @@ import com.salob.proto.user.UserWtfResponse;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -38,20 +42,24 @@ public class ConfidenceAlgorithm {
     private UserServiceGrpc.UserServiceBlockingStub userService;
 
     public double computeFinalConfidence(FoodEntry foodEntry) {
-        double valuePerVote = 100 / VOTES_REQUIRED_FOR_MAX_SCORE;
-        double rawConfidence = 0;
-        for (FoodEntryVote vote : foodEntry.getVotes()) {
-            double wtfScoreOfVoter = getVotersWtfScore(vote.getVoterId());
-            double multiplier = convertWtfScoreToMultiplier(wtfScoreOfVoter);
-            rawConfidence += (vote.isUpvote() ? valuePerVote : -valuePerVote) * multiplier;
-        }
-        double foodEntryAgeInYears = foodEntry.getCreatedAt().until(java.time.Instant.now(), java.time.temporal.ChronoUnit.SECONDS) / (365.25 * 24 * 3600);
-        return applyConcaveTimeDecay(rawConfidence, foodEntryAgeInYears);
+        return (new Random().nextDouble()) * 100; // TODO: Implement the actual algorithm instead of random values for testing
+//        double valuePerVote = 100 / VOTES_REQUIRED_FOR_MAX_SCORE;
+//        double rawConfidence = 0;
+//        for (FoodEntryVote vote : foodEntry.getVotes()) {
+//            double wtfScoreOfVoter = getVotersWtfScore(vote.getVoterId());
+//            double multiplier = convertWtfScoreToMultiplier(wtfScoreOfVoter);
+//            rawConfidence += (vote.isUpvote() ? valuePerVote : -valuePerVote) * multiplier;
+//        }
+//        double foodEntryAgeInYears = Duration.between(foodEntry.getCreatedAt(), Instant.now()).toDays() / 365.25;
+//        return applyConcaveTimeDecay(rawConfidence, foodEntryAgeInYears);
     }
 
     private double convertWtfScoreToMultiplier(double wtfScore) {
         double clampedScore = Math.clamp(0, 100, wtfScore);
-        return -1 * Math.pow(clampedScore, 2) + 100;
+        double l0 = ((clampedScore - 50) * (clampedScore - 100)) / ((-50) * (-100));
+        double l1 = ((clampedScore - 0) * (clampedScore - 100)) / ((50) * (50 - 100));
+        double l2 = ((clampedScore - 0) * (clampedScore - 50)) / ((100) * (100 - 50));
+        return (0.1 * l0) + l1 + (2.5 * l2);
     }
 
     private double applyConcaveTimeDecay(double preDecayConfidence, double foodEntryAgeInYears) {

@@ -20,7 +20,7 @@ public class GatewayRoutesConfig {
                         .path("/api/auth/**", "/api/users/**")
                         .uri(userServiceUri))
                 .route("food-service-route", r -> r
-                        .path("/api/eateries/**", "/api/foods/**")
+                        .path("/api/eateries/**", "/api/foods/**", "/api/food-entries/**")
                         .uri(foodServiceUri))
                 .build();
     }

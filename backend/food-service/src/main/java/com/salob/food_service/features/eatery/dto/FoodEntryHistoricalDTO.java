@@ -12,7 +12,7 @@ import java.util.List;
  * @param pricePoints - All price points (which also includes the 'sgCentsConsensusPrice')
  */
 @Builder
-public record FoodDetailedDTO(
+public record FoodEntryHistoricalDTO(
     String name,
     int sgCentsConsensusPrice,
     String address,

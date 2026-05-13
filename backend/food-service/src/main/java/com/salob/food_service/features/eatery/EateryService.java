@@ -1,14 +1,18 @@
 package com.salob.food_service.features.eatery;
 
+import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.features.eatery.domain.Eatery;
 import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.salob.food_service.features.eatery.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
+import com.salob.food_service.features.food.domain.FoodEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,10 +34,11 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EateryService {
-    private final EateryRepository eateryRepository;
+    private final EateryRepository eateryRepo;
+    private final ConfidenceAlgorithm confidenceAlgorithm;
 
     public Eatery findById(UUID id) {
-        return eateryRepository.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
+        return eateryRepo.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
     }
 
     /**
@@ -77,7 +82,7 @@ public class EateryService {
         try {
             // Query database for eateries within bounds
             log.debug("Executing PostGIS query...");
-            List<Object[]> rows = eateryRepository.findWithinBoundingBox(minLat, maxLat, minLon, maxLon);
+            List<Object[]> rows = eateryRepo.findWithinBoundingBox(minLat, maxLat, minLon, maxLon);
             log.debug("Query returned {} rows", rows.size());
 
             // IMPORTANT: Use ArrayList (mutable), NOT .toList() (ImmutableCollections$ListN)
@@ -100,18 +105,38 @@ public class EateryService {
         }
     }
 
-    public EateryDetailedDTO getEateryDetailed(UUID id) {
-        Eatery eatery = findById(id);
+    /**
+     * This endpoint is meant to be used for the collapsible left-panel that expands when you click on an eatery on the map.
+     *
+     * For some eatery (eateryId), get its detailed information AND list of the "best" food entries for each food it serves.
+     * E.g An eatery may have 23 entries for "chicken rice", but you want to show the one with the highest confidence
+     */
+    public EateryDetailedDTO getEateryDetailed(UUID eateryId) {
+        Eatery eatery = findById(eateryId);
 
-        List<FoodEntryPreviewDTO> foodPreviews = eatery.getFoodEntries().stream()
-                .map(food -> new FoodEntryPreviewDTO(
-                        food.getId(),
-                        food.getFood().getLabel(),
-                        food.getSgCents(),
-                        food.getUpvoteCount(),
-                        food.getDownvoteCount()
-                ))
-                .toList();;
+        // For each food served by the eatery, find the "best" food entry (the one with the highest confidence score).
+        Map<String, FoodEntryPreviewDTO> bestByFoodName = new LinkedHashMap<>();
+        Map<String, Double> bestConfidenceByFoodName = new LinkedHashMap<>();
+        for (FoodEntry foodEntry : eatery.getFoodEntries()) {
+            String foodName = foodEntry.getFood().getLabel();
+            double confidence = confidenceAlgorithm.computeFinalConfidence(foodEntry);
+            Double currentBest = bestConfidenceByFoodName.get(foodName);
+            if (currentBest == null || confidence > currentBest) {
+                bestConfidenceByFoodName.put(foodName, confidence);
+                bestByFoodName.put(
+                    foodName,
+                    new FoodEntryPreviewDTO(
+                        foodEntry.getId(),
+                        foodName,
+                        foodEntry.getSgCents(),
+                        foodEntry.getUpvoteCount(),
+                        foodEntry.getDownvoteCount()
+                    )
+                );
+            }
+        }
+
+        List<FoodEntryPreviewDTO> foodPreviews = new ArrayList<>(bestByFoodName.values());
         return new EateryDetailedDTO(
                 eatery.getId(),
                 eatery.getName(),
@@ -121,8 +146,6 @@ public class EateryService {
                 foodPreviews
         );
     }
-
-    
 
     /**
      * Convert a database query result row into a DTO.
@@ -143,4 +166,3 @@ public class EateryService {
         );
     }
 }
-

@@ -1,10 +1,8 @@
 package com.salob.food_service.features.eatery;
 
 import com.salob.food_service.common.Utils;
-import com.salob.food_service.features.eatery.domain.Eatery;
 import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
-import com.salob.food_service.features.eatery.dto.FoodDetailedDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import java.util.List;
 import java.util.UUID;
@@ -25,9 +23,13 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequiredArgsConstructor
 @RequestMapping("/api/eateries")
 public class EateryController {
-
     private final EateryService eateryService;
     private final RateLimiter rateLimiter;
+
+    @GetMapping("/ping")
+    public ResponseEntity<?> getPing() {
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 
     /**
      * Fetch eateries within a bounding box (map view).
@@ -77,7 +79,6 @@ public class EateryController {
 
         return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
-
 
 }
 

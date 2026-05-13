@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package com.salob.proto.eatery;
+package com.salob.proto.user;
 
 option java_multiple_files = true;
 option java_package = "com.salob.proto.user";
@@ -19,7 +19,21 @@ message UserWtfResponse {
   double wtf_score = 1;
 }
 //----------------------------------------
+message UserWtfBatchRequest {
+  repeated string user_ids = 1;
+}
+
+message UserWtfBatchResponseItem {
+  string user_id = 1;
+  double wtf_score = 2;
+}
+
+message UserWtfBatchResponse {
+  repeated UserWtfBatchResponseItem items = 1;
+}
+//----------------------------------------
 service UserService {
   rpc GetAllUserIDs(UserIDsRequest) returns (UserIDsResponse);
   rpc GetUserWtfScore(UserWtfRequest) returns (UserWtfResponse);
+  rpc GetUserWtfScoreBatch(UserWtfBatchRequest) returns (UserWtfBatchResponse);
 }

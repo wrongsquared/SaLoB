@@ -34,6 +34,11 @@ A Spring Boot 4.0.6 microservice (Java 25) for managing food establishments and 
 - All seeders use `@Transactional` to ensure ACID guarantees and manage lazy-loaded collections
 - Most relationships use `FetchType.LAZY` to avoid N+1 queries (important for `Eatery.foodEntries`)
 
+### Pricing Consensus Algorithm (Planned)
+- `FoodEntry` prices will be calculated using a trust-weighted consensus algorithm.
+- Relies on a User "WTF Score" (Weighted Trust Factor) retrieved via gRPC from the `user-service`.
+- Applies Lagrange multipliers to scale vote weights and concave decay to age-out old data.
+
 ## Critical Developer Workflows
 
 ### Local Development Setup
@@ -137,8 +142,8 @@ Testing
 
 ## Known Limitations & Future Work
 - Security config incomplete (OAuth2 commented out)
-- No REST controllers or gRPC services yet (API layer empty)
+- API controllers are actively being developed (e.g., `FoodEntryController` logic integration).
+- Need to implement gRPC `UserServiceGrpcClient` to batch-fetch WTF scores for confidence scoring.
 - MinIO/S3 integration configured but not wired
 - No complex geospatial queries (nearest-neighbor searches, within-radius)
 - Proto files not yet created despite gRPC plugin setup
-

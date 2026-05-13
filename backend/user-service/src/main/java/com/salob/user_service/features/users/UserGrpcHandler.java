@@ -2,7 +2,6 @@ package com.salob.user_service.features.users;
 
 import com.salob.proto.user.*;
 import io.grpc.stub.StreamObserver;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -39,6 +38,31 @@ public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error fetching WTF score for user: {}", e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void getUserWtfScoreBatch(UserWtfBatchRequest request, StreamObserver<UserWtfBatchResponse> responseObserver) {
+        try {
+            List<UUID> userIds = request.getUserIdsList().stream()
+                    .map(UUID::fromString)
+                    .toList();
+
+            List<UserWtfBatchResponseItem> wtfBatchResponseItems = userService.getUserWtfScoreBatch(userIds)
+                    .stream()
+                    .map(item ->
+                            UserWtfBatchResponseItem.newBuilder()
+                                    .setUserId(item.userId().toString())
+                                    .setWtfScore(item.wtfScore())
+                                    .build()
+                    ).toList();
+
+            UserWtfBatchResponse res = UserWtfBatchResponse.newBuilder().addAllItems(wtfBatchResponseItems).build();
+            responseObserver.onNext(res);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error fetching batch WTF scores: {}", e.getMessage());
             responseObserver.onError(e);
         }
     }
