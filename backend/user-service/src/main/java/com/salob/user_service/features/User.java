@@ -62,13 +62,13 @@ public class User {
     @Column(name = "provider_id") // Unique ID from Google/GitHub
     private String providerId;
 
-    @Column(name = "avatar_url")
-    private String avatarUrl;
+    @Column(name = "avatar_obj_key")
+    private String avatarObjKey;
 
     // WTF Stats
     @Builder.Default // Ensures Builder doesn't overwrite default values
     @Column(name = "wtf_score", nullable = false)
-    private double wtfScore = 0.0;
+    private double wtfScore = 50.0;
 
     @Builder.Default
     @Column(name = "total_submissions", nullable = false)

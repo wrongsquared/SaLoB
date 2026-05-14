@@ -1,16 +1,13 @@
-package com.salob.food_service.storage.minio;
+package com.salob.user_service.storage.minio;
 
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.StatObjectArgs;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import io.minio.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Slf4j
 @Component
@@ -24,12 +21,12 @@ public class MinioStorageService {
         try (InputStream inputStream = Files.newInputStream(imagePath)) {
             long size = Files.size(imagePath);
             minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(properties.getBucket())
-                    .object(objectKey)
-                    .stream(inputStream, size, (long) -1)
-                    .contentType("image/jpeg")
-                    .build()
+                    PutObjectArgs.builder()
+                            .bucket(properties.getBucket())
+                            .object(objectKey)
+                            .stream(inputStream, size, (long) -1)
+                            .contentType("image/jpeg")
+                            .build()
             );
             return objectKey;
         } catch (Exception e) {
@@ -42,10 +39,10 @@ public class MinioStorageService {
         createBucketIfNotExists(properties.getBucket());
         try {
             minioClient.statObject(
-                StatObjectArgs.builder()
-                    .bucket(properties.getBucket())
-                    .object(objectKey)
-                    .build()
+                    StatObjectArgs.builder()
+                            .bucket(properties.getBucket())
+                            .object(objectKey)
+                            .build()
             );
             return true;
         } catch (Exception e) {
@@ -56,11 +53,11 @@ public class MinioStorageService {
     private void createBucketIfNotExists(String bucket) {
         try {
             boolean exists = minioClient.bucketExists(
-                BucketExistsArgs.builder().bucket(bucket).build()
+                    BucketExistsArgs.builder().bucket(bucket).build()
             );
             if (!exists) {
                 minioClient.makeBucket(
-                    MakeBucketArgs.builder().bucket(bucket).build()
+                        MakeBucketArgs.builder().bucket(bucket).build()
                 );
             }
         } catch (Exception e) {

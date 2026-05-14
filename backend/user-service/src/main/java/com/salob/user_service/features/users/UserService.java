@@ -27,7 +27,7 @@ public class UserService {
                         .email(user.getEmail())
                         .username(user.getUsername())
                         .role(user.getRole())
-                        .avatarUrl(user.getAvatarUrl())
+                        .avatarUrl(user.getAvatarObjKey())
                         .build())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
