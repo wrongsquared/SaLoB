@@ -11,14 +11,16 @@ import java.util.UUID;
 
 import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
-import com.salob.food_service.features.eatery.dto.FoodEntryPreviewDTO;
+import com.salob.food_service.features.food.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
 import com.salob.food_service.features.food.domain.FoodEntry;
+import com.salob.food_service.storage.minio.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 /**
  * Service layer for eatery business logic.
  *
@@ -37,6 +39,7 @@ import org.springframework.stereotype.Service;
 public class EateryService {
     private final EateryRepository eateryRepo;
     private final ConfidenceAlgorithm confidenceAlgorithm;
+    private final MinioStorageService minioStorageService;
 
     public Eatery findById(UUID id) {
         return eateryRepo.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
@@ -131,7 +134,14 @@ public class EateryService {
                         foodName,
                         foodEntry.getSgCents(),
                         foodEntry.getUpvoteCount(),
-                        foodEntry.getDownvoteCount()
+                        foodEntry.getDownvoteCount(),
+                        minioStorageService.getPresignedUrl(
+                            foodEntry.getFood().getPhotoObjKey(),
+                            Duration.ofMinutes(30)
+                        ),
+                        foodEntry.getSubmitterId(),
+                        null,
+                        foodEntry.getCreatedAt()
                     )
                 );
             }
@@ -143,7 +153,10 @@ public class EateryService {
                 eatery.getName(),
                 eatery.getAddress(),
                 eatery.getType().getLabel(),
-                eatery.getPhotoObjKey(),
+                minioStorageService.getPresignedUrl(
+                    eatery.getPhotoObjKey(),
+                    Duration.ofMinutes(30)
+                ),
                 foodPreviews
         );
     }
@@ -154,13 +167,13 @@ public class EateryService {
      * The repository returns Object[] because of the native SQL query.
      * We need to manually map columns to the DTO record.
      *
-     * @param row raw database result (e.g., [eateryId, name, lat, lon, typeLabel, isClosed])
+     * @param row raw database result (e.g., [eateryId, foodName, lat, lon, typeLabel, isClosed])
      * @return strongly-typed DTO
      */
     private EateryPreviewDTO mapRowToDto(Object[] row) {
         return new EateryPreviewDTO(
             (UUID) row[0],           // eateryId
-            (String) row[1],         // name
+            (String) row[1],         // foodName
             ((Number) row[2]).doubleValue(),  // latitude (ST_Y as Double)
             ((Number) row[3]).doubleValue(),  // longitude (ST_X as Double)
             (String) row[4]         // typeLabel

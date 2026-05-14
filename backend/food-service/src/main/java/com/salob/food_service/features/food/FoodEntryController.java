@@ -1,7 +1,7 @@
 package com.salob.food_service.features.food;
 
 import com.salob.food_service.common.Utils;
-import com.salob.food_service.features.eatery.dto.FoodEntryHistoricalDTO;
+import com.salob.food_service.features.food.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

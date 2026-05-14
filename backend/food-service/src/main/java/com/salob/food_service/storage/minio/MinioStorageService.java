@@ -1,6 +1,8 @@
 package com.salob.food_service.storage.minio;
 
 import io.minio.BucketExistsArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.Http.Method;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -8,6 +10,7 @@ import io.minio.StatObjectArgs;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -50,6 +53,26 @@ public class MinioStorageService {
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    public String getPresignedUrl(String objectKey, Duration expiry) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return null;
+        }
+        createBucketIfNotExists(properties.getBucket());
+        try {
+            return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(properties.getBucket())
+                    .object(objectKey)
+                    .expiry((int) expiry.toSeconds())
+                    .build()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create presigned URL for {}: {}", objectKey, e.getMessage());
+            return null;
         }
     }
 
