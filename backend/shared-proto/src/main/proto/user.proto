@@ -32,8 +32,21 @@ message UserWtfBatchResponse {
   repeated UserWtfBatchResponseItem items = 1;
 }
 //----------------------------------------
+message UserDetailsRequest {
+  string user_id = 1;
+}
+
+message UserDetailsResponse {
+  string user_id = 1;
+  string username = 2;
+  string photo_url = 3;
+  double wtf_score = 4;
+  int32 tenure_days = 5;
+}
+//----------------------------------------
 service UserService {
   rpc GetAllUserIDs(UserIDsRequest) returns (UserIDsResponse);
   rpc GetUserWtfScore(UserWtfRequest) returns (UserWtfResponse);
   rpc GetUserWtfScoreBatch(UserWtfBatchRequest) returns (UserWtfBatchResponse);
+  rpc GetUserDetails(UserDetailsRequest) returns (UserDetailsResponse);
 }

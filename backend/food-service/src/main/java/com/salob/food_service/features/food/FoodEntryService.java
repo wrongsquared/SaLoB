@@ -1,11 +1,16 @@
 package com.salob.food_service.features.food;
 
 import com.salob.food_service.common.ConfidenceAlgorithm;
+import com.salob.food_service.features.food.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.features.food.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.features.food.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.features.food.domain.FoodEntry;
 import com.salob.food_service.storage.minio.MinioStorageService;
+import com.salob.proto.user.UserDetailsRequest;
+import com.salob.proto.user.UserDetailsResponse;
+import com.salob.proto.user.UserServiceGrpc;
 import lombok.RequiredArgsConstructor;
+import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -25,6 +30,9 @@ public class FoodEntryService {
     private final ConfidenceAlgorithm confidenceAlgo;
     private final MinioStorageService minioStorageService;
 
+    @GrpcClient("user-service")
+    private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
+
     /**
      * Given a 'foodEntryId', find all the other food entries of the same "food" from the same "eatery",
      * and then aggregate their price points.
@@ -33,7 +41,7 @@ public class FoodEntryService {
         FoodEntry targetEntry = foodEntryRepo.findById(foodEntryId)
                 .orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-        // Fetch all 'price points' (a price at a point in time) for the same food from the same eatery, created after startDate
+        // Fetch all the same food from the same eatery as 'targetEntry', created after startDate
         List<FoodEntry> allEntriesOfSameFoodAndEatery = foodEntryRepo.findByFood_IdAndEatery_Id(
                 targetEntry.getFood().getId(),
                 targetEntry.getEatery().getId()
@@ -41,7 +49,7 @@ public class FoodEntryService {
                 .filter(entry -> entry.getCreatedAt().isAfter(startDate) || entry.getCreatedAt().equals(startDate))
                 .toList();
 
-        // Calculate confidence for each entry and find the best
+        // Calculate confidence for each entry and find the best (and concurrently, save the dates that there ARE entries)
         int consensusPrice = -1;
         double bestConfidence = -1.0;
         FoodEntry consensusEntry = null;
@@ -62,7 +70,9 @@ public class FoodEntryService {
             }
         }
 
+        // Collect all the entries from the date where the 'consensus entry' was created
         List<FoodEntryPreviewDTO> benchmarkDateEntries = new ArrayList<>();
+        FoodEntryDetailedDTO consensusEntryDetails = null;
         if (consensusEntry != null) {
             LocalDate consensusDate = consensusEntry.getCreatedAt()
                 .atZone(ZoneId.systemDefault())
@@ -93,6 +103,7 @@ public class FoodEntryService {
                     )
                 );
             }
+            consensusEntryDetails = toDetailed(consensusEntry);
         }
 
         // Return all the 'price points', with additional info for the point with the 'consensus price'
@@ -103,6 +114,41 @@ public class FoodEntryService {
                 .eateryAddress(targetEntry.getEatery().getAddress())
                 .availableDates(new ArrayList<>(availableDates))
                 .benchmarkDateEntries(benchmarkDateEntries)
+                .consensusEntry(consensusEntryDetails)
                 .build();
+    }
+
+    public FoodEntryDetailedDTO getFoodEntryDetailed(UUID foodEntryId) {
+        FoodEntry entry = foodEntryRepo.findById(foodEntryId)
+            .orElseThrow(() -> new RuntimeException("FoodEntry not found"));
+        return toDetailed(entry);
+    }
+
+    private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {
+        UUID submitterId = entry.getSubmitterId();
+        long entriesSubmitted = submitterId == null ? 0L : foodEntryRepo.countBySubmitterId(submitterId);
+
+        String foodPhotoPresignedUrl = minioStorageService.getPresignedUrl(
+            entry.getFood().getPhotoObjKey(),
+            Duration.ofMinutes(30)
+        );
+
+        assert submitterId != null;
+        var userDetailsRequest = UserDetailsRequest.newBuilder()
+            .setUserId(submitterId.toString())
+            .build();
+        UserDetailsResponse userDetailsResponse = userServiceStub.getUserDetails(userDetailsRequest);
+
+        return FoodEntryDetailedDTO.builder()
+            .foodEntryId(entry.getId())
+            .foodPhotoPresignedUrl(foodPhotoPresignedUrl)
+            .submittedAt(entry.getCreatedAt())
+            .submitterId(submitterId)
+            .submitterUsername(userDetailsResponse.getUsername())
+            .submitterProfilePhotoPresignedUrl(userDetailsResponse.getPhotoUrl())
+            .submitterWtfScore(userDetailsResponse.getWtfScore())
+            .submitterTenureDays(userDetailsResponse.getTenureDays())
+            .submitterEntriesSubmitted(entriesSubmitted)
+            .build();
     }
 }

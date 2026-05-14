@@ -21,5 +21,6 @@ public record FoodEntryHistoricalDTO(
     UUID eateryId,
     String eateryAddress,
     List<LocalDate> availableDates,
-    List<FoodEntryPreviewDTO> benchmarkDateEntries
+    List<FoodEntryPreviewDTO> benchmarkDateEntries,
+    FoodEntryDetailedDTO consensusEntry
 ) {}

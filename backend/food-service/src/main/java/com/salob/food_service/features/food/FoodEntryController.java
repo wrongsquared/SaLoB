@@ -1,6 +1,7 @@
 package com.salob.food_service.features.food;
 
 import com.salob.food_service.common.Utils;
+import com.salob.food_service.features.food.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.features.food.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.features.eatery.helpers.RateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,5 +48,19 @@ public class FoodEntryController {
 
         FoodEntryHistoricalDTO foodEntryDetailed = foodEntryService.getFoodEntryHistoricalData(foodEntryId, clampedStartDate);
         return ResponseEntity.ok(foodEntryDetailed);
+    }
+
+    @GetMapping("/{foodEntryId}/details")
+    public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(
+            @PathVariable UUID foodEntryId,
+            HttpServletRequest request
+    ) {
+        String clientIP = Utils.getClientIp(request);
+        if (!rateLimiter.isRequestAllowed(clientIP)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+
+        FoodEntryDetailedDTO details = foodEntryService.getFoodEntryDetailed(foodEntryId);
+        return ResponseEntity.ok(details);
     }
 }

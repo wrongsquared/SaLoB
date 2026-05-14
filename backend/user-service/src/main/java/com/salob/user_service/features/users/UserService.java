@@ -16,6 +16,11 @@ import java.util.UUID;
 public class UserService {
     private final UserRepository userRepo;
 
+    public User findById(UUID id) {
+        return userRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
     public List<UUID> getAllUserIDs() {
         return userRepo.findAll().stream().map(User::getId).toList();
     }

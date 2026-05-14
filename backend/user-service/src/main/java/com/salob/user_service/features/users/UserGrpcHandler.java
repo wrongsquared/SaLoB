@@ -1,11 +1,15 @@
 package com.salob.user_service.features.users;
 
 import com.salob.proto.user.*;
+import com.salob.user_service.features.User;
+import com.salob.user_service.storage.minio.MinioStorageService;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
     private final UserService userService;
+    private final MinioStorageService minioStorageService;
 
     @Override
     public void getAllUserIDs(UserIDsRequest request, StreamObserver<UserIDsResponse> responseObserver) {
@@ -66,6 +71,47 @@ public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
             responseObserver.onError(e);
         }
     }
+
+    @Override
+    public void getUserDetails(UserDetailsRequest request, StreamObserver<UserDetailsResponse> responseObserver) {
+        try {
+            UUID userId = UUID.fromString(request.getUserId());
+            User user = userService.findById(userId);
+            String photoUrl = minioStorageService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(30));
+            long tenureDays = (Duration.between(user.getCreatedAt(), Instant.now())).toDays();
+
+            UserDetailsResponse response = UserDetailsResponse.newBuilder()
+                    .setUserId(request.getUserId())
+                    .setUsername(user.getUsername())
+                    .setPhotoUrl(photoUrl)
+                    .setWtfScore(user.getWtfScore())
+                    .setTenureDays((int)tenureDays)
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error fetching user details: {}", e.getMessage());
+            responseObserver.onError(e);
+        }
+    }
+
+    //    @Override
+//    public void getUserDetai
+//        try {
+//            UUID userId = UUID.fromString(request.getUserId());
+//            User user = userService.findById(userId);
+//            String objKey = user.getAvatarObjKey();
+//            String photoUrl = objKey.trim().isEmpty() ? "" : minioStorageService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(30));
+//
+//            var response = UserPhotoUrlResponse.newBuilder().setPhotoUrl(photoUrl).build();
+//            responseObserver.onNext(response);
+//            responseObserver.onCompleted();
+//        } catch (Exception e) {
+//            log.error("Error fetching user photo URL: {}", e.getMessage());
+//            responseObserver.onError(e);
+//        }
+//    }
 
     //    @PostConstruct
 //    public void init() {

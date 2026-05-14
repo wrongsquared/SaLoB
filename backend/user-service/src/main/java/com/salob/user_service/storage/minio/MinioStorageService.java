@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 
 @Slf4j
 @Component
@@ -47,6 +48,26 @@ public class MinioStorageService {
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    public String getPresignedUrl(String objectKey, Duration expiry) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return null;
+        }
+        createBucketIfNotExists(properties.getBucket());
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Http.Method.GET)
+                            .bucket(properties.getBucket())
+                            .object(objectKey)
+                            .expiry((int) expiry.toSeconds())
+                            .build()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create presigned URL for {}: {}", objectKey, e.getMessage());
+            return null;
         }
     }
 
