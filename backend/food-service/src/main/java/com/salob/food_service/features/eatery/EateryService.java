@@ -2,14 +2,15 @@ package com.salob.food_service.features.eatery;
 
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.features.eatery.domain.Eatery;
-import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
-import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.salob.food_service.features.eatery.dto.EateryDetailedDTO;
+import com.salob.food_service.features.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.features.eatery.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
 import com.salob.food_service.features.food.domain.FoodEntry;

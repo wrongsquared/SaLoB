@@ -21,6 +21,9 @@ public class Food extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String label; // e.g., "Chicken Rice"
 
+    @Column(name = "photo_obj_key")
+    private String photoObjKey = "";
+
     @Builder.Default
     @OneToMany(mappedBy = "food", fetch = FetchType.LAZY)
     private List<FoodEntry> foodEntries = new ArrayList<>();

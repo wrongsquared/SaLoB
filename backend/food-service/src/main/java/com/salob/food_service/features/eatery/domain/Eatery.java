@@ -42,9 +42,8 @@ public class Eatery extends BaseEntity {
     @Column(name = "is_open", nullable = false)
     private boolean isOpen = true;
 
-    @Builder.Default
     @Column(name = "photo_obj_key")
-    private String photoObjKey = "";
+    private String photoObjKey;
 
     @Builder.Default
     @OneToMany(mappedBy = "eatery", cascade = CascadeType.ALL, orphanRemoval = true)

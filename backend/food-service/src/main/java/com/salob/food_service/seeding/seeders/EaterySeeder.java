@@ -8,6 +8,9 @@ import java.util.stream.Collectors;
 import com.salob.food_service.features.eatery.EateryRepository;
 import com.salob.food_service.features.eatery.domain.Eatery;
 import com.salob.food_service.features.eatery.domain.EateryType;
+import com.salob.food_service.seeding.SeedImageHelper;
+import com.salob.food_service.storage.minio.MinioStorageService;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -21,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class EaterySeeder {
     private record EaterySeedSpec(String name, String address, String typeLabel, double lat, double lon) {}
 
-    private final EateryRepository eateryRepository;
+    private final EateryRepository eateryRepo;
+    private final SeedImageHelper seedImageHelper;
+    private final MinioStorageService minioStorageService;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     @Transactional
@@ -124,11 +129,11 @@ public class EaterySeeder {
         );
         eateries.forEach(spec -> seedEateryIfMissing(spec, typesByLabel, new Random()));
 
-        return eateryRepository.findAll();
+        return eateryRepo.findAll();
     }
 
     private void seedEateryIfMissing(EaterySeedSpec spec, Map<String, EateryType> typesByLabel, Random random) {
-        if (eateryRepository.existsByName(spec.name())) {
+        if (eateryRepo.existsByName(spec.name())) {
             return;
         }
 
@@ -137,13 +142,39 @@ public class EaterySeeder {
             throw new IllegalStateException("Missing eatery type: " + spec.typeLabel());
         }
 
+        String fileName = seedImageHelper.toJpgFileName(spec.name());
+        String objectKey = seedImageHelper.toObjectKey(SeedImageHelper.EATERY_PREFIX, fileName);
+        Path diskPath = seedImageHelper.toDiskPath(SeedImageHelper.EATERY_PREFIX, fileName);
+
+        if (!minioStorageService.objectExists(objectKey)) {
+            if (!seedImageHelper.isImageOnDisk(diskPath)) {
+                throw new IllegalStateException(
+                    "Missing eatery seed image at " + diskPath +
+                    ". Run scripts/seed_images.py --type eatery to generate images."
+                );
+            }
+
+            String uploadedKey = minioStorageService.uploadImage(diskPath, objectKey);
+            if (uploadedKey == null) {
+                throw new IllegalStateException(
+                    "Failed to upload eatery seed image to MinIO: " + diskPath
+                );
+            }
+            objectKey = uploadedKey;
+        }
+
+        saveEatery(spec, type, random, objectKey);
+    }
+
+    private void saveEatery(EaterySeedSpec spec, EateryType type, Random random, String objectKey) {
         boolean isOpen = random.nextDouble() < 0.8; // 80% chance the eatery is open
-        eateryRepository.save(
+        eateryRepo.save(
             Eatery.builder()
                     .name(spec.name())
                     .type(type)
                     .address(spec.address())
                     .isOpen(isOpen)
+                    .photoObjKey(objectKey)
                     .location(geometryFactory.createPoint(new Coordinate(spec.lon, spec.lat)))
                     .build()
         );

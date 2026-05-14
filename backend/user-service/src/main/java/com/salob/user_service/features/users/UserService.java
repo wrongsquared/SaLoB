@@ -38,8 +38,6 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
 
-
-
     public List<WtfScoreItem> getUserWtfScoreBatch(List<UUID> userIds) {
         return userRepo.findAllById(userIds)
                 .stream()
