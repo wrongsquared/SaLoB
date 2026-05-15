@@ -1,9 +1,9 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.features.food.FoodEntryRepository;
-import com.salob.food_service.features.eatery.domain.Eatery;
-import com.salob.food_service.features.food.domain.Food;
-import com.salob.food_service.features.food.domain.FoodEntry;
+import com.salob.food_service.api.food_entry.FoodEntryRepository;
+import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api._domain.Food;
+import com.salob.food_service.api._domain.FoodEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

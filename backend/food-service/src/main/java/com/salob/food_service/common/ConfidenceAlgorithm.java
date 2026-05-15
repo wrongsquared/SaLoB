@@ -1,7 +1,7 @@
 package com.salob.food_service.common;
 
-import com.salob.food_service.features.food.domain.FoodEntry;
-import com.salob.food_service.features.food.domain.FoodEntryVote;
+import com.salob.food_service.api._domain.FoodEntry;
+import com.salob.food_service.api._domain.FoodEntryVote;
 import com.salob.proto.user.UserServiceGrpc;
 import com.salob.proto.user.UserWtfRequest;
 import com.salob.proto.user.UserWtfResponse;

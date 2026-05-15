@@ -1,14 +1,14 @@
 package com.salob.food_service.seeding;
 
-import com.salob.food_service.features.eatery.EateryRepository;
-import com.salob.food_service.features.eatery.EateryTypeRepository;
-import com.salob.food_service.features.food.FoodEntryRepository;
-import com.salob.food_service.features.food.FoodEntryVoteRepository;
-import com.salob.food_service.features.food.FoodRepository;
-import com.salob.food_service.features.eatery.domain.Eatery;
-import com.salob.food_service.features.eatery.domain.EateryType;
-import com.salob.food_service.features.food.domain.Food;
-import com.salob.food_service.features.food.domain.FoodEntry;
+import com.salob.food_service.api.eatery.EateryRepository;
+import com.salob.food_service.api.eatery_type.EateryTypeRepository;
+import com.salob.food_service.api.food_entry.FoodEntryRepository;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api.food.FoodRepository;
+import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api._domain.EateryType;
+import com.salob.food_service.api._domain.Food;
+import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.seeding.seeders.EaterySeeder;
 import com.salob.food_service.seeding.seeders.EateryTypeSeeder;
 import com.salob.food_service.seeding.seeders.FoodEntrySeeder;

@@ -5,9 +5,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import com.salob.food_service.features.eatery.EateryRepository;
-import com.salob.food_service.features.eatery.domain.Eatery;
-import com.salob.food_service.features.eatery.domain.EateryType;
+import com.salob.food_service.api.eatery.EateryRepository;
+import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api._domain.EateryType;
 import com.salob.food_service.seeding.SeedImageHelper;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import java.nio.file.Path;

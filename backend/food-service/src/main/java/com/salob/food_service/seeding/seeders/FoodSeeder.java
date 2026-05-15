@@ -1,7 +1,7 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.features.food.FoodRepository;
-import com.salob.food_service.features.food.domain.Food;
+import com.salob.food_service.api.food.FoodRepository;
+import com.salob.food_service.api._domain.Food;
 import com.salob.food_service.seeding.SeedImageHelper;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import java.nio.file.Path;

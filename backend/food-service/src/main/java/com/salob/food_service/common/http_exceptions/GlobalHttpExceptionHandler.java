@@ -1,6 +1,6 @@
 package com.salob.food_service.common.http_exceptions;
 
-import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
+import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

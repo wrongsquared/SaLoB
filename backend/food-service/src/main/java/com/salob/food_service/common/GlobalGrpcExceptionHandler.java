@@ -1,6 +1,6 @@
 package com.salob.food_service.common;
 
-import com.salob.food_service.features.eatery.exceptions.EateryNotFoundException;
+import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import io.grpc.Status;
 import net.devh.boot.grpc.server.advice.GrpcAdvice;
 import net.devh.boot.grpc.server.advice.GrpcExceptionHandler;

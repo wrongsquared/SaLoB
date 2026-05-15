@@ -1,8 +1,8 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.features.food.FoodEntryVoteRepository;
-import com.salob.food_service.features.food.domain.FoodEntry;
-import com.salob.food_service.features.food.domain.FoodEntryVote;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api._domain.FoodEntry;
+import com.salob.food_service.api._domain.FoodEntryVote;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;

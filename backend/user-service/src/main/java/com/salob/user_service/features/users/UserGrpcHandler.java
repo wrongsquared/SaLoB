@@ -96,23 +96,6 @@ public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
         }
     }
 
-    //    @Override
-//    public void getUserDetai
-//        try {
-//            UUID userId = UUID.fromString(request.getUserId());
-//            User user = userService.findById(userId);
-//            String objKey = user.getAvatarObjKey();
-//            String photoUrl = objKey.trim().isEmpty() ? "" : minioStorageService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(30));
-//
-//            var response = UserPhotoUrlResponse.newBuilder().setPhotoUrl(photoUrl).build();
-//            responseObserver.onNext(response);
-//            responseObserver.onCompleted();
-//        } catch (Exception e) {
-//            log.error("Error fetching user photo URL: {}", e.getMessage());
-//            responseObserver.onError(e);
-//        }
-//    }
-
     //    @PostConstruct
 //    public void init() {
 //        System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
