@@ -13,6 +13,14 @@ import org.springframework.stereotype.Repository;
 public interface EateryRepository extends JpaRepository<Eatery, UUID> {
     boolean existsByName(String name);
 
+    @Query(value = """
+        SELECT e.id, e.name, e.address
+        FROM eateries e
+        WHERE e.name ILIKE %:search% OR e.address ILIKE %:search%
+        LIMIT 20 -- Hardcoded limit
+        """, nativeQuery = true)
+    List<Object[]> findBySearchCaseInsensitive(String search);
+
     /**
      * Find all eateries within a geographic bounding box.
      *
@@ -30,9 +38,8 @@ public interface EateryRepository extends JpaRepository<Eatery, UUID> {
      * @param maxLon eastern boundary (example: 103.86)
      * @return lightweight DTOs suitable for map rendering
      */
-    @Query(
-        value = """
-         SELECT
+    @Query(value = """
+        SELECT
           e.id,
           e.name,
           ST_Y(e.location) as latitude,
@@ -46,8 +53,7 @@ public interface EateryRepository extends JpaRepository<Eatery, UUID> {
         )
         AND e.is_open = TRUE
         ORDER BY e.name
-            """,
-        nativeQuery = true
+        """, nativeQuery = true
     )
     List<Object[]> findWithinBoundingBox(
         @Param("minLat") double minLat,

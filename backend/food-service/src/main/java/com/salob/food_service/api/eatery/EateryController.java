@@ -1,8 +1,9 @@
 package com.salob.food_service.api.eatery;
 
+import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.common.Utils;
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
-import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api._helpers.RateLimiter;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +43,7 @@ public class EateryController {
      * Example: /api/eateries/within-bounds?minLat=1.27&maxLat=1.32&minLon=103.80&maxLon=103.86
      */
     @GetMapping("/within-bounds")
-    public ResponseEntity<List<EateryPreviewDTO>> getEateriesWithinBounds(
+    public ResponseEntity<List<EateryMapDTO>> getEateriesWithinBounds(
             @RequestParam double minLat,
             @RequestParam double maxLat,
             @RequestParam double minLon,
@@ -58,7 +59,7 @@ public class EateryController {
             return ResponseEntity.badRequest().build();
         }
 
-        List<EateryPreviewDTO> eateries = eateryService.findEateriesWithinBounds(minLat, maxLat, minLon, maxLon);
+        List<EateryMapDTO> eateries = eateryService.findEateriesWithinBounds(minLat, maxLat, minLon, maxLon);
         return ResponseEntity.ok(eateries);
     }
 
@@ -74,5 +75,13 @@ public class EateryController {
         return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<EateryPreviewDTO>> searchForEateries(@RequestParam String search) {
+        List<EateryPreviewDTO> results = eateryService.searchForEateries(search);
+        if (results.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(results);
+    }
 }
 

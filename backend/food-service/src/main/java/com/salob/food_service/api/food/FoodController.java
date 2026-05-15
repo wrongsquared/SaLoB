@@ -16,7 +16,7 @@ public class FoodController {
     private final FoodService foodService;
 
     @RequestMapping("/search")
-    public ResponseEntity<List<FoodSearchPreview>> searchForFood(@RequestParam("search") String search) {
+    public ResponseEntity<List<FoodSearchPreview>> searchForFood(@RequestParam String search) {
         return ResponseEntity.ok(foodService.searchForFood(search));
     }
 }

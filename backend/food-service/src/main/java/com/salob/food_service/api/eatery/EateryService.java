@@ -1,5 +1,6 @@
 package com.salob.food_service.api.eatery;
 
+import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api._domain.Eatery;
 
@@ -10,7 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
-import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import com.salob.food_service.api._domain.FoodEntry;
@@ -21,6 +22,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.stream.Collectors;
+
 /**
  * Service layer for eatery business logic.
  *
@@ -73,7 +76,7 @@ public class EateryService {
         value = "eateries_bbox",
         keyGenerator = "bboxKeyGenerator"
     )
-    public List<EateryPreviewDTO> findEateriesWithinBounds(
+    public List<EateryMapDTO> findEateriesWithinBounds(
             double minLat,
             double maxLat,
             double minLon,
@@ -91,7 +94,7 @@ public class EateryService {
 
             // IMPORTANT: Use ArrayList (mutable), NOT .toList() (ImmutableCollections$ListN)
             // Jackson can deserialize ArrayList but NOT internal immutable list types
-            List<EateryPreviewDTO> result = new ArrayList<>();
+            List<EateryMapDTO> result = new ArrayList<>();
             for (Object[] row : rows) {
                 result.add(mapRowToDto(row));
             }
@@ -161,6 +164,14 @@ public class EateryService {
         );
     }
 
+    // TODO: In the future, will reach for the OneMap API
+    @Cacheable(key = "#search.toLowerCase()", value = "eateries_search")
+    public List<EateryPreviewDTO> searchForEateries(String search) {
+        return eateryRepo.findBySearchCaseInsensitive(search).stream()
+                .map(this::mapRowToPreviewDTO)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
     /**
      * Convert a database query result row into a DTO.
      *
@@ -170,13 +181,21 @@ public class EateryService {
      * @param row raw database result (e.g., [eateryId, foodName, lat, lon, typeLabel, isClosed])
      * @return strongly-typed DTO
      */
-    private EateryPreviewDTO mapRowToDto(Object[] row) {
+    private EateryMapDTO mapRowToDto(Object[] row) {
+        return new EateryMapDTO(
+                (UUID) row[0],           // eateryId
+                (String) row[1],         // foodName
+                ((Number) row[2]).doubleValue(),  // latitude (ST_Y as Double)
+                ((Number) row[3]).doubleValue(),  // longitude (ST_X as Double)
+                (String) row[4]         // typeLabel
+        );
+    }
+
+    private EateryPreviewDTO mapRowToPreviewDTO(Object[] row) {
         return new EateryPreviewDTO(
-            (UUID) row[0],           // eateryId
-            (String) row[1],         // foodName
-            ((Number) row[2]).doubleValue(),  // latitude (ST_Y as Double)
-            ((Number) row[3]).doubleValue(),  // longitude (ST_X as Double)
-            (String) row[4]         // typeLabel
+                (UUID) row[0],
+                (String) row[1],
+                (String) row[2]
         );
     }
 }
