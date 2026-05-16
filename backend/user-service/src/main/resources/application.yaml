@@ -43,6 +43,7 @@ grpc:
 server:
   port: ${APP_PORT}
 jwt:
-  secret: ${JWT_SECRET}
-  exp-seconds: ${JWT_EXPIRATION_SECONDS}
+  key-alias: ${JWT_KEY_ALIAS}
+  keystore-password: ${JWT_KEYSTORE_PASSWORD}
+  expiration-seconds: ${JWT_EXPIRATION_SECONDS}
 debug: true

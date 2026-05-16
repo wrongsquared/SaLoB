@@ -8,9 +8,12 @@ import com.salob.food_service.api._helpers.RateLimiter;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -20,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * This controller handles HTTP requests for eatery data, particularly
  * geospatial queries for map interfaces.
  */
+@Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/eateries")
@@ -44,10 +48,10 @@ public class EateryController {
      */
     @GetMapping("/within-bounds")
     public ResponseEntity<List<EateryMapDTO>> getEateriesWithinBounds(
-            @RequestParam double minLat,
-            @RequestParam double maxLat,
-            @RequestParam double minLon,
-            @RequestParam double maxLon,
+            @Valid @RequestParam double minLat,
+            @Valid @RequestParam double maxLat,
+            @Valid @RequestParam double minLon,
+            @Valid @RequestParam double maxLon,
             HttpServletRequest request
     ) {
         String clientIp = Utils.getClientIp(request);
@@ -67,7 +71,7 @@ public class EateryController {
      * Example: /api/eateries/fg233ae7-a797-48b8-b6ee-c0ecc4a983e8
      */
     @GetMapping("/{eateryId}")
-    public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@PathVariable UUID eateryId, HttpServletRequest request) {
+    public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@Valid @PathVariable UUID eateryId, HttpServletRequest request) {
         String clientIP = Utils.getClientIp(request);
         if (!rateLimiter.isRequestAllowed(clientIP)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
@@ -75,8 +79,15 @@ public class EateryController {
         return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
 
+
+    /**
+     * Example: /api/eateries/search?search=bedok
+     */
     @GetMapping("/search")
-    public ResponseEntity<List<EateryPreviewDTO>> searchForEateries(@RequestParam String search) {
+    public ResponseEntity<List<EateryPreviewDTO>> searchForEateries(
+            @Valid @RequestParam
+            String search
+    ) {
         List<EateryPreviewDTO> results = eateryService.searchForEateries(search);
         if (results.isEmpty()) {
             return ResponseEntity.noContent().build();

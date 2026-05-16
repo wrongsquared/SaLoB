@@ -1,0 +1,56 @@
+package com.salob.user_service.api.users;
+
+import com.salob.user_service.api._domain.Role;
+import com.salob.user_service.api._domain.User;
+import com.salob.user_service.api.users.dto.MeResponse;
+import com.salob.user_service.api.users.dto.WtfScoreItem;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepo;
+
+    public User findById(UUID id) {
+        return userRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    public List<UUID> getAllUserIDs() {
+        return userRepo.findAll().stream().map(User::getId).toList();
+    }
+
+    public MeResponse me(UUID id) {
+        return userRepo.findById(id)
+                .map(user -> MeResponse.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .username(user.getUsername())
+                        .roles(user.getRoles().stream()
+                                .map(Role::getLabel)
+                                .sorted()
+                                .toList())
+                        .avatarUrl(user.getAvatarObjKey())
+                        .build())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    public double getUserWtfScore(UUID userId) {
+        return userRepo.findById(userId)
+                .map(User::getWtfScore)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    public List<WtfScoreItem> getUserWtfScoreBatch(List<UUID> userIds) {
+        return userRepo.findAllById(userIds)
+                .stream()
+                .map(user -> new WtfScoreItem(user.getId(), user.getWtfScore()))
+                .toList();
+    }
+}

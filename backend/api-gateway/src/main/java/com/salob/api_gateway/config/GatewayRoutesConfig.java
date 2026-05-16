@@ -17,7 +17,7 @@ public class GatewayRoutesConfig {
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
                 .route("user-service-route", r -> r
-                        .path("/api/auth/**", "/api/users/**")
+                        .path("/api/auth/**", "/api/users/**", "/.well-known/**")
                         .uri(userServiceUri))
                 .route("food-service-route", r -> r
                         .path("/api/eateries/**", "/api/foods/**", "/api/food-entries/**")

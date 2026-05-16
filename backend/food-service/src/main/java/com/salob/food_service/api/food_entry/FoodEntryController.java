@@ -5,31 +5,30 @@ import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.api._helpers.RateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/food-entries")
 public class FoodEntryController {
+    
     private final FoodEntryService foodEntryService;
     private final RateLimiter rateLimiter;
 
-    @GetMapping("/ping")
-    public ResponseEntity<Void> ping() {
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping("/historical-data/{foodEntryId}")
     public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(
-            @PathVariable UUID foodEntryId,
-            @RequestParam Instant startDate,
+            @Valid @PathVariable UUID foodEntryId,
+            @Valid @RequestParam Instant startDate,
             HttpServletRequest request
     ) {
         String clientIP = Utils.getClientIp(request);
@@ -52,7 +51,7 @@ public class FoodEntryController {
 
     @GetMapping("/{foodEntryId}/details")
     public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(
-            @PathVariable UUID foodEntryId,
+            @Valid @PathVariable UUID foodEntryId,
             HttpServletRequest request
     ) {
         String clientIP = Utils.getClientIp(request);

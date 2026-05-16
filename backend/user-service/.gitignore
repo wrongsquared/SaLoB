@@ -36,6 +36,10 @@ out/
 ### VS Code ###
 .vscode/
 
-### Env ###
+### Custom ###
 .env
 !.env.example
+
+# Keystore files. Uncomment for a RealTM project and you want to ignore them
+#*.p12
+#*.jks
