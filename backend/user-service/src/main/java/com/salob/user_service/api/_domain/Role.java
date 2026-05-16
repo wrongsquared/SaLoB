@@ -32,7 +32,7 @@ public class Role {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "label", nullable = false, unique = true, length = 100)
+    @Column(name = "label", nullable = false, unique = true, length = 32)
     private String label;
 
     @Override

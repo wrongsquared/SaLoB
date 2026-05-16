@@ -4,11 +4,14 @@ import com.salob.user_service.api._domain.Role;
 import com.salob.user_service.api._domain.User;
 import com.salob.user_service.api.users.dto.MeResponse;
 import com.salob.user_service.api.users.dto.WtfScoreItem;
+import com.salob.user_service.storage.minio.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +19,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepo;
+    private final MinioStorageService minioService;
 
     public User findById(UUID id) {
         return userRepo.findById(id)
@@ -36,7 +40,7 @@ public class UserService {
                                 .map(Role::getLabel)
                                 .sorted()
                                 .toList())
-                        .avatarUrl(user.getAvatarObjKey())
+                        .avatarUrl(minioService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(15)))
                         .build())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }

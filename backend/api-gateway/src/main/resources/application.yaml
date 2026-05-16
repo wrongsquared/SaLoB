@@ -19,6 +19,11 @@ spring:
       httpclient:
         connect-timeout: 2000
         response-timeout: 5000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWK_SET_URI}
 server:
   port: ${APP_PORT}
 app:

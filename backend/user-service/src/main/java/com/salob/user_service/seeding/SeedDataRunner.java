@@ -46,8 +46,15 @@ public class SeedDataRunner implements CommandLineRunner {
         }
 
         log.info("Starting seeding process...");
+        seedRoles();
         seedUsers();
         log.info("Seeding complete");
+    }
+
+    private void seedRoles() {
+        for (UserRole userRole : UserRole.values()) {
+            getOrCreateRole(userRole.name());
+        }
     }
 
     private void seedUsers() {
