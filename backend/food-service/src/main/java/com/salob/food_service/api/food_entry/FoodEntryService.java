@@ -1,5 +1,10 @@
 package com.salob.food_service.api.food_entry;
 
+import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api._domain.Food;
+import com.salob.food_service.api.eatery.EateryRepository;
+import com.salob.food_service.api.food.FoodRepository;
+import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
@@ -27,8 +32,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FoodEntryService {
     private final FoodEntryRepository foodEntryRepo;
+    private final EateryRepository eateryRepo;
+    private final FoodRepository foodRepo;
+
     private final ConfidenceAlgorithm confidenceAlgo;
-    private final MinioStorageService minioStorageService;
+    private final MinioStorageService minioService;
 
     @GrpcClient("user-service")
     private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
@@ -88,7 +96,7 @@ public class FoodEntryService {
 
             for (FoodEntry entry : entriesOnConsensusDate) {
                 String photoObjKey = entry.getFood().getPhotoObjKey();
-                String presignedUrl = minioStorageService.getPresignedUrl(photoObjKey, Duration.ofMinutes(30));
+                String presignedUrl = minioService.getPresignedUrl(photoObjKey, Duration.ofMinutes(30));
                 benchmarkDateEntries.add(
                     new FoodEntryPreviewDTO(
                         entry.getId(),
@@ -124,11 +132,30 @@ public class FoodEntryService {
         return toDetailed(entry);
     }
 
+    public void submitFoodEntry(UUID submitterId, FoodEntrySubmissionRequest req) {
+        // Use references....no need to fetch the entire object
+        Eatery eateryRef = eateryRepo.getReferenceById(req.eateryId());
+        Food foodRef = foodRepo.getReferenceById(req.foodId());
+
+        // Build entity using the proxies
+        FoodEntry entry = FoodEntry.builder()
+                .food(foodRef)
+                .eatery(eateryRef)
+                .sgCents(req.priceSgCents())
+                .upvoteCount(0)
+                .downvoteCount(0)
+                .submitterId(submitterId)
+                .build();
+
+        // Triggers only a single INSERT query
+        foodEntryRepo.save(entry);
+    }
+
     private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {
         UUID submitterId = entry.getSubmitterId();
         long entriesSubmitted = submitterId == null ? 0L : foodEntryRepo.countBySubmitterId(submitterId);
 
-        String foodPhotoPresignedUrl = minioStorageService.getPresignedUrl(
+        String foodPhotoPresignedUrl = minioService.getPresignedUrl(
             entry.getFood().getPhotoObjKey(),
             Duration.ofMinutes(30)
         );

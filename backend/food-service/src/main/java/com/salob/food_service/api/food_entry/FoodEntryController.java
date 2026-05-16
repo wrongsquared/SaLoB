@@ -1,5 +1,6 @@
 package com.salob.food_service.api.food_entry;
 
+import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.common.Utils;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
@@ -21,7 +22,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/api/food-entries")
 public class FoodEntryController {
-    
     private final FoodEntryService foodEntryService;
     private final RateLimiter rateLimiter;
 
@@ -61,5 +61,14 @@ public class FoodEntryController {
 
         FoodEntryDetailedDTO details = foodEntryService.getFoodEntryDetailed(foodEntryId);
         return ResponseEntity.ok(details);
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<Void> submitFoodEntry(
+            @Valid @RequestHeader("X-User-Id") UUID id,
+            @Valid@RequestBody FoodEntrySubmissionRequest req
+    ) {
+        foodEntryService.submitFoodEntry(id, req);
+        return ResponseEntity.ok().build();
     }
 }

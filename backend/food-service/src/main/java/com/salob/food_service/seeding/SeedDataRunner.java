@@ -1,19 +1,14 @@
 package com.salob.food_service.seeding;
 
+import com.salob.food_service.api._domain.*;
 import com.salob.food_service.api.eatery.EateryRepository;
 import com.salob.food_service.api.eatery_type.EateryTypeRepository;
 import com.salob.food_service.api.food_entry.FoodEntryRepository;
+import com.salob.food_service.api.food_entry_flag.FoodEntryFlagRepository;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.api.food.FoodRepository;
-import com.salob.food_service.api._domain.Eatery;
-import com.salob.food_service.api._domain.EateryType;
-import com.salob.food_service.api._domain.Food;
-import com.salob.food_service.api._domain.FoodEntry;
-import com.salob.food_service.seeding.seeders.EaterySeeder;
-import com.salob.food_service.seeding.seeders.EateryTypeSeeder;
-import com.salob.food_service.seeding.seeders.FoodEntrySeeder;
-import com.salob.food_service.seeding.seeders.FoodEntryVoteSeeder;
-import com.salob.food_service.seeding.seeders.FoodSeeder;
+import com.salob.food_service.seeding.seeders.*;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -51,17 +46,25 @@ import org.springframework.stereotype.Component;
 public class SeedDataRunner implements CommandLineRunner {
     @GrpcClient("user-service")
     private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
-
+    //-------------------------------------------------------------
     private final EateryTypeSeeder eateryTypeSeeder;
+    private final EateryTypeRepository eateryTypeRepo;
+    //-------------------------------------------------------------
     private final EaterySeeder eaterySeeder;
+    private final EateryRepository eateryRepo;
+    //-------------------------------------------------------------
     private final FoodSeeder foodSeeder;
+    private final FoodRepository foodRepo;
+    //-------------------------------------------------------------
     private final FoodEntrySeeder foodEntrySeeder;
+    private final FoodEntryRepository foodEntryRepo;
+    //-------------------------------------------------------------
     private final FoodEntryVoteSeeder foodEntryVoteSeeder;
-    private final FoodEntryRepository foodEntryRepository;
-    private final EateryRepository eateryRepository;
-    private final FoodRepository foodRepository;
-    private final EateryTypeRepository eateryTypeRepository;
-    private final FoodEntryVoteRepository foodEntryVoteRepository;
+    private final FoodEntryVoteRepository foodEntryVoteRepo;
+    //-------------------------------------------------------------
+    private final FoodEntryFlagSeeder foodEntryFlagSeeder;
+    private final FoodEntryFlagRepository foodEntryFlagRepo;
+    //-------------------------------------------------------------
 
     @Override
     public void run(String... args) {
@@ -74,41 +77,49 @@ public class SeedDataRunner implements CommandLineRunner {
         List<Food> foods = foodSeeder.seed();
         List<FoodEntry> foodEntries = foodEntrySeeder.seed(userIDs, foods, eateries);
         foodEntryVoteSeeder.seed(userIDs, foodEntries);
+        foodEntryFlagSeeder.seed(userIDs, foodEntries);
 
         log.info("Seeding complete");
     }
 
     private void resetDatabase() {
         try {
-            foodEntryVoteRepository.deleteAllInBatch();
+            foodEntryFlagRepo.deleteAllInBatch();
+            log.debug("Deleted food entry flags");
+        } catch (Exception e) {
+            log.warn("Failed to delete food entry flags: {}", e.getMessage());
+        }
+
+        try {
+            foodEntryVoteRepo.deleteAllInBatch();
             log.debug("Deleted food entry votes");
         } catch (Exception e) {
             log.warn("Failed to delete food entry votes: {}", e.getMessage());
         }
 
         try {
-            foodEntryRepository.deleteAllInBatch();
+            foodEntryRepo.deleteAllInBatch();
             log.debug("Deleted food entries");
         } catch (Exception e) {
             log.warn("Failed to delete food entries: {}", e.getMessage());
         }
 
         try {
-            eateryRepository.deleteAllInBatch();
+            eateryRepo.deleteAllInBatch();
             log.debug("Deleted eateries");
         } catch (Exception e) {
             log.warn("Failed to delete eateries: {}", e.getMessage());
         }
 
         try {
-            foodRepository.deleteAllInBatch();
+            foodRepo.deleteAllInBatch();
             log.debug("Deleted foods");
         } catch (Exception e) {
             log.warn("Failed to delete foods: {}", e.getMessage());
         }
 
         try {
-            eateryTypeRepository.deleteAllInBatch();
+            eateryTypeRepo.deleteAllInBatch();
             log.debug("Deleted eatery types");
         } catch (Exception e) {
             log.warn("Failed to delete eatery types: {}", e.getMessage());

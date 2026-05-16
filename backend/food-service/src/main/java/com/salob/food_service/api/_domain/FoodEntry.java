@@ -9,11 +9,11 @@ import lombok.*;
 
 @Getter
 @Setter
-@Builder
 @Entity
-@Table(name = "food_entries")
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "food_entries")
 public class FoodEntry extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,7 +40,7 @@ public class FoodEntry extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "foodEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<FoodEntryMedia> media = new ArrayList<>();
+    private List<FoodEntryFlag> flags = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "foodEntry", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
