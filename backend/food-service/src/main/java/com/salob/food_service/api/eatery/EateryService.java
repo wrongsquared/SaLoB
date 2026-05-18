@@ -198,4 +198,32 @@ public class EateryService {
                 (String) row[2]
         );
     }
+
+    /**
+     * When fetching 'food entries' from an eatery, there will be multiple food entries of the same 'food'
+     * Naturally, you'd only want to see the "best" entry for each food (the one with the highest confidence score).
+     *
+     * It's very expensive operation, so this method would check the cache first
+     */
+//    @Cacheable(key = "#eateryId", value = "eatery_consensus_entries")
+//    private FoodEntry getConsensusEntriesForEatery(UUID eateryId) {
+//        log.info("===  CACHE MISS for consensus entries ===");
+//        Eatery eatery = findById(eateryId);
+//        FoodEntry consensusEntry = null;
+//        double highestConfidence = -1.0;
+//        for (FoodEntry entry : eatery.getFoodEntries()) {
+//            double confidence = getFoodEntryConfidence(entry);
+//            if (confidence > highestConfidence) {
+//                highestConfidence = confidence;
+//                consensusEntry = entry;
+//            }
+//        }
+//        return consensusEntry;
+//    }
+//
+//    @Cacheable(key = "#foodEntry.id", value = "food_entry_confidence")
+//    private double getFoodEntryConfidence(FoodEntry foodEntry) {
+//        log.info("=== CACHE MISS for food entry confidence ===");
+//        return confidenceAlgorithm.computeFinalConfidence(foodEntry);
+//    }
 }

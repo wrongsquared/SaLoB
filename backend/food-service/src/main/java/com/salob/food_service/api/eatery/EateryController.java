@@ -79,7 +79,6 @@ public class EateryController {
         return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
     }
 
-
     /**
      * Example: /api/eateries/search?search=bedok
      */
