@@ -47,7 +47,7 @@ export default function MapSection() {
   const { mode } = useMapStore()
 
   return (
-    <div className="absolute inset-0 -z-10">
+    <div className="absolute inset-0">
       <MapContainer
         center={[1.3521, 103.8198]}
         zoom={13}

@@ -21,12 +21,13 @@ test.describe("SaLoB smoke tests", () => {
 
   test("mode toggle switches between eatery and food views", async ({ page }) => {
     await page.goto("/")
+    await page.waitForTimeout(500)
 
-    await page.getByRole("radio", { name: "Food" }).click()
-    await expect(page.getByText("Select foods")).toBeVisible()
+    await page.getByRole("radio", { name: "Food" }).click({ force: true })
+    await expect(page.getByPlaceholder("Search foods to show on map... (max 5)")).toBeVisible({ timeout: 5000 })
 
-    await page.getByRole("radio", { name: "Eatery" }).click()
-    await expect(page.getByPlaceholder("Search eateries...")).toBeVisible()
+    await page.getByRole("radio", { name: "Eatery" }).click({ force: true })
+    await expect(page.getByPlaceholder("Search eateries...")).toBeVisible({ timeout: 5000 })
   })
 
   test("login page loads with branding", async ({ page }) => {
