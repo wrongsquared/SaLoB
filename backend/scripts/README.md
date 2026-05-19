@@ -23,4 +23,3 @@ python scripts/seed_images.py
 
 - Food images: `src/main/resources/static/food-images/`
 - Eatery images: `src/main/resources/static/eatery-images/`
-

@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.history/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+build/
+
+# Env (root level — per-service ignores are in their own .gitignore)
+.env
+!.env.example

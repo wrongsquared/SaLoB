@@ -1,1 +1,81 @@
 # Progress
+
+## Session 2026-05-19 — PRD Overhaul & Architecture Alignment
+
+### What was done
+- Full codebase scan and documentation of all backend services, frontend structure, domain models, API contracts, and infrastructure.
+- Comprehensive PRD rewrite covering tech stack, UI flow, API reference, domain model, WTF confidence system, caching strategy, data flows, and gap analysis.
+- Clarified key design decisions via iterative Q&A.
+
+### Key decisions documented in PRD
+1. **WTF algorithm:** Four-factor weighted score (tenure, vote ratio, flag rate, volume) + activity recency multiplier. Recalculated async via RabbitMQ events from food-service.
+2. **Confidence caching:** Three-level cache (user WTF, entry confidence, eatery consensus). Commented-out `@Cacheable` on private methods was a Spring AOP limitation — needs extraction to a public bean.
+3. **Batch WTF fetching:** `getUserWtfScoreBatch` gRPC exists in proto + user-service but is **unused** in `ConfidenceAlgorithm`. Needs implementation to replace N individual gRPC calls.
+4. **Map query strategy:** Debounced bbox queries from frontend (not continuous streaming), chosen to generate portfolio-benchmarkable request metrics.
+5. **Food mode on map:** No dedicated endpoint yet. Options: (a) batch-fetch via enhanced `/within-bounds?mode=FOOD`, or (b) separate debounced endpoint. Decision deferred to implementation.
+6. **Receipt upload/validation:** Explicitly removed from scope.
+7. **Settings page:** Deferred.
+8. **WebSocket live voting:** Planned for future — STOMP over RabbitMQ, food service broadcasts, frontend subscribes on panel open.
+9. **Submission wizard:** Simple three-step overlay (search eatery → search food → enter price). On-demand eatery/food creation deferred to OneMap/Google Places integration.
+
+### Frontend gap confirmed
+- TanStack Query, Zustand stores, axios client, Leaflet map, all page components are stubs with no business logic wired up.
+- Broken import: `ui/button.tsx` imports `@/lib/utils` but `cn()` lives at `@/shared/utils.ts`. Fixed: created `src/lib/utils.ts` re-exporting `cn`.
+
+### Specific changes applied this session
+
+**Backend — ConfidenceAlgorithm.java**
+- Switched from per-vote individual gRPC WTF fetch to batch-fetch via existing `getUserWtfScoreBatch` gRPC method. Collects all unique voter IDs, fetches in one call, builds Map<UUID, Double> lookup.
+- Fallback: unknown voters default to 50.0 (neutral WTF).
+
+**Env file standardization (full sweep)**
+- Renamed all `.env.local` → `.env` (5 services: user, food, gateway, rabbitmq, minio)
+- Renamed all `.env.k8s` → `.env` (3 k8s dirs: user, food, gateway)
+- Created `.env.example` files for all 8 directories with documented local dev defaults
+- Updated `application.yaml` refs: `.env.local` → `.env` (kept `optional:` for Docker compat)
+- Updated `docker-compose.yaml`: all `env_file` refs `.env.local` → `.env`
+- Updated `kustomization.yaml`: all `envs` refs `.env.k8s` → `.env`
+- Created `backend/k8s/.gitignore` with `.env` and `!.env.example`
+- `git rm --cached` all old `.env.local` and `.env.k8s` files
+
+**Pre-commit hooks setup**
+- Created `.pre-commit-config.yaml` with 12 pinned hooks (revisions locked for determinism):
+  - Standard: trailing-whitespace, end-of-file-fixer, check-yaml, check-json, check-merge-conflict, detect-private-key, no-commit-to-branch, check-added-large-files
+  - Python: ruff (lint + format)
+  - Security: detect-secrets (baseline in `.secrets.baseline`)
+  - Shell: shellcheck (gradlew excludes for auto-generated files)
+  - Pre-push only: backend-compile (Gradle compileJava), frontend-typecheck (tsc --noEmit), frontend-lint (eslint)
+- Installed both `pre-commit` and `pre-push` git hooks
+- All 12 hooks pass cleanly against the full repo
+
+**Documentation updates**
+- `backend/BACKEND.md`: Added seeding order (user-service → food-service), MSW recommendation for frontend tests
+- `AGENTS.md`: Expanded verify step with pre-commit commands, compile/typecheck instructions, MSW guidance, seeding order note
+- `docs/PROGRESS.md`: This log
+
+**Verification results**
+- All 3 backend services compile: food-service ✓, user-service ✓, api-gateway ✓
+- Frontend type check: `tsc --noEmit` passes ✓
+- Frontend build: `vite build` produces dist/ ✓
+- Pre-commit: all 12 hooks pass ✓
+
+### Session 2026-05-19 (cont.) — MSW, Guardrails, Handover Docs
+
+**MSW (Mock Service Worker) setup**
+- Installed `msw` as dev dependency (v2.x)
+- Created `src/shared/test/mocks/handlers.ts` — all known API endpoints mocked with realistic Singapore data (5 eateries, 5 food entries, auth, user profile)
+- Created `src/shared/test/mocks/node.ts` — `setupServer` for Playwright tests
+- Created `src/shared/test/mocks/browser.ts` — `setupWorker` for browser dev
+- Initialized `public/mockServiceWorker.js` via `npx msw init public/ --save`
+
+**Playwright setup**
+- Created `playwright.config.ts` — chromium project, dev server auto-start, HTML reporter
+- Created `tests/basic.spec.ts` — 3 smoke tests (homepage loads, login branding, nav links)
+- Added `test` and `test:ui` scripts to `package.json`
+
+**Root-level guardrails**
+- Created root `.gitignore` — IDE files, OS files, node_modules, build output, env files
+- Created comprehensive `README.md` — setup instructions, project structure, dev philosophy, pre-commit reference, testing guide, config/secrets reference
+- `.secrets.baseline` — clean baseline (0 findings), detect-secrets will flag any NEW secrets on staged files
+
+**Final full validation** — pre-commit (12/12 ✓) + backend compile (3/3 ✓) + frontend typecheck ✓ + frontend build ✓

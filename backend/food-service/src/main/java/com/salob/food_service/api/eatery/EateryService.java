@@ -98,10 +98,10 @@ public class EateryService {
             for (Object[] row : rows) {
                 result.add(mapRowToDto(row));
             }
-            
+
             log.info("Found {} eateries, about to cache result", result.size());
             log.debug("Result type: {}, Result class: {}", result.getClass().getName(), result.getClass().getSimpleName());
-            
+
             // Note: @Cacheable will now try to serialize this result
             // If serialization fails, an exception will be thrown after this method returns
             return result;

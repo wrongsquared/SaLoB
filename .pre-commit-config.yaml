@@ -1,0 +1,99 @@
+exclude: |
+  (?x)^(
+    \.secrets\.baseline
+  )$
+
+# See https://pre-commit.com for docs
+# Use pinned revisions for deterministic behavior — never use `latest`.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+        exclude: |
+          (?x)^(
+            frontend/tsconfig\..*\.json|
+            .*package-lock\.json
+          )$
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+      - id: check-added-large-files
+        args: [--maxkb=512]
+        exclude: |
+          (?x)^(
+            package-lock\.json |
+            frontend/package-lock\.json
+          )$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.5
+    hooks:
+      - id: ruff
+        name: ruff-lint-python
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+        exclude: ^backend/scripts/
+      - id: ruff-format
+        name: ruff-format-python
+        types_or: [python, pyi]
+        exclude: ^backend/scripts/
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          (?x)^(
+            .*\.env\.example|
+            docs/.*\.md|
+            frontend/public/mockServiceWorker\.js
+          )$
+
+  - repo: local
+    hooks:
+      - id: backend-compile
+        name: backend-compile
+        description: "Compile all backend services with Gradle"
+        entry: bash -c 'for dir in backend/food-service backend/user-service backend/api-gateway; do (cd "$dir" && ./gradlew compileJava 2>&1) || exit 1; done'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: frontend-typecheck
+        name: frontend-typecheck
+        description: "Run TypeScript type checking on frontend"
+        entry: bash -c 'cd frontend && npx tsc --noEmit 2>&1'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: frontend-lint
+        name: frontend-lint
+        description: "Run ESLint on frontend"
+        entry: bash -c 'cd frontend && npx eslint src/ 2>&1'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+        exclude: |
+          (?x)^(
+            backend/(shared-proto|scripts)/gradlew.*|
+            backend/(food-service|user-service|api-gateway)/gradlew.*
+          )$

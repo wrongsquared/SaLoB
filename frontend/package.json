@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -50,8 +52,14 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "msw": "^2.14.6",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.9"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

@@ -94,4 +94,3 @@ public class EateryController {
         return ResponseEntity.ok(results);
     }
 }
-

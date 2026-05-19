@@ -57,5 +57,3 @@ public class JacksonRedisSerializer implements RedisSerializer<Object> {
         }
     }
 }
-
-

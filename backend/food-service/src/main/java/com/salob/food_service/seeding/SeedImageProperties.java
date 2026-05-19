@@ -15,4 +15,3 @@ public class SeedImageProperties {
     private String userAgent = "SaLoBFoodSeeder/1.0";
     private int requestTimeoutSeconds = 10;
 }
-

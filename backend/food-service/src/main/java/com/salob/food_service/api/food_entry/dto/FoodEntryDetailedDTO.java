@@ -18,4 +18,3 @@ public record FoodEntryDetailedDTO(
     long submitterTenureDays,
     long submitterEntriesSubmitted
 ) {}
-

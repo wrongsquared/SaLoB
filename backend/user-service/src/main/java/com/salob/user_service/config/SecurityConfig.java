@@ -36,5 +36,5 @@ public class SecurityConfig {
     public JwtDecoder jwtDecoder(JwtService jwtService) throws Exception {
         var publicKey = (RSAPublicKey) jwtService.getRsaKey().toPublicKey();
         return NimbusJwtDecoder.withPublicKey(publicKey).build();
-    }          
+    }
 }

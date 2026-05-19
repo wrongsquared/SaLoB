@@ -8,7 +8,7 @@ const LeLayout = () => {
       <main>
         <Outlet />
       </main>
-    </> 
+    </>
   )
 }
 

@@ -2,7 +2,7 @@ spring:
   application:
     name: api-gateway
   config:
-    import: "optional:file:.env.local[.properties]"
+    import: "optional:file:.env[.properties]"
   data:
     redis:
       host: ${REDIS_HOST}

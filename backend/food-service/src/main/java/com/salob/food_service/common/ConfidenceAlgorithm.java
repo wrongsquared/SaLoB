@@ -3,13 +3,17 @@ package com.salob.food_service.common;
 import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.api._domain.FoodEntryVote;
 import com.salob.proto.user.UserServiceGrpc;
-import com.salob.proto.user.UserWtfRequest;
-import com.salob.proto.user.UserWtfResponse;
+import com.salob.proto.user.UserWtfBatchRequest;
+import com.salob.proto.user.UserWtfBatchResponse;
+import com.salob.proto.user.UserWtfBatchResponseItem;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -20,7 +24,7 @@ import java.util.UUID;
  *
  *     for (const vote of foodEntry.votes) {
  *         const actualVoteValue = vote.isUpvote ? baseVoteValue : -baseVoteValue;
- *         conf += actualVoteValue * computeMultiplier(vote.voter.WTFSScore); // Lagrange
+ *         conf += actualVoteValue * computeMultiplier(vote.voter.WTFScore); // Lagrange
  *     }
  *
  *     const decayedConf = decay(foodEntry.ageInYears);
@@ -29,6 +33,7 @@ import java.util.UUID;
  */
 @Component
 public class ConfidenceAlgorithm {
+
     /**
      * NOTE: 'votesRequiredForMaxScore' is the number of upvotes that are required from
      *       people (each with a WTF score of 50) on a food entry (with no downvotes!)
@@ -40,15 +45,41 @@ public class ConfidenceAlgorithm {
     private UserServiceGrpc.UserServiceBlockingStub userService;
 
     public double computeFinalConfidence(FoodEntry foodEntry) {
+        List<FoodEntryVote> votes = foodEntry.getVotes();
+
+        Map<UUID, Double> wtfScores = batchFetchWtfScores(votes);
+
         double valuePerVote = 100.0 / VOTES_REQUIRED_FOR_MAX_SCORE;
         double rawConfidence = 0;
-        for (FoodEntryVote vote : foodEntry.getVotes()) {
-            double wtfScoreOfVoter = getVotersWtfScore(vote.getVoterId());
+        for (FoodEntryVote vote : votes) {
+            double wtfScoreOfVoter = wtfScores.getOrDefault(vote.getVoterId(), 50.0);
             double multiplier = convertWtfScoreToMultiplier(wtfScoreOfVoter);
             rawConfidence += (vote.isUpvote() ? valuePerVote : -valuePerVote) * multiplier;
         }
         double foodEntryAgeInYears = Duration.between(foodEntry.getCreatedAt(), Instant.now()).toDays() / 365.25;
         return applyConcaveTimeDecay(rawConfidence, foodEntryAgeInYears);
+    }
+
+    private Map<UUID, Double> batchFetchWtfScores(List<FoodEntryVote> votes) {
+        List<String> voterIds = votes.stream()
+                .map(v -> v.getVoterId().toString())
+                .distinct()
+                .toList();
+
+        if (voterIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        UserWtfBatchRequest req = UserWtfBatchRequest.newBuilder()
+                .addAllUserIds(voterIds)
+                .build();
+        UserWtfBatchResponse res = userService.getUserWtfScoreBatch(req);
+
+        Map<UUID, Double> wtfMap = new HashMap<>();
+        for (UserWtfBatchResponseItem item : res.getItemsList()) {
+            wtfMap.put(UUID.fromString(item.getUserId()), item.getWtfScore());
+        }
+        return wtfMap;
     }
 
     /**
@@ -75,15 +106,8 @@ public class ConfidenceAlgorithm {
 
         // Apply the decay, normalize to "0-1" range to use as a multiplier
         double result = preDecayConfidence * (nonDecayPercent / 100);
-        
+
         // Clamp to [0, 100] to ensure result is never negative and never exceeds 100
         return Math.clamp(result, 0, 100);
     }
-
-    private double getVotersWtfScore(UUID voterId) {
-        var req = UserWtfRequest.newBuilder().setUserId(voterId.toString()).build();
-        UserWtfResponse res = userService.getUserWtfScore(req);
-        return res.getWtfScore();
-    }
 }
-

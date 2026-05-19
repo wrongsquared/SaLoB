@@ -1,5 +1,5 @@
 /**
- * @param t - The number of upvotes it would take from users with a WTF of 
+ * @param t - The number of upvotes it would take from users with a WTF of
  * 			  50 (i.e no multiplicative effect) to reach full confidence
  * @returns A value between 0-100
  */

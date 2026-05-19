@@ -30,4 +30,3 @@ public class EateryMapDTO {
     double longitude;
     String typeLabel;
 }
-

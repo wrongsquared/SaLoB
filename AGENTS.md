@@ -4,21 +4,29 @@
 Before implementing any feature or fixing any bug, follow this workflow:
 1. **Git Branch**: Create a new branch from `main` named `<prefix>/<name>`, where `<prefix>` is `feature`, `fix`, `docs`, `chore`, etc...
 2. **Plan:** Outline your approach, files to modify, risks, and dependencies.
-  a. When planning the frontend, you can refer to the `docs/moodboard` directory for UI inspiration and design patterns.
+  a. CLARIFY ANY AND ALL UNCERTAINTIES BEFORE CODING. If you can think of anything that might be a possible point of contention, ask about it. This includes design decisions, API contracts, data models, etc... Better to ask upfront than to implement something that needs to be reworked.
+  b. When planning the frontend, you can refer to the `docs/moodboard` directory for UI inspiration and design patterns.
 3. **Execute & Iterate:** Implement the plan. If checks fail, diagnose, update the plan, and re-execute.
   a. The frontend should refer to `/frontend/FRONTEND.md` and the backend to `/backend/BACKEND.md` for specific guidelines.
   b. Always keep security & logging in mind (see sections below).
 4. **Document:** Update PRD/ADR/ROADMAP as needed and record key decisions in `docs/PROGRESS.md`.
   a. PRD can be found at `docs/PRD.md`, ADRs at `docs/ADRS.md`, and the roadmap at `docs/ROADMAP.md`.
 5. **Write Tests:** Create or update unit, integration, and UI tests for new behavior.
-  a. Integration tests should use Testcontainers, and UI changes require Playwright smoke tests with screenshots.
+   a. Integration tests should use Testcontainers, and UI changes require Playwright smoke tests with screenshots.
+   b. For frontend tests, prefer MSW (Mock Service Worker) over hitting live backends — it's deterministic, fast, and works offline.
+   c. Seeded data order: user-service must seed BEFORE food-service (food-service queries user-service via gRPC for user IDs).
 6. **Verify:** Run tests and formatting checks. If failures persist, return to step 2.
+   a. ALWAYS run `pre-commit run --all-files` before any commit.
+   b. Pre-commit hooks are pinned to specific versions for deterministic behavior.
+   c. To compile-check backend: `./gradlew compileJava` in each service (shared-proto must be published to MavenLocal first).
+   d. To type-check frontend: `npx tsc --noEmit` from `frontend/`.
+   e. Pre-push hooks automatically compile backend and type-check frontend.
 7. **Commit & PR:** Commit with a clear message and open a PR describing the change, rationale, and context.
-  a. Always run pre-commit checks first.
-  b. Scan the repository for leaked secrets, JWTs, tokens, etc...
-  c. Messages: `type(scope): description` (`feature|fix|docs|style|refactor|test|chore`).
-  d. PRs describe changes, rationale, context.
-  e. Use a lightweight subagent for PR review (quality, architecture, API contract).
+   a. Always run pre-commit checks first (hooks run automatically on `git commit`).
+   b. Scan the repository for leaked secrets, JWTs, tokens, etc... (`detect-secrets` baseline is in `.secrets.baseline`).
+   c. Messages: `type(scope): description` (`feature|fix|docs|style|refactor|test|chore`).
+   d. PRs describe changes, rationale, context.
+   e. Use a lightweight subagent for PR review (quality, architecture, API contract).
 
 ## Security
 - All API responses set security headers.
@@ -35,3 +43,6 @@ Before implementing any feature or fixing any bug, follow this workflow:
 - Ask before undocumented dependency overrides, API breaks, or access keys.
 - 3-strike rule: Stop and request direction.
 - No new MD files post-feature; update existing docs.
+
+# Re-iteration ad-nauseam, because this is the most critical part of the process:
+- If you have any doubts - ANY DOUBTS - about the implementation, design, API contract, data model, etc... ASK BEFORE CODING. This is critical to avoid rework and ensure alignment.

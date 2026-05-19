@@ -13,4 +13,3 @@ public class MinioProperties {
     private String secretKey;
     private String bucket;
 }
-

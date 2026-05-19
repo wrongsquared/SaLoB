@@ -12,4 +12,3 @@ public class GlobalGrpcExceptionHandler {
         return Status.NOT_FOUND.withDescription(e.getMessage()).withCause(e);
     }
 }
-

@@ -51,4 +51,3 @@ public class Role {
         return getClass().hashCode();
     }
 }
-

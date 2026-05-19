@@ -1,0 +1,4 @@
+# Ignore all environment files (copied from .env.example)
+# Only .env.example is tracked in git.
+.env
+!.env.example

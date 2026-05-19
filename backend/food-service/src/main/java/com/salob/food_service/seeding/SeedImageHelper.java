@@ -84,4 +84,3 @@ public class SeedImageHelper {
         return rgb;
     }
 }
-

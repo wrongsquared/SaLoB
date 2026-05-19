@@ -10,13 +10,13 @@ resources:
 secretGenerator:
   - name: api-gateway-secrets
     envs:
-      - ./api-gateway/.env.k8s
+      - ./api-gateway/.env
   - name: food-service-secrets
     envs:
-      - ./food-service/.env.k8s
+      - ./food-service/.env
   - name: user-service-secrets
     envs:
-      - ./user-service/.env.k8s
+      - ./user-service/.env
 
 # Forces a common label on everything for easy cleanup
 metadata:
