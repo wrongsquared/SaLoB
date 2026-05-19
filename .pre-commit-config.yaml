@@ -22,9 +22,10 @@ repos:
           )$
       - id: check-merge-conflict
       - id: detect-private-key
-      - id: no-commit-to-branch
-        args: [--branch, main, --branch, master]
-        stages: [pre-commit]
+      # main branch protection: use GitHub branch protection rules instead
+      # - id: no-commit-to-branch
+      #   args: [--branch, main, --branch, master]
+      #   stages: [pre-commit]
       - id: check-added-large-files
         args: [--maxkb=512]
         exclude: |
