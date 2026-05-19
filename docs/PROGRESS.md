@@ -80,6 +80,50 @@
 
 **Final full validation** — pre-commit (12/12 ✓) + backend compile (3/3 ✓) + frontend typecheck ✓ + frontend build ✓
 
+## Session 2026-05-19 (cont.) — HomePage Implementation (Branch: feature/homepage)
+
+### Overview
+Replaced the `MapView.tsx` stub with a full-featured HomePage with Leaflet map, mode toggle (Eatery/Food), marker clustering, collapsible left-sidebar panel, search, food tag picker, and food entry detail page.
+
+### Files Created (15)
+| File | Purpose |
+|------|---------|
+| `src/shared/types/api.ts` | All API response types (Eatery, FoodPreview, Bounds, etc.) |
+| `src/shared/api/client.ts` | Axios instance configured with base URL |
+| `src/shared/api/queries.ts` | 7 TanStack Query hooks (bounds, detail, search, batch, history) |
+| `src/shared/hooks/useDebounce.ts` | Generic debounce hook |
+| `src/stores/mapStore.ts` | Zustand store for map UI state (mode, bounds, selected, sidebar) |
+| `src/pages/HomePage/index.tsx` | Page entry: orchestrates map + overlays + sidebar |
+| `src/pages/HomePage/MapSection.tsx` | Leaflet map with bounds tracking + clustering |
+| `src/pages/HomePage/ModeToggle.tsx` | Segmented control (Eatery / Food) with primary-color active state |
+| `src/pages/HomePage/SearchBar.tsx` | Debounced search with magnifying glass icon |
+| `src/pages/HomePage/FoodTagPicker.tsx` | Food search autocomplete + tag chips (max 5) |
+| `src/pages/HomePage/EateryPanel.tsx` | Collapsible left sidebar with eatery details + food entries |
+| `src/pages/HomePage/FoodEntryRow.tsx` | Single food entry row (name, price, votes, submitter) |
+| `src/pages/HomePage/MarkerLayers.tsx` | Eatery mode (colored by type) + Food mode (colored rotating palette) markers |
+| `src/pages/FoodEntryDetailPage.tsx` | Food entry detail page with submitter info + historical entries |
+| `docs/ADR.md` | 8 ADR entries documenting architecture decisions |
+
+### Files Modified (3)
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Added QueryClientProvider, HomePage route, FoodEntryDetail route |
+| `src/components/Navbar.tsx` | Removed redundant "Map View" link (homepage IS the map) |
+| `src/pages/MapView.tsx` | **Deleted** — replaced by `HomePage/index.tsx` |
+
+### Key Architecture Decisions (see ADR.md for details)
+- **Full-screen map** with floating overlay controls (not sidebar layout)
+- **TanStack Query** for server state, **Zustand** for UI state (per FRONTEND.md)
+- **react-leaflet-cluster** for automatic marker clustering
+- **DivIcons** colored by eatery type / food palette (not default Leaflet markers)
+- **N+1 batch fetch** for food mode (documented caveat — needs dedicated backend endpoint for scale)
+- **300ms debounce** on bounds-based queries to prevent excessive API calls during pan/zoom
+- **PascalCase** for page directories (HomePage/)
+
+### Build Status
+- TypeScript: `npx tsc --noEmit` passes clean
+- Production build: `npx vite build` succeeds (562 KB JS, 51 KB CSS)
+
 ## Session 2026-05-19 (cont.) — PR Review Fixes & Push to Main
 
 ### PR review findings (subagent)

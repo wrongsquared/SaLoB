@@ -2,7 +2,6 @@ import { NavLink, useNavigate } from 'react-router-dom'
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Map View', path: '/' },
   { label: 'Analytics', path: '/analytics' },
   { label: 'Reports', path: '/reports' },
 ]

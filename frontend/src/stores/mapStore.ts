@@ -1,0 +1,56 @@
+import { create } from 'zustand'
+import type { Bounds } from '@/shared/types/api'
+
+interface MapStore {
+  mode: 'eatery' | 'food'
+  selectedEateryId: string | null
+  sidebarOpen: boolean
+  selectedFoods: string[]
+  searchQuery: string
+  mapCenter: [number, number]
+  mapZoom: number
+  mapBounds: Bounds | null
+
+  setMode: (mode: 'eatery' | 'food') => void
+  selectEatery: (id: string | null) => void
+  setSidebarOpen: (open: boolean) => void
+  addFood: (foodName: string) => void
+  removeFood: (foodName: string) => void
+  clearFoods: () => void
+  setSearchQuery: (query: string) => void
+  setMapCenter: (center: [number, number]) => void
+  setMapZoom: (zoom: number) => void
+  setMapBounds: (bounds: Bounds | null) => void
+}
+
+export const useMapStore = create<MapStore>((set) => ({
+  mode: 'eatery',
+  selectedEateryId: null,
+  sidebarOpen: false,
+  selectedFoods: [],
+  searchQuery: '',
+  mapCenter: [1.3521, 103.8198],
+  mapZoom: 13,
+  mapBounds: null,
+
+  setMode: (mode) =>
+    set({ mode, selectedEateryId: null, sidebarOpen: false }),
+  selectEatery: (id) => set({ selectedEateryId: id, sidebarOpen: id !== null }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  addFood: (foodName) =>
+    set((state) => ({
+      selectedFoods:
+        state.selectedFoods.length < 5 && !state.selectedFoods.includes(foodName)
+          ? [...state.selectedFoods, foodName]
+          : state.selectedFoods,
+    })),
+  removeFood: (foodName) =>
+    set((state) => ({
+      selectedFoods: state.selectedFoods.filter((f) => f !== foodName),
+    })),
+  clearFoods: () => set({ selectedFoods: [] }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setMapCenter: (center) => set({ mapCenter: center }),
+  setMapZoom: (zoom) => set({ mapZoom: zoom }),
+  setMapBounds: (bounds) => set({ mapBounds: bounds }),
+}))
