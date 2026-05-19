@@ -24,6 +24,7 @@ repos:
       - id: detect-private-key
       - id: no-commit-to-branch
         args: [--branch, main, --branch, master]
+        stages: [pre-commit]
       - id: check-added-large-files
         args: [--maxkb=512]
         exclude: |
@@ -72,7 +73,7 @@ repos:
       - id: frontend-typecheck
         name: frontend-typecheck
         description: "Run TypeScript type checking on frontend"
-        entry: bash -c 'cd frontend && npx tsc --noEmit 2>&1'
+        entry: bash -c 'cd frontend && ./node_modules/.bin/tsc --noEmit 2>&1'
         language: system
         pass_filenames: false
         always_run: true
@@ -81,7 +82,7 @@ repos:
       - id: frontend-lint
         name: frontend-lint
         description: "Run ESLint on frontend"
-        entry: bash -c 'cd frontend && npx eslint src/ 2>&1'
+        entry: bash -c 'cd frontend && ./node_modules/.bin/eslint src/ 2>&1'
         language: system
         pass_filenames: false
         always_run: true
