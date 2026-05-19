@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useFoodSearch } from '@/shared/api/queries'
+import { useFoodSearch, useCreateFood } from '@/shared/api/queries'
 import { useDebounce } from '@/shared/hooks/useDebounce'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 
 interface StepFoodProps {
-  onSelect: (foodName: string) => void
+  onSelect: (foodId: string, foodName: string) => void
   onBack: () => void
 }
 
@@ -13,6 +13,17 @@ export default function StepFood({ onSelect, onBack }: StepFoodProps) {
   const [useFreeText, setUseFreeText] = useState(false)
   const debounced = useDebounce(input, 300)
   const { data: results, isLoading } = useFoodSearch(debounced)
+  const createMutation = useCreateFood()
+
+  const handleSelectExisting = (foodId: string, foodName: string) => {
+    onSelect(foodId, foodName)
+  }
+
+  const handleCreateNew = async () => {
+    if (!input.trim()) return
+    const result = await createMutation.mutateAsync({ foodName: input.trim() })
+    onSelect(result.foodId, result.foodName)
+  }
 
   if (useFreeText) {
     return (
@@ -38,12 +49,11 @@ export default function StepFood({ onSelect, onBack }: StepFoodProps) {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => {
-              if (input.trim()) onSelect(input.trim())
-            }}
-            disabled={!input.trim()}
-            className="rounded-lg bg-primary-700 px-6 py-2 text-sm font-medium text-primary-50 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={handleCreateNew}
+            disabled={!input.trim() || createMutation.isPending}
+            className="flex items-center gap-2 rounded-lg bg-primary-700 px-6 py-2 text-sm font-medium text-primary-50 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
             Continue
           </button>
         </div>
@@ -82,7 +92,7 @@ export default function StepFood({ onSelect, onBack }: StepFoodProps) {
             <button
               key={r.foodId}
               type="button"
-              onClick={() => onSelect(r.foodName)}
+              onClick={() => handleSelectExisting(r.foodId, r.foodName)}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-primary-50"
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary-100 text-sm font-bold text-secondary-500">

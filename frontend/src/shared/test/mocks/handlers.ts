@@ -18,6 +18,17 @@ const FOOD_PREVIEWS = [
   { foodEntryId: "b2c3d4e5-e29b-41d4-a716-446655440005", name: "Fishball Noodles", sgCents: 380, upvotes: 12, downvotes: 0, photoPresignedUrl: "/mock/fishball-noodles.jpg", submitterId: MOCK_USER_ID, submitterUsername: "noodle_whisperer", createdAt: "2026-05-12T11:00:00Z" },
 ]
 
+const FOOD_DB = [
+  { foodId: "c3d4e5f6-e29b-41d4-a716-446655440001", foodName: "Chicken Rice", photoUrl: "/mock/chicken-rice.jpg" },
+  { foodId: "c3d4e5f6-e29b-41d4-a716-446655440002", foodName: "Laksa", photoUrl: "/mock/laksa.jpg" },
+  { foodId: "c3d4e5f6-e29b-41d4-a716-446655440003", foodName: "Kaya Toast Set", photoUrl: "/mock/kaya-toast.jpg" },
+  { foodId: "c3d4e5f6-e29b-41d4-a716-446655440004", foodName: "Satay (10 sticks)", photoUrl: "/mock/satay.jpg" },
+  { foodId: "c3d4e5f6-e29b-41d4-a716-446655440005", foodName: "Fishball Noodles", photoUrl: "/mock/fishball-noodles.jpg" },
+]
+
+const reportedEateries = new Set<string>()
+let nextFoodId = 6
+
 export const handlers = [
   http.get("/api/eateries/within-bounds", async ({ request }) => {
     await delay(50)
@@ -119,6 +130,56 @@ export const handlers = [
   http.post("/api/food-entries/submit", async () => {
     await delay(100)
     return new HttpResponse(null, { status: 200 })
+  }),
+
+  http.get("/api/food-entries/within-bounds", async ({ request }) => {
+    await delay(50)
+    const url = new URL(request.url)
+    const minLat = parseFloat(url.searchParams.get("minLat") ?? "0")
+    const maxLat = parseFloat(url.searchParams.get("maxLat") ?? "0")
+    const minLon = parseFloat(url.searchParams.get("minLon") ?? "0")
+    const maxLon = parseFloat(url.searchParams.get("maxLon") ?? "0")
+    if (minLat >= maxLat || minLon >= maxLon) {
+      return HttpResponse.json({ error: "Invalid bounds" }, { status: 400 })
+    }
+    const filtered = EATERIES_MAP.filter(
+      (e) => e.latitude >= minLat && e.latitude <= maxLat && e.longitude >= minLon && e.longitude <= maxLon,
+    )
+    const foodEntries = filtered.flatMap((eatery, eateryIdx) =>
+      FOOD_PREVIEWS.slice(0, 3).map((fp, fpIdx) => ({
+        foodEntryId: fp.foodEntryId,
+        foodName: fp.name,
+        sgCents: fp.sgCents,
+        eateryId: eatery.eateryId,
+        eateryName: eatery.name,
+        latitude: eatery.latitude + (fpIdx * 0.0001),
+        longitude: eatery.longitude + (eateryIdx * 0.0001),
+      })),
+    )
+    return HttpResponse.json(foodEntries)
+  }),
+
+  http.post("/api/foods", async ({ request }) => {
+    await delay(80)
+    const body = (await request.json()) as { foodName: string }
+    const existing = FOOD_DB.find((f) => f.foodName.toLowerCase() === body.foodName.toLowerCase())
+    if (existing) {
+      return HttpResponse.json(existing)
+    }
+    const newId = `c3d4e5f6-e29b-41d4-a716-44665544000${nextFoodId++}`
+    const newFood = { foodId: newId, foodName: body.foodName, photoUrl: "" }
+    FOOD_DB.push(newFood)
+    return HttpResponse.json(newFood)
+  }),
+
+  http.post("/api/eateries/:eateryId/report-closed", async ({ params }) => {
+    await delay(50)
+    const key = params.eateryId as string
+    if (reportedEateries.has(key)) {
+      return HttpResponse.json({ error: "Already reported" }, { status: 409 })
+    }
+    reportedEateries.add(key)
+    return new HttpResponse(null, { status: 204 })
   }),
 
   http.post("/api/auth/login", async ({ request }) => {

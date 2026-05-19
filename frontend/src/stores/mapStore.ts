@@ -12,6 +12,7 @@ interface MapStore {
   mapBounds: Bounds | null
   wizardOpen: boolean
   wizardPreselectedEateryId: string | null
+  reportedEateryIds: Set<string>
 
   setMode: (mode: 'eatery' | 'food') => void
   selectEatery: (id: string | null) => void
@@ -24,6 +25,7 @@ interface MapStore {
   setMapZoom: (zoom: number) => void
   setMapBounds: (bounds: Bounds | null) => void
   setWizardOpen: (open: boolean, preselectedEateryId?: string | null) => void
+  markEateryReported: (eateryId: string) => void
 }
 
 export const useMapStore = create<MapStore>((set) => ({
@@ -37,6 +39,7 @@ export const useMapStore = create<MapStore>((set) => ({
   mapBounds: null,
   wizardOpen: false,
   wizardPreselectedEateryId: null,
+  reportedEateryIds: new Set(),
 
   setMode: (mode) =>
     set({ mode, selectedEateryId: null, sidebarOpen: false }),
@@ -60,4 +63,10 @@ export const useMapStore = create<MapStore>((set) => ({
   setMapBounds: (bounds) => set({ mapBounds: bounds }),
   setWizardOpen: (open: boolean, preselectedEateryId?: string | null) =>
     set({ wizardOpen: open, wizardPreselectedEateryId: preselectedEateryId ?? null }),
+  markEateryReported: (eateryId) =>
+    set((state) => {
+      const newSet = new Set(state.reportedEateryIds)
+      newSet.add(eateryId)
+      return { reportedEateryIds: newSet }
+    }),
 }))

@@ -6,6 +6,16 @@ export interface EateryMapItem {
   typeLabel: string
 }
 
+export interface FoodEntryMapItem {
+  foodEntryId: string
+  foodName: string
+  sgCents: number
+  eateryId: string
+  eateryName: string
+  latitude: number
+  longitude: number
+}
+
 export interface FoodPreview {
   foodEntryId: string
   name: string
@@ -66,4 +76,14 @@ export interface Bounds {
   maxLat: number
   minLon: number
   maxLon: number
+}
+
+export interface FoodCreationRequest {
+  foodName: string
+}
+
+export interface FoodEntrySubmissionRequest {
+  eateryId: string
+  foodId: string
+  priceSgCents: number
 }

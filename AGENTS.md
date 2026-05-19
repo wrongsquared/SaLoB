@@ -45,6 +45,7 @@ Before implementing any feature or fixing any bug, follow this workflow:
 - Ask before undocumented dependency overrides, API breaks, or access keys.
 - 3-strike rule: Stop and request direction.
 - No new MD files post-feature; update existing docs.
+- Favor optimistic UI for user actions (show success state immediately, revert on error). Examples: "Report as Closed" button, vote counts, submission confirmations.
 
 # Re-iteration ad-nauseam, because this is the most critical part of the process:
 - If you have any doubts - ANY DOUBTS - about the implementation, design, API contract, data model, etc... ASK BEFORE CODING. This is critical to avoid rework and ensure alignment.

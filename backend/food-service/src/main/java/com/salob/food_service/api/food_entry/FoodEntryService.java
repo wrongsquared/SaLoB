@@ -8,6 +8,7 @@ import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
+import com.salob.food_service.api.food_entry.dto.FoodEntryMapDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.storage.minio.MinioStorageService;
@@ -16,6 +17,7 @@ import com.salob.proto.user.UserDetailsResponse;
 import com.salob.proto.user.UserServiceGrpc;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -23,7 +25,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -149,6 +153,74 @@ public class FoodEntryService {
 
         // Triggers only a single INSERT query
         foodEntryRepo.save(entry);
+    }
+
+    /**
+     * Find food entries within a bounding box, deduplicated by (eatery, food) —
+     * keeping the entry with the highest confidence score per group.
+     *
+     * Caching: Results are cached by coordinate-bucketed key to avoid repeated
+     * confidence computations during map panning.
+     */
+    @Cacheable(
+        value = "food_entries_bbox",
+        keyGenerator = "bboxKeyGenerator"
+    )
+    public List<FoodEntryMapDTO> findFoodEntriesWithinBounds(
+            double minLat,
+            double maxLat,
+            double minLon,
+            double maxLon
+    ) {
+        List<Object[]> rows = foodEntryRepo.findWithinBoundsWithEateryLocation(minLat, maxLat, minLon, maxLon);
+
+        // Deduplicate by (eateryId, foodName), keeping highest confidence
+        Map<String, FoodEntry> bestByEateryFood = new LinkedHashMap<>();
+        Map<String, Double> bestConfidenceByEateryFood = new LinkedHashMap<>();
+
+        for (Object[] row : rows) {
+            UUID entryId = (UUID) row[0];
+            FoodEntry entry = foodEntryRepo.findById(entryId).orElse(null);
+            if (entry == null) continue;
+
+            UUID eateryId = (UUID) row[3];
+            String foodName = (String) row[1];
+            String key = eateryId + ":" + foodName;
+
+            double confidence = confidenceAlgo.computeFinalConfidence(entry);
+            Double currentBest = bestConfidenceByEateryFood.get(key);
+            if (currentBest == null || confidence > currentBest) {
+                bestConfidenceByEateryFood.put(key, confidence);
+                bestByEateryFood.put(key, entry);
+            }
+        }
+
+        List<FoodEntryMapDTO> result = new ArrayList<>();
+        for (Map.Entry<String, FoodEntry> e : bestByEateryFood.entrySet()) {
+            FoodEntry entry = e.getValue();
+            String key = e.getKey();
+            UUID eateryId = UUID.fromString(key.split(":")[0]);
+
+            // Find the matching row for location data
+            Object[] locationRow = rows.stream()
+                .filter(r -> ((UUID) r[3]).equals(eateryId) && ((String) r[1]).equals(entry.getFood().getLabel()))
+                .findFirst()
+                .orElse(null);
+
+            if (locationRow != null) {
+                result.add(new FoodEntryMapDTO(
+                    entry.getId(),
+                    entry.getFood().getLabel(),
+                    entry.getSgCents(),
+                    eateryId,
+                    (String) locationRow[4],
+                    ((Number) locationRow[5]).doubleValue(),
+                    ((Number) locationRow[6]).doubleValue()
+                ));
+            }
+        }
+
+        return result;
     }
 
     private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {

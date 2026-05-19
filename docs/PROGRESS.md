@@ -1,5 +1,47 @@
 # Progress
 
+## Session 2026-05-20 — HomePage Full Rebuild
+
+### Backend Changes
+- **NEW:** `EateryClosureFlagRepository` — `existsByEateryIdAndFlaggerId` for duplicate prevention
+- **NEW:** `EateryService.reportClosed()` — idempotent closure reporting, returns 409 on duplicate
+- **NEW:** `EateryController POST /{eateryId}/report-closed` — requires `X-User-Id` header
+- **NEW:** `FoodEntryMapDTO` — lightweight DTO for food entries within bounds (food mode map)
+- **NEW:** `FoodEntryRepository.findWithinBoundsWithEateryLocation()` — PostGIS spatial join query
+- **NEW:** `FoodEntryService.findFoodEntriesWithinBounds()` — deduplicates by (eatery, food), keeps highest confidence, cached by bbox key
+- **NEW:** `FoodEntryController GET /within-bounds` — rate-limited, returns `List<FoodEntryMapDTO>`
+- **NEW:** `FoodCreationRequest` DTO — validated food name (max 100 chars)
+- **NEW:** `FoodService.createFood()` — idempotent create/return-existing, invalidates `food_search` cache
+- **NEW:** `FoodController POST /` — creates food, returns `FoodSearchPreview`
+- **TODO markers:** AI verification pipeline noted in `FoodService.createFood()` and `EateryService.reportClosed()`
+
+### Frontend Changes
+- **NEW:** `FoodEntryMapItem` type for food mode markers
+- **NEW:** `FoodCreationRequest` and `FoodEntrySubmissionRequest` types (fixed: submission now sends `foodId` not `foodName`)
+- **NEW:** `useFoodEntriesWithinBounds()` hook — single-call food mode data fetch
+- **NEW:** `useCreateFood()` mutation — creates food on-demand during wizard
+- **NEW:** `useReportEateryClosed()` mutation — optimistic UI with `reportedEateryIds` set in store
+- **FIXED:** `useSubmitFoodEntry()` now sends `{ eateryId, foodId, priceSgCents }` matching backend contract
+- **NEW:** `mapStore.reportedEateryIds` + `markEateryReported()` for optimistic "Reported" state
+- **Recreated all 13 HomePage components:** MapSection, MarkerLayers (eatery + food modes), ModeToggle, SearchBar, FoodTagPicker, EateryPanel (with Report button), FoodEntryRow, HomePage index, SubmissionWizard (5 step files)
+- **Marker colors:** 11 eatery type colors using semantic Tailwind tokens from `index.css`
+
+### Testing
+- **MSW:** Added handlers for `POST /foods`, `GET /food-entries/within-bounds`, `POST /eateries/:id/report-closed`
+- **Playwright:** Added 4 new tests — Report button visibility, food mode markers, full wizard flow (eatery→food→price→confirm→success)
+
+### Documentation
+- **ROADMAP:** Updated — moved homepage items to "In Progress", added AI brief + AI food verification to "Next"
+- **PROGRESS:** This log
+- **AGENTS:** Added optimistic UI guideline
+
+### Key Design Decisions
+- Food mode uses new `/api/food-entries/within-bounds` endpoint (single query, no N+1)
+- Backend deduplicates food entries by (eatery, food) keeping highest confidence
+- Food creation is idempotent — existing food returned if name matches
+- Report as Closed uses optimistic UI (shows "Reported" badge immediately)
+- Submission wizard tracks both `foodId` and `foodName` — sends `foodId` to backend
+
 ## Session 2026-05-19 — Architecture Alignment + Pre-commit Hooks + MSW
 - ConfidenceAlgorithm: batch gRPC WTF fetch (was N+1 individual calls)
 - Env standardization: `.env.local`/`.env.k8s` → `.env` across all 8 directories + `.env.example` files

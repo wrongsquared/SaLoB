@@ -3,6 +3,7 @@ package com.salob.food_service.api.eatery;
 import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api._domain.EateryClosureFlag;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,7 +20,9 @@ import com.salob.food_service.storage.minio.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.util.stream.Collectors;
@@ -41,6 +44,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EateryService {
     private final EateryRepository eateryRepo;
+    private final EateryClosureFlagRepository closureFlagRepo;
     private final ConfidenceAlgorithm confidenceAlgorithm;
     private final MinioStorageService minioStorageService;
 
@@ -170,6 +174,28 @@ public class EateryService {
         return eateryRepo.findBySearchCaseInsensitive(search).stream()
                 .map(this::mapRowToPreviewDTO)
                 .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    /**
+     * Report an eatery as closed. Idempotent — same user cannot flag the same eatery twice.
+     *
+     * TODO: Future AI verification pipeline — flag goes to moderation queue, AI checks
+     * closure legitimacy (e.g., cross-references with OneMap/Google Places), then auto-approves
+     * or escalates to human moderator.
+     */
+    public void reportClosed(UUID eateryId, UUID flaggerId) {
+        Eatery eatery = findById(eateryId);
+
+        if (closureFlagRepo.existsByEateryIdAndFlaggerId(eateryId, flaggerId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already reported by this user");
+        }
+
+        EateryClosureFlag flag = EateryClosureFlag.builder()
+                .eatery(eatery)
+                .flaggerId(flaggerId)
+                .build();
+        closureFlagRepo.save(flag);
+        log.info("Eatery {} reported as closed by user {}", eateryId, flaggerId);
     }
 
     /**

@@ -15,6 +15,7 @@ export default function SubmissionWizard() {
   const [step, setStep] = useState(1)
   const [eateryId, setEateryId] = useState<string | null>(null)
   const [eateryName, setEateryName] = useState('')
+  const [foodId, setFoodId] = useState('')
   const [foodName, setFoodName] = useState('')
   const [priceCents, setPriceCents] = useState(0)
 
@@ -25,6 +26,7 @@ export default function SubmissionWizard() {
     setStep(1)
     setEateryId(null)
     setEateryName('')
+    setFoodId('')
     setFoodName('')
     setPriceCents(0)
     submitMutation.reset()
@@ -57,7 +59,7 @@ export default function SubmissionWizard() {
         <div className="px-6 py-5">
           {submitSuccess ? (
             <div className="space-y-4 py-8 text-center">
-              <div className="text-4xl">🎉</div>
+              <div className="text-4xl"></div>
               <p className="text-lg font-semibold text-secondary-900">
                 Price submitted!
               </p>
@@ -86,7 +88,8 @@ export default function SubmissionWizard() {
               )}
               {step === 2 && (
                 <StepFood
-                  onSelect={(name) => {
+                  onSelect={(id, name) => {
+                    setFoodId(id)
                     setFoodName(name)
                     setStep(3)
                   }}
@@ -110,11 +113,11 @@ export default function SubmissionWizard() {
                   isSubmitting={submitting}
                   error={submitError}
                   onSubmit={() => {
-                    if (!eateryId) return
+                    if (!eateryId || !foodId) return
                     submitMutation.mutate({
                       eateryId,
-                      foodName,
-                      sgCents: priceCents,
+                      foodId,
+                      priceSgCents: priceCents,
                     })
                   }}
                   onBack={() => setStep(3)}

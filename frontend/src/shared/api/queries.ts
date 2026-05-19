@@ -2,12 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import type {
   EateryMapItem,
+  FoodEntryMapItem,
   Bounds,
   EateryDetail,
   EaterySearchResult,
   FoodSearchResult,
   FoodEntryDetail,
   FoodHistoricalData,
+  FoodCreationRequest,
+  FoodEntrySubmissionRequest,
 } from '@/shared/types/api'
 
 export function useEateriesWithinBounds(bounds: Bounds | null) {
@@ -102,6 +105,21 @@ export function useFoodEntryDetail(foodEntryId: string | null) {
   })
 }
 
+export function useFoodEntriesWithinBounds(bounds: Bounds | null) {
+  return useQuery({
+    queryKey: ['food-entries', 'within-bounds', bounds],
+    queryFn: async () => {
+      if (!bounds) return []
+      const { data } = await apiClient.get<FoodEntryMapItem[]>('/food-entries/within-bounds', {
+        params: bounds,
+      })
+      return data
+    },
+    enabled: !!bounds,
+    staleTime: 30_000,
+  })
+}
+
 export function useFoodHistoricalData(foodEntryId: string | null) {
   return useQuery({
     queryKey: ['food-entries', 'historical', foodEntryId],
@@ -124,17 +142,40 @@ export function useSubmitFoodEntry() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: {
-      eateryId: string
-      foodName: string
-      sgCents: number
-    }) => {
+    mutationFn: async (data: FoodEntrySubmissionRequest) => {
       await apiClient.post('/food-entries/submit', data)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['eateries', 'detail'] })
       queryClient.invalidateQueries({ queryKey: ['eateries', 'within-bounds'] })
       queryClient.invalidateQueries({ queryKey: ['food-entries'] })
+    },
+  })
+}
+
+export function useCreateFood() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: FoodCreationRequest) => {
+      const { data: result } = await apiClient.post<FoodSearchResult>('/foods', data)
+      return result
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['foods', 'search'] })
+    },
+  })
+}
+
+export function useReportEateryClosed() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (eateryId: string) => {
+      await apiClient.post(`/eateries/${eateryId}/report-closed`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eateries', 'detail'] })
     },
   })
 }

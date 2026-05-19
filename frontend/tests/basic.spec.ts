@@ -76,4 +76,64 @@ test.describe("SaLoB smoke tests", () => {
 
     await expect(page.getByText("Select an eatery")).toBeVisible()
   })
+
+  test("eatery panel shows Report as Closed button", async ({ page }) => {
+    await page.goto("/")
+
+    await page.waitForResponse((response) =>
+      response.url().includes("/api/eateries/within-bounds") && response.status() === 200,
+    )
+
+    const firstMarker = page.locator(".leaflet-marker-icon").first()
+    await firstMarker.click()
+
+    const sidebar = page.getByRole("dialog", { name: "Eatery details" })
+    await expect(sidebar).toBeVisible({ timeout: 5000 })
+    await expect(page.getByLabel("Report as closed")).toBeVisible()
+  })
+
+  test("food mode markers render from food entries API", async ({ page }) => {
+    await page.goto("/")
+
+    await page.getByRole("radio", { name: "Food" }).click({ force: true })
+
+    await page.waitForResponse((response) =>
+      response.url().includes("/api/food-entries/within-bounds") && response.status() === 200,
+    )
+
+    const leafletMap = page.locator(".leaflet-container")
+    const markers = leafletMap.locator(".leaflet-marker-icon")
+    await expect(markers.first()).toBeVisible({ timeout: 5000 })
+  })
+
+  test("submission wizard full flow — eatery, food, price, confirm", async ({ page }) => {
+    await page.goto("/")
+
+    await page.getByLabel("Submit price").click()
+    await expect(page.getByText("Select an eatery")).toBeVisible()
+
+    const searchInput = page.getByPlaceholder("Search eateries...")
+    await searchInput.fill("Tian")
+    await page.waitForTimeout(400)
+    await page.getByText("Tian Tian Hainanese Chicken Rice").click()
+
+    await expect(page.getByText("Select a food")).toBeVisible()
+    const foodSearch = page.getByPlaceholder("Search foods...")
+    await foodSearch.fill("Chicken")
+    await page.waitForTimeout(400)
+    await page.getByText("Chicken Rice").click()
+
+    await expect(page.getByText("Enter the price")).toBeVisible()
+    const priceInput = page.getByPlaceholder("$0.00")
+    await priceInput.fill("5.50")
+    await page.getByText(/Continue.*\$5\.50/).click()
+
+    await expect(page.getByText("Confirm submission")).toBeVisible()
+    await expect(page.getByText("Tian Tian Hainanese Chicken Rice")).toBeVisible()
+    await expect(page.getByText("Chicken Rice")).toBeVisible()
+    await expect(page.getByText("$5.50")).toBeVisible()
+
+    await page.getByRole("button", { name: "Submit" }).click()
+    await expect(page.getByText("Price submitted!")).toBeVisible({ timeout: 5000 })
+  })
 })

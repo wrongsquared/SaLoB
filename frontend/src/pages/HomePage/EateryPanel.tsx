@@ -1,14 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { useMapStore } from '@/stores/mapStore'
-import { useEateryDetail } from '@/shared/api/queries'
-import { X } from 'lucide-react'
+import { useEateryDetail, useReportEateryClosed } from '@/shared/api/queries'
+import { X, Flag } from 'lucide-react'
 import FoodEntryRow from './FoodEntryRow'
 
 export default function EateryPanel() {
   const navigate = useNavigate()
-  const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen, setWizardOpen } =
+  const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen, setWizardOpen, reportedEateryIds } =
     useMapStore()
   const { data: eatery, isLoading, isError } = useEateryDetail(selectedEateryId)
+  const reportMutation = useReportEateryClosed()
+
+  const isReported = selectedEateryId ? reportedEateryIds.has(selectedEateryId) : false
 
   if (!sidebarOpen) return null
 
@@ -46,6 +49,26 @@ export default function EateryPanel() {
             >
               + Price
             </button>
+          )}
+          {eatery && !isReported && (
+            <button
+              type="button"
+              onClick={() => {
+                reportMutation.mutate(eatery.eateryId)
+                useMapStore.getState().markEateryReported(eatery.eateryId)
+              }}
+              disabled={reportMutation.isPending}
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-secondary-400 hover:text-red-500 disabled:opacity-40"
+              aria-label="Report as closed"
+            >
+              <Flag size={12} />
+              Report
+            </button>
+          )}
+          {isReported && (
+            <span className="rounded-lg bg-red-50 px-2 py-1.5 text-xs text-red-500">
+              Reported
+            </span>
           )}
           <button
             type="button"

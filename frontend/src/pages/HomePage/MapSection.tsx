@@ -52,7 +52,7 @@ export default function MapSection() {
         center={[1.3521, 103.8198]}
         zoom={13}
         className="h-full w-full"
-        zoomControl={true}
+        zoomControl={false}
         keyboard={true}
       >
         <TileLayer

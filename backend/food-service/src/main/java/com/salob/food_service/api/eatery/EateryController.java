@@ -93,4 +93,18 @@ public class EateryController {
         }
         return ResponseEntity.ok(results);
     }
+
+    /**
+     * Report an eatery as permanently closed.
+     * Example: POST /api/eateries/{eateryId}/report-closed
+     * Header: X-User-Id required
+     */
+    @PostMapping("/{eateryId}/report-closed")
+    public ResponseEntity<Void> reportEateryClosed(
+            @Valid @PathVariable UUID eateryId,
+            @RequestHeader("X-User-Id") UUID flaggerId
+    ) {
+        eateryService.reportClosed(eateryId, flaggerId);
+        return ResponseEntity.noContent().build();
+    }
 }

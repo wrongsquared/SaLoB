@@ -2,19 +2,34 @@ import { useNavigate } from 'react-router-dom'
 import { Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import {
-  useAllEateryDetails,
   useEateriesWithinBounds,
+  useFoodEntriesWithinBounds,
 } from '@/shared/api/queries'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { useMapStore } from '@/stores/mapStore'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 
 const typeColors: Record<string, string> = {
-  'Hawker Stall': '#2563eb',
-  'Hawker Centre': '#7c3aed',
+  'Hawker Stall': 'rgb(var(--primary-700))',
+  'Hawker Centre': 'rgb(var(--text-500))',
   Cafe: '#d97706',
   Restaurant: '#dc2626',
+  'Food Court': 'rgb(var(--accent-500))',
+  Bakery: '#ea580c',
+  Bistro: '#db2777',
+  Kopitiam: '#0d9488',
+  'Bubble Tea Shop': '#7c3aed',
+  'Dessert Shop': '#e11d48',
+  'Fast Food': '#ca8a04',
 }
+
+const foodColorPalette = [
+  'rgb(var(--primary-700))',
+  'rgb(var(--text-500))',
+  '#d97706',
+  '#dc2626',
+  'rgb(var(--accent-500))',
+]
 
 function coloredCircleIcon(
   color: string,
@@ -26,7 +41,7 @@ function coloredCircleIcon(
     className: '',
     html: `<div style="
       width: ${size}px; height: ${size}px;
-      background: ${color.replace(/[^#\w]/g, '')};
+      background: ${color};
       border: 2px solid white;
       border-radius: 50%;
       display: flex;
@@ -34,7 +49,6 @@ function coloredCircleIcon(
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       font-size: ${Math.round(size * 0.5)}px;
-      color: white;
     ">${safeEmoji}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -42,12 +56,8 @@ function coloredCircleIcon(
   })
 }
 
-const foodColorPalette = [
-  '#2563eb', '#7c3aed', '#d97706', '#dc2626', '#059669',
-]
-
 function eateryIcon(typeLabel: string) {
-  return coloredCircleIcon(typeColors[typeLabel] ?? '#6b7280', '🏪', 28)
+  return coloredCircleIcon(typeColors[typeLabel] ?? 'rgb(var(--secondary-400))', '', 28)
 }
 
 function foodIcon(idx: number) {
@@ -88,57 +98,38 @@ export function FoodModeMarkers() {
   const navigate = useNavigate()
   const { mapBounds, selectedFoods } = useMapStore()
   const debouncedBounds = useDebounce(mapBounds, 300)
-  const { data: eateries } = useEateriesWithinBounds(debouncedBounds)
-  const { data: eateryDetails, isError } =
-    useAllEateryDetails(debouncedBounds)
+  const { data: entries, isError } =
+    useFoodEntriesWithinBounds(debouncedBounds)
 
-  const positionMap = new Map<string, [number, number]>()
-  eateries?.forEach((e) => {
-    positionMap.set(e.eateryId, [e.latitude, e.longitude])
-  })
-
-  const visibleEntries =
-    eateryDetails
-      ?.flatMap((ed) => ed.foodPreviews)
-      .filter((fp) => {
-        if (selectedFoods.length === 0) return true
-        return selectedFoods.some(
-          (sf) => fp.name.toLowerCase().includes(sf.toLowerCase()),
-        )
-      }) ?? []
+  const visibleEntries = entries?.filter((entry) => {
+    if (selectedFoods.length === 0) return true
+    return selectedFoods.some(
+      (sf) => entry.foodName.toLowerCase().includes(sf.toLowerCase()),
+    )
+  }) ?? []
 
   if (isError) return null
 
   return (
     <MarkerClusterGroup>
-      {visibleEntries.map((entry, idx) => {
-        const eatery = eateryDetails?.find((ed) =>
-          ed.foodPreviews.some(
-            (fp) => fp.foodEntryId === entry.foodEntryId,
-          ),
-        )
-        const pos = eatery ? positionMap.get(eatery.eateryId) : undefined
-        if (!pos) return null
-
-        return (
-          <Marker
-            key={entry.foodEntryId}
-            position={pos}
-            icon={foodIcon(idx)}
-            eventHandlers={{
-              click: () => navigate(`/food-entry/${entry.foodEntryId}`),
-            }}
-          >
-            <Popup>
-              {entry.name} &middot; ${(entry.sgCents / 100).toFixed(2)}
-              <br />
-              <span className="text-xs text-secondary-400">
-                {eatery?.name}
-              </span>
-            </Popup>
-          </Marker>
-        )
-      })}
+      {visibleEntries.map((entry, idx) => (
+        <Marker
+          key={entry.foodEntryId}
+          position={[entry.latitude, entry.longitude]}
+          icon={foodIcon(idx)}
+          eventHandlers={{
+            click: () => navigate(`/food-entry/${entry.foodEntryId}`),
+          }}
+        >
+          <Popup>
+            {entry.foodName} &middot; ${(entry.sgCents / 100).toFixed(2)}
+            <br />
+            <span className="text-xs text-secondary-400">
+              {entry.eateryName}
+            </span>
+          </Popup>
+        </Marker>
+      ))}
     </MarkerClusterGroup>
   )
 }
