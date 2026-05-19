@@ -8,7 +8,7 @@ async function enableMocking() {
   return worker.start({ onUnhandledRequest: 'bypass' })
 }
 
-if (import.meta.env.DEV && import.meta.env.VITE_DISABLE_MSW !== 'true') {
+if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MSW === 'true') {
   enableMocking()
 }
 
