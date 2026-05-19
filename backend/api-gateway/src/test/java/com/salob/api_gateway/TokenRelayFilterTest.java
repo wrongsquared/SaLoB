@@ -1,8 +1,8 @@
 package com.salob.api_gateway;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -17,33 +17,13 @@ import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/*
- * =============================================================================
- * WHAT THIS TEST TEACHES
- * =============================================================================
- *
- * This is a PURE UNIT test — no Spring context, no Testcontainers, no Docker.
- * The test verifies the filter's behavior in isolation by mocking its
- * dependencies (ServerWebExchange, GatewayFilterChain).
- *
- * Key technique: To make ReactiveSecurityContextHolder.getContext() return
- * a real authentication, we use .contextWrite(...) on the Mono pipeline.
- * This is the official Spring Security approach for testing reactive
- * security context propagation.
- *
- * The test uses StepVerifier from reactor-test (already a dependency)
- * to assert on reactive Mono<Void> pipelines.
- * =============================================================================
- */
 @ExtendWith(MockitoExtension.class)
 class TokenRelayFilterTest {
 
-    @InjectMocks
     private TokenRelayFilter filter;
 
     @Mock
@@ -61,8 +41,13 @@ class TokenRelayFilterTest {
     @Mock
     private GatewayFilterChain chain;
 
+    @BeforeEach
+    void setUp() {
+        filter = new TokenRelayFilter();
+    }
+
     @Test
-    void filter_addsHeadersFromJwt() {
+    void filter_withFullClaims_addsHeaders() {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .subject("user-abc-123")
@@ -95,7 +80,7 @@ class TokenRelayFilterTest {
     }
 
     @Test
-    void filter_handlesNullRoles() {
+    void filter_withoutRolesClaim_setsEmptyRolesHeader() {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .subject("user-xyz")
@@ -125,16 +110,46 @@ class TokenRelayFilterTest {
     }
 
     @Test
-    void filter_passesExchangeAsIsWhenNoAuthentication() {
+    void filter_withNullSubjectAndUsername_skipsThoseHeaders() {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("roles", List.of("ADMIN"))
+                .build();
+        Authentication auth = new JwtAuthenticationToken(jwt);
+
+        when(request.mutate()).thenReturn(requestBuilder);
+        when(requestBuilder.header("X-User-Roles", "ADMIN")).thenReturn(requestBuilder);
+        when(requestBuilder.build()).thenReturn(request);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(exchange.mutate()).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.request(request)).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.build()).thenReturn(exchange);
+
+        when(chain.filter(exchange)).thenReturn(Mono.empty());
+
+        StepVerifier.create(
+                filter.filter(exchange, chain)
+                        .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth))
+        ).verifyComplete();
+
+        verify(requestBuilder).header("X-User-Roles", "ADMIN");
+    }
+
+    @Test
+    void filter_withNoAuth_passesExchangeAsIs() {
         when(chain.filter(exchange)).thenReturn(Mono.empty());
 
         StepVerifier.create(
                 filter.filter(exchange, chain)
         ).verifyComplete();
+
+        verify(exchange, never()).getRequest();
+        verify(exchange, never()).mutate();
     }
 
     @Test
-    void filter_rolesHeaderUsesCommaSeparatedValues() {
+    void filter_withMultipleRoles_joinsWithComma() {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .subject("user-456")

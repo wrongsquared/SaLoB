@@ -33,7 +33,6 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

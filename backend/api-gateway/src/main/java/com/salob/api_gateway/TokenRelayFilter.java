@@ -23,16 +23,21 @@ public class TokenRelayFilter implements GlobalFilter {
                 .map(securityContext -> securityContext.getAuthentication().getPrincipal())
                 .cast(Jwt.class)
                 .map(jwt -> {
-                    // Extract data from claims payload
-                    String userId = jwt.getSubject(); // Assuming subject is user ID
+                    String userId = jwt.getSubject();
                     String username = jwt.getClaimAsString("username");
                     List<String> roles = jwt.getClaimAsStringList("roles");
                     String rolesStr = roles != null ? String.join(",", roles) : "";
 
-                    // Mutate the request to add custom downstream headers
-                    ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                            .header("X-User-Id", userId)
-                            .header("X-User-Name", username)
+                    ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+
+                    if (userId != null) {
+                        builder.header("X-User-Id", userId);
+                    }
+                    if (username != null) {
+                        builder.header("X-User-Name", username);
+                    }
+
+                    ServerHttpRequest mutatedRequest = builder
                             .header("X-User-Roles", rolesStr)
                             .build();
 
