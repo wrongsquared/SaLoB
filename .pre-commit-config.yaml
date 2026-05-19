@@ -56,7 +56,8 @@ repos:
           (?x)^(
             .*\.env\.example|
             docs/.*\.md|
-            frontend/public/mockServiceWorker\.js
+            frontend/public/mockServiceWorker\.js|
+            .*Test\.java
           )$
 
   - repo: local

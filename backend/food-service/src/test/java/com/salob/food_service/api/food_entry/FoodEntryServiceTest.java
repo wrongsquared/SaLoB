@@ -35,20 +35,20 @@ import static org.mockito.Mockito.*;
  * =============================================================================
  * WHAT THIS TEST TEACHES
  * =============================================================================
- * 
+ *
  * 1. @GrpcClient field injection — FoodEntryService has a field-level gRPC stub
  *    (@GrpcClient private UserServiceGrpc.UserServiceBlockingStub userServiceStub).
  *    This is NOT constructor-injected (it's set by Spring after construction).
  *    In tests, we use ReflectionTestUtils.setField() to inject it manually.
- * 
+ *
  * 2. ArgumentCaptor — captures the argument passed to a mock so we can
  *    inspect it after the fact. Useful when the argument is constructed
  *    inside the method under test (like the gRPC request).
- * 
+ *
  * 3. Mocking protobuf responses — UserDetailsResponse is a protobuf-generated
  *    class with a builder pattern. We mock the gRPC stub to return a
  *    pre-built response.
- * 
+ *
  * 4. JPA getReferenceById — this is a Hibernate proxy pattern. The method
  *    does NOT query the database; it creates a lazy-loaded proxy. In tests
  *    without a database, the proxy still works because we never access

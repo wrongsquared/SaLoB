@@ -27,19 +27,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * =============================================================================
  * WHAT THIS TEST TEACHES
  * =============================================================================
- * 
+ *
  * STANDALONE MockMvc SETUP
- * 
+ *
  * In Spring Boot 4.x, @WebMvcTest and @MockitoBean were REMOVED. The new
  * approach is "standalone MockMvc setup" — we create the controller manually
  * (via new + constructor) and configure MockMvc to use it directly.
- * 
+ *
  * This is actually BETTER than @WebMvcTest because:
  *   1. NO Spring context at all — zero startup overhead (~0.01s)
  *   2. Full control over what's wired
  *   3. No hidden beans, no surprises
  *   4. Same plain-new-instantiation pattern as service tests
- * 
+ *
  * The trade-off: we don't get Spring's @Valid on request params and
  * @RestControllerAdvice exception handlers automatically. We can add
  * them if needed by calling .setValidator() and .setControllerAdvice().

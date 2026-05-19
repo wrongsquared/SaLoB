@@ -14,18 +14,18 @@ import static org.junit.jupiter.api.Assertions.*;
  * =============================================================================
  * WHAT THIS TEST TEACHES
  * =============================================================================
- * 
+ *
  * 1. Plain JUnit 5 — no Spring, no containers, no mocks. Just Java.
  *    The test creates objects directly, calls methods, asserts results.
- * 
+ *
  * 2. Package-private access — ConfidenceAlgorithm has two methods marked
  *    "package-private for testing purposes". Our test is in the SAME package
  *    (com.salob.food_service.common), so we can call them directly.
- * 
+ *
  * 3. Domain entity construction — FoodEntry uses Lombok @Builder. We build
  *    test entities with only the fields we need. The builder pattern means
  *    we don't have to fill in everything — defaults handle the rest.
- * 
+ *
  * 4. The confidence algorithm is PURE LOGIC — it takes numbers in, returns
  *    numbers out. No databases, no HTTP, no gRPC. This is the ideal kind of
  *    code to unit-test: fast, deterministic, exhaustive.
@@ -181,7 +181,7 @@ class ConfidenceAlgorithmTest {
     // This method wires everything together — it requires a FoodEntry with votes.
     // The @GrpcClient stub inside ConfidenceAlgorithm is null when we create
     // the object via `new ConfidenceAlgorithm()` — Spring normally injects it.
-    // 
+    //
     // For `computeFinalConfidence`, the gRPC stub is only used inside
     // `batchFetchWtfScores()`. If the stub is null, the gRPC call will NPE.
     // We have a test for that scenario to verify the fallback behavior,
@@ -225,7 +225,7 @@ class ConfidenceAlgorithmTest {
         /*
          * This test creates a very "old" entry (10 years) where decay = 0%.
          * Since we pass zero votes, the final result should still be 0.
-         * 
+         *
          * We can't easily test the full path with votes here because the
          * gRPC stub is null. That test belongs in EateryServiceTest where
          * we can mock the gRPC client properly.
