@@ -66,10 +66,7 @@ export default function StepFood({ onSelect, onBack }: StepFoodProps) {
       <input
         type="text"
         value={input}
-        onChange={(e) => {
-          setInput(e.target.value)
-          setUseFreeText(false)
-        }}
+        onChange={(e) => setInput(e.target.value)}
         placeholder="Search foods..."
         className="w-full rounded-lg border border-secondary-200 px-4 py-2.5 text-sm text-secondary-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
         autoFocus

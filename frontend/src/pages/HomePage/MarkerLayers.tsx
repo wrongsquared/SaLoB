@@ -21,11 +21,12 @@ function coloredCircleIcon(
   emoji: string,
   size: number,
 ): L.DivIcon {
+  const safeEmoji = emoji.replace(/[<>&"']/g, '')
   return L.divIcon({
     className: '',
     html: `<div style="
       width: ${size}px; height: ${size}px;
-      background: ${color};
+      background: ${color.replace(/[^#\w]/g, '')};
       border: 2px solid white;
       border-radius: 50%;
       display: flex;
@@ -34,7 +35,7 @@ function coloredCircleIcon(
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       font-size: ${Math.round(size * 0.5)}px;
       color: white;
-    ">${emoji}</div>`,
+    ">${safeEmoji}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -(size / 2 + 2)],

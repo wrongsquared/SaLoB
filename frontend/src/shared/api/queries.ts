@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import type {
   EateryMapItem,
@@ -121,6 +121,8 @@ export function useFoodHistoricalData(foodEntryId: string | null) {
 }
 
 export function useSubmitFoodEntry() {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: async (data: {
       eateryId: string
@@ -128,6 +130,11 @@ export function useSubmitFoodEntry() {
       sgCents: number
     }) => {
       await apiClient.post('/food-entries/submit', data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eateries', 'detail'] })
+      queryClient.invalidateQueries({ queryKey: ['eateries', 'within-bounds'] })
+      queryClient.invalidateQueries({ queryKey: ['food-entries'] })
     },
   })
 }

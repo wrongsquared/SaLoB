@@ -19,7 +19,6 @@ export default function Navbar() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === '/'}
                 className={({ isActive }) =>
                   `text-sm ${isActive ? 'text-primary-700 underline underline-offset-6 font-bold' : 'text-secondary-400'} hover:text-primary-700`
                 }

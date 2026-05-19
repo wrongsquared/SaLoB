@@ -9,11 +9,7 @@ export default function SearchBar() {
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder={
-          useMapStore.getState().mode === 'eatery'
-            ? 'Search eateries...'
-            : 'Search foods...'
-        }
+        placeholder="Search eateries..."
         className="w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2 pl-10 text-sm text-secondary-900 backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
       />
       <svg

@@ -11,6 +11,7 @@ export default function FoodEntryRow({ entry, onClick }: FoodEntryRowProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-label={`View ${entry.name} entry`}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-primary-50"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-100 text-sm font-bold text-secondary-500">

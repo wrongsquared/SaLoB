@@ -8,18 +8,14 @@ interface StepPriceProps {
 
 export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
   const [input, setInput] = useState('')
-  const raw = input.replace(/[^0-9]/g, '')
-  const dollars = raw ? Math.floor(parseInt(raw, 10) / 100) : 0
-  const cents = raw ? parseInt(raw, 10) % 100 : 0
-  const display = raw
-    ? `$${dollars}.${cents.toString().padStart(2, '0')}`
-    : '$0.00'
+
+  const raw = input.replace(/[^0-9.]/g, '')
+  const decimal = parseFloat(raw) || 0
+  const cents = Math.round(decimal * 100)
+  const display = `$${(cents / 100).toFixed(2)}`
 
   const handleConfirm = () => {
-    const parsed = parseInt(raw, 10)
-    if (parsed > 0) {
-      onConfirm(parsed)
-    }
+    if (cents > 0) onConfirm(cents)
   }
 
   return (
@@ -37,7 +33,7 @@ export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
       <div className="relative">
         <input
           type="text"
-          inputMode="numeric"
+          inputMode="decimal"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="$0.00"
@@ -45,14 +41,11 @@ export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
           autoFocus
         />
       </div>
-      <div className="text-center text-sm text-secondary-400">
-        Enter price in cents (e.g. 450 = $4.50)
-      </div>
       <div className="flex justify-end">
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={!raw || parseInt(raw, 10) === 0}
+          disabled={cents === 0}
           className="rounded-lg bg-primary-700 px-6 py-2 text-sm font-medium text-primary-50 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Continue &middot; {display}
