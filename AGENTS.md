@@ -29,6 +29,8 @@ Before implementing any feature or fixing any bug, follow this workflow:
    e. Use a lightweight subagent for PR review (quality, architecture, API contract).
 
 ## Security
+- Always keep the OWASP Top 10 in mind when designing and implementing features.
+- All npm packages MUST be pinned to exact versions in package.json (no `^`/`~` ranges) to prevent accidental upgrades that may introduce breaking changes or vulnerabilities.
 - All API responses set security headers.
 - Secrets via env only; never hardcode.
 - Public endpoints require rate limiting + input validation.
