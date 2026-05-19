@@ -92,3 +92,20 @@
 - `no-commit-to-branch` hook was running during pre-push (no `stages` filter), blocking `git push origin main`. Added `stages: [pre-commit]` to restrict it to commits only.
 - Pre-push hooks used `npx` which failed when nvm wasn't auto-sourced — switched to `./node_modules/.bin/tsc` and `./node_modules/.bin/eslint` for PATH-independent execution.
 - Merged `agentic-workflow-integration` into `main` and pushed successfully.
+
+## Session 2026-05-19 (cont.) — Backend Unit Tests & Api-Gateway Tests
+
+### Backend unit tests (food-service + user-service) — committed to `main`
+- **46 tests across 11 files**, all passing in <10s, with zero Docker/infrastructure dependencies for 43/46 tests.
+- **food-service (32 tests):** ConfidenceAlgorithmTest (8), EateryServiceTest (9), FoodServiceTest (2), FoodEntryServiceTest (7), EateryControllerTest (6), FoodEntryControllerTest (4), FoodControllerTest (2)
+- **user-service (14 tests):** AuthServiceTest (5), UserServiceTest (6), AuthControllerTest (2), UserControllerTest (1)
+- **Key SB4 discovery:** `@WebMvcTest` and `@MockitoBean` were removed — use standalone MockMvc with `@ExtendWith(MockitoExtension.class)` instead.
+- Fix: `UserServiceApplicationTests` — added `spring.main.allow-bean-definition-overriding=true` for `net.devh` gRPC vs SB4 built-in gRPC conflict.
+
+### Api-gateway tests — branch `feature/api-gateway-tests`
+- **5 new tests across 2 files:**
+  - `TokenRelayFilterTest` (4 unit tests): Verifies JWT claims → X-User-Id/Name/Roles headers, null roles handle, comma-separated multi-roles, passthrough when no auth.
+  - `ApiGatewayApplicationTests` (1 test): Context-load with Testcontainers (Redis).
+- **Key SB4 discovery:** `@AutoConfigureWebTestClient` also removed in SB4. Created `WebTestClient` manually for any integration tests.
+- Added `spring-boot-starter-test` and `spring-boot-starter-webflux-test` to api-gateway build.gradle.
+- Branch created, tests passing, pending subagent review before merge to `main`.
