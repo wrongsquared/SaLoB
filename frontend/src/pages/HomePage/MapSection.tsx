@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, useMapEvents } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useMapStore } from '@/stores/mapStore'
@@ -13,22 +14,29 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
+function syncBounds(map: L.Map) {
+  const b = map.getBounds()
+  const center = map.getCenter()
+  useMapStore.getState().setMapBounds({
+    minLat: b.getSouthWest().lat,
+    maxLat: b.getNorthEast().lat,
+    minLon: b.getSouthWest().lng,
+    maxLon: b.getNorthEast().lng,
+  })
+  useMapStore.getState().setMapCenter([center.lat, center.lng])
+  useMapStore.getState().setMapZoom(map.getZoom())
+}
+
 function BoundsTracker() {
-  const { setMapBounds, setMapCenter, setMapZoom } = useMapStore()
+  const map = useMap()
+
+  useEffect(() => {
+    syncBounds(map)
+  }, [map])
 
   useMapEvents({
-    moveend: (e) => {
-      const map = e.target
-      const b = map.getBounds()
-      const center = map.getCenter()
-      setMapBounds({
-        minLat: b.getSouthWest().lat,
-        maxLat: b.getNorthEast().lat,
-        minLon: b.getSouthWest().lng,
-        maxLon: b.getNorthEast().lng,
-      })
-      setMapCenter([center.lat, center.lng])
-      setMapZoom(map.getZoom())
+    moveend: () => {
+      syncBounds(map)
     },
   })
 
@@ -39,7 +47,7 @@ export default function MapSection() {
   const { mode } = useMapStore()
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 -z-10">
       <MapContainer
         center={[1.3521, 103.8198]}
         zoom={13}
