@@ -70,8 +70,12 @@ export const handlers = [
     return HttpResponse.json(results)
   }),
 
-  http.get("/api/food-entries/historical-data/:foodEntryId", async ({ params }) => {
+  http.get("/api/food-entries/historical-data/:foodEntryId", async ({ params, request }) => {
     await delay(100)
+    const url = new URL(request.url)
+    if (!url.searchParams.has("startDate")) {
+      return HttpResponse.json({ error: "startDate query param is required" }, { status: 400 })
+    }
     const entry = FOOD_PREVIEWS.find((f) => f.foodEntryId === params.foodEntryId)
     if (!entry) return HttpResponse.json({ error: "Not found" }, { status: 404 })
     return HttpResponse.json({

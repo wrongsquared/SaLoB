@@ -6,7 +6,10 @@ import com.salob.proto.user.UserServiceGrpc;
 import com.salob.proto.user.UserWtfBatchRequest;
 import com.salob.proto.user.UserWtfBatchResponse;
 import com.salob.proto.user.UserWtfBatchResponseItem;
+import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -33,6 +36,8 @@ import java.util.UUID;
  */
 @Component
 public class ConfidenceAlgorithm {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfidenceAlgorithm.class);
 
     /**
      * NOTE: 'votesRequiredForMaxScore' is the number of upvotes that are required from
@@ -73,11 +78,14 @@ public class ConfidenceAlgorithm {
         UserWtfBatchRequest req = UserWtfBatchRequest.newBuilder()
                 .addAllUserIds(voterIds)
                 .build();
-        UserWtfBatchResponse res = userService.getUserWtfScoreBatch(req);
-
         Map<UUID, Double> wtfMap = new HashMap<>();
-        for (UserWtfBatchResponseItem item : res.getItemsList()) {
-            wtfMap.put(UUID.fromString(item.getUserId()), item.getWtfScore());
+        try {
+            UserWtfBatchResponse res = userService.getUserWtfScoreBatch(req);
+            for (UserWtfBatchResponseItem item : res.getItemsList()) {
+                wtfMap.put(UUID.fromString(item.getUserId()), item.getWtfScore());
+            }
+        } catch (StatusRuntimeException e) {
+            log.warn("gRPC batch WTF fetch from user-service failed — falling back to default scores (50.0) for all voters", e);
         }
         return wtfMap;
     }
