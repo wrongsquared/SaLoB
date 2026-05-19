@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useMapStore } from "@/stores/mapStore";
@@ -14,38 +13,46 @@ L.Icon.Default.mergeOptions({
 function syncBounds(map: L.Map) {
   const b = map.getBounds();
   const center = map.getCenter();
-  useMapStore.getState().setMapBounds({
-    minLat: b.getSouthWest().lat,
-    maxLat: b.getNorthEast().lat,
-    minLon: b.getSouthWest().lng,
-    maxLon: b.getNorthEast().lng,
-  });
-  useMapStore.getState().setMapCenter([center.lat, center.lng]);
-  useMapStore.getState().setMapZoom(map.getZoom());
+  const store = useMapStore.getState();
+  const newBounds = {
+    minLat: Math.round(b.getSouthWest().lat * 1_000_000) / 1_000_000,
+    maxLat: Math.round(b.getNorthEast().lat * 1_000_000) / 1_000_000,
+    minLon: Math.round(b.getSouthWest().lng * 1_000_000) / 1_000_000,
+    maxLon: Math.round(b.getNorthEast().lng * 1_000_000) / 1_000_000,
+  };
+  const oldBounds = store.mapBounds;
+  if (
+    !oldBounds ||
+    oldBounds.minLat !== newBounds.minLat ||
+    oldBounds.maxLat !== newBounds.maxLat ||
+    oldBounds.minLon !== newBounds.minLon ||
+    oldBounds.maxLon !== newBounds.maxLon
+  ) {
+    store.setMapBounds(newBounds);
+  }
+  store.setMapCenter([center.lat, center.lng]);
+  store.setMapZoom(map.getZoom());
 }
 
 function BoundsTracker() {
-  const map = useMap();
-
-  useEffect(() => {
-    syncBounds(map);
-  }, [map]);
-
   useMapEvents({
-    moveend: () => {
-      syncBounds(map);
+    load: (e) => {
+      syncBounds(e.target)
     },
-  });
+    moveend: (e) => {
+      syncBounds(e.target)
+    },
+  })
 
-  return null;
+  return null
 }
 
 export default function MapSection() {
-  const { mode } = useMapStore();
+  const mode = useMapStore((s) => s.mode);
 
   return (
-    <div className="fixed inset-0">
-      <MapContainer center={[1.3521, 103.8198]} zoom={13} className="h-full w-full" zoomControl={false} keyboard={true}>
+    <div className="fixed inset-0 isolate">
+      <MapContainer center={[1.3521, 103.8198]} zoom={13} className="h-full w-full" zoomControl={false} keyboard={true} scrollWheelZoom={true} doubleClickZoom={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

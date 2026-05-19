@@ -1,0 +1,446 @@
+openapi: "3.0.3"
+info:
+  title: SaLoB API
+  description: |
+    Crowdsourced Price Intelligence Platform API.
+    All endpoints are behind an API gateway that routes to individual services.
+    The API gateway adds `X-User-Id`, `X-User-Name`, and `X-User-Roles` headers
+    after JWT authentication.
+  version: "1.0.0"
+  contact:
+    name: SaLoB Team
+
+servers:
+  - url: /api
+    description: API gateway base path
+
+paths:
+  # ─── Eateries ──────────────────────────────────────────────
+  /eateries/within-bounds:
+    get:
+      summary: Fetch eateries within a bounding box
+      description: >
+        Returns lightweight eatery markers for the visible map viewport.
+        Results are cached using coordinate bucketing.
+      tags: [Eateries]
+      parameters:
+        - name: minLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: maxLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: minLon
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: maxLon
+          in: query
+          required: true
+          schema: { type: number, format: double }
+      responses:
+        "200":
+          description: List of eateries within bounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EateryMapItem"
+        "400":
+          description: Invalid bounds (min >= max)
+
+  /eateries/{eateryId}:
+    get:
+      summary: Fetch full details for a single eatery
+      description: Used by the sidebar panel when a user clicks a map marker.
+      tags: [Eateries]
+      parameters:
+        - name: eateryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Eatery details with food previews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EateryDetail"
+        "404":
+          description: Eatery not found
+
+  /eateries/search:
+    get:
+      summary: Search eateries by name
+      description: Autocomplete search for the search bar.
+      tags: [Eateries]
+      parameters:
+        - name: search
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Matching eateries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EaterySearchResult"
+        "204":
+          description: No matches found
+
+  /eateries/{eateryId}/report-closed:
+    post:
+      summary: Report an eatery as permanently closed
+      tags: [Eateries]
+      parameters:
+        - name: eateryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      headers:
+        X-User-Id:
+          schema: { type: string, format: uuid }
+          required: true
+      responses:
+        "204":
+          description: Successfully reported
+        "409":
+          description: Already reported
+
+  # ─── Foods ─────────────────────────────────────────────────
+  /foods/search:
+    get:
+      summary: Search foods by name
+      tags: [Foods]
+      parameters:
+        - name: search
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Matching foods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodSearchResult"
+
+  /foods:
+    post:
+      summary: Create a new food item (idempotent)
+      description: Returns existing food if name already exists.
+      tags: [Foods]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodCreationRequest"
+      responses:
+        "200":
+          description: Created or existing food
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodSearchResult"
+
+  # ─── Food Entries ──────────────────────────────────────────
+  /food-entries/within-bounds:
+    get:
+      summary: Fetch food entries within a bounding box
+      description: >
+        Food mode map view. Results are deduplicated by (eatery, food),
+        keeping the highest-confidence entry.
+      tags: [Food Entries]
+      parameters:
+        - name: minLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: maxLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: minLon
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: maxLon
+          in: query
+          required: true
+          schema: { type: number, format: double }
+      responses:
+        "200":
+          description: List of food entries within bounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodEntryMapItem"
+        "400":
+          description: Invalid bounds
+
+  /food-entries/{foodEntryId}/details:
+    get:
+      summary: Fetch detailed information for a food entry
+      description: Returns submitter details and metadata for the detail page.
+      tags: [Food Entries]
+      parameters:
+        - name: foodEntryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Food entry details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodEntryDetail"
+        "404":
+          description: Not found
+
+  /food-entries/historical-data/{foodEntryId}:
+    get:
+      summary: Fetch historical pricing data for a food entry
+      description: Returns 90 days of price history with benchmark entries.
+      tags: [Food Entries]
+      parameters:
+        - name: foodEntryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: startDate
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+          description: Start date for historical data (max 1 year ago)
+      responses:
+        "200":
+          description: Historical pricing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodHistoricalData"
+        "400":
+          description: Invalid or future startDate
+
+  /food-entries/submit:
+    post:
+      summary: Submit a new food entry (price report)
+      tags: [Food Entries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodEntrySubmissionRequest"
+      headers:
+        X-User-Id:
+          schema: { type: string, format: uuid }
+          required: true
+      responses:
+        "200":
+          description: Successfully submitted
+
+  # ─── Auth ──────────────────────────────────────────────────
+  /auth/login:
+    post:
+      summary: Login with username/email and password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Missing credentials
+
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "204":
+          description: Registration successful
+
+  # ─── Users ─────────────────────────────────────────────────
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      headers:
+        X-User-Id:
+          schema: { type: string, format: uuid }
+          required: true
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+
+components:
+  schemas:
+    EateryMapItem:
+      type: object
+      properties:
+        eateryId: { type: string, format: uuid }
+        name: { type: string }
+        latitude: { type: number, format: double }
+        longitude: { type: number, format: double }
+        typeLabel: { type: string }
+
+    EateryDetail:
+      type: object
+      properties:
+        eateryId: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+        typeLabel: { type: string }
+        photoUrl: { type: string, format: uri }
+        foodPreviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/FoodPreview"
+
+    EaterySearchResult:
+      type: object
+      properties:
+        eateryId: { type: string, format: uuid }
+        name: { type: string }
+        address: { type: string }
+
+    FoodPreview:
+      type: object
+      properties:
+        foodEntryId: { type: string, format: uuid }
+        name: { type: string }
+        sgCents: { type: integer }
+        upvotes: { type: integer }
+        downvotes: { type: integer }
+        photoPresignedUrl: { type: string }
+        submitterId: { type: string, format: uuid }
+        submitterUsername: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    FoodSearchResult:
+      type: object
+      properties:
+        foodId: { type: string, format: uuid }
+        foodName: { type: string }
+        photoUrl: { type: string }
+
+    FoodEntryMapItem:
+      type: object
+      properties:
+        foodEntryId: { type: string, format: uuid }
+        foodName: { type: string }
+        sgCents: { type: integer }
+        eateryId: { type: string, format: uuid }
+        eateryName: { type: string }
+        latitude: { type: number, format: double }
+        longitude: { type: number, format: double }
+
+    FoodEntryDetail:
+      type: object
+      properties:
+        foodEntryId: { type: string, format: uuid }
+        foodPhotoPresignedUrl: { type: string }
+        submittedAt: { type: string, format: date-time }
+        submitterId: { type: string, format: uuid }
+        submitterUsername: { type: string }
+        submitterProfilePhotoPresignedUrl: { type: string }
+        submitterWtfScore: { type: number, format: double, nullable: true }
+        submitterTenureDays: { type: integer, format: int64 }
+        submitterEntriesSubmitted: { type: integer, format: int64 }
+
+    FoodHistoricalData:
+      type: object
+      properties:
+        foodName: { type: string }
+        sgCentsConsensusPrice: { type: integer }
+        eateryId: { type: string, format: uuid }
+        eateryAddress: { type: string }
+        availableDates:
+          type: array
+          items:
+            type: string
+            format: date
+        benchmarkDateEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/FoodPreview"
+        consensusEntry:
+          $ref: "#/components/schemas/FoodEntryDetail"
+
+    FoodCreationRequest:
+      type: object
+      required: [foodName]
+      properties:
+        foodName:
+          type: string
+          maxLength: 100
+
+    FoodEntrySubmissionRequest:
+      type: object
+      required: [eateryId, foodId, priceSgCents]
+      properties:
+        eateryId: { type: string, format: uuid }
+        foodId: { type: string, format: uuid }
+        priceSgCents: { type: integer }
+
+    LoginRequest:
+      type: object
+      required: [usernameOrEmail, password]
+      properties:
+        usernameOrEmail: { type: string }
+        password: { type: string }
+
+    LoginResponse:
+      type: object
+      properties:
+        jwt: { type: string }
+
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username: { type: string }
+        email: { type: string, format: email }
+        password: { type: string }
+
+    MeResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        username: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        avatarUrl: { type: string, nullable: true }

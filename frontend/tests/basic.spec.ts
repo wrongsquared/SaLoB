@@ -136,4 +136,37 @@ test.describe("SaLoB smoke tests", () => {
     await page.getByRole("button", { name: "Submit" }).click()
     await expect(page.getByText("Price submitted!")).toBeVisible({ timeout: 5000 })
   })
+
+  test.describe("visual smoke tests", () => {
+    test("homepage default state screenshot", async ({ page }) => {
+      await page.goto("/")
+      await page.waitForResponse((response) =>
+        response.url().includes("/api/eateries/within-bounds") && response.status() === 200,
+      )
+      await page.waitForTimeout(1000)
+      await expect(page).toHaveScreenshot("homepage-default.png", { maxDiffPixels: 500 })
+    })
+
+    test("eatery sidebar open screenshot", async ({ page }) => {
+      await page.goto("/")
+      await page.waitForResponse((response) =>
+        response.url().includes("/api/eateries/within-bounds") && response.status() === 200,
+      )
+      const firstMarker = page.locator(".leaflet-marker-icon").first()
+      await expect(firstMarker).toBeVisible({ timeout: 5000 })
+      await firstMarker.click()
+      await page.waitForTimeout(500)
+      await expect(page).toHaveScreenshot("homepage-sidebar-open.png", { maxDiffPixels: 500 })
+    })
+
+    test("food mode screenshot", async ({ page }) => {
+      await page.goto("/")
+      await page.getByRole("radio", { name: "Food" }).click({ force: true })
+      await page.waitForResponse((response) =>
+        response.url().includes("/api/food-entries/within-bounds") && response.status() === 200,
+      )
+      await page.waitForTimeout(1000)
+      await expect(page).toHaveScreenshot("homepage-food-mode.png", { maxDiffPixels: 500 })
+    })
+  })
 })
