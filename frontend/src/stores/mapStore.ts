@@ -10,6 +10,8 @@ interface MapStore {
   mapCenter: [number, number]
   mapZoom: number
   mapBounds: Bounds | null
+  wizardOpen: boolean
+  wizardPreselectedEateryId: string | null
 
   setMode: (mode: 'eatery' | 'food') => void
   selectEatery: (id: string | null) => void
@@ -21,6 +23,7 @@ interface MapStore {
   setMapCenter: (center: [number, number]) => void
   setMapZoom: (zoom: number) => void
   setMapBounds: (bounds: Bounds | null) => void
+  setWizardOpen: (open: boolean, preselectedEateryId?: string | null) => void
 }
 
 export const useMapStore = create<MapStore>((set) => ({
@@ -32,6 +35,8 @@ export const useMapStore = create<MapStore>((set) => ({
   mapCenter: [1.3521, 103.8198],
   mapZoom: 13,
   mapBounds: null,
+  wizardOpen: false,
+  wizardPreselectedEateryId: null,
 
   setMode: (mode) =>
     set({ mode, selectedEateryId: null, sidebarOpen: false }),
@@ -53,4 +58,6 @@ export const useMapStore = create<MapStore>((set) => ({
   setMapCenter: (center) => set({ mapCenter: center }),
   setMapZoom: (zoom) => set({ mapZoom: zoom }),
   setMapBounds: (bounds) => set({ mapBounds: bounds }),
+  setWizardOpen: (open: boolean, preselectedEateryId?: string | null) =>
+    set({ wizardOpen: open, wizardPreselectedEateryId: preselectedEateryId ?? null }),
 }))

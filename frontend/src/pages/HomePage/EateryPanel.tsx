@@ -6,7 +6,7 @@ import FoodEntryRow from './FoodEntryRow'
 
 export default function EateryPanel() {
   const navigate = useNavigate()
-  const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen } =
+  const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen, setWizardOpen } =
     useMapStore()
   const { data: eatery, isLoading, isError } = useEateryDetail(selectedEateryId)
 
@@ -37,17 +37,28 @@ export default function EateryPanel() {
             </>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            selectEatery(null)
-            setSidebarOpen(false)
-          }}
-          className="rounded-full p-1 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700"
-          aria-label="Close sidebar"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          {eatery && (
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true, eatery.eateryId)}
+              className="rounded-lg bg-primary-700 px-3 py-1.5 text-xs font-medium text-primary-50 hover:bg-primary-600"
+            >
+              + Price
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              selectEatery(null)
+              setSidebarOpen(false)
+            }}
+            className="rounded-full p-1 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">

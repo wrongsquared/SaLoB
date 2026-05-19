@@ -12,16 +12,19 @@
 - `feature/homepage` branch awaiting merge into `main`
 
 ## Next
-- **Submission wizard**: multi-step overlay (search eatery → search food → enter price)
+- **Submission wizard** (in progress on `feature/homepage`):
+  - Multi-step overlay: search eatery → search food (free-text fallback) → enter price → confirm
+  - FAB on HomePage + "Submit price" button in EateryPanel
 - **OneMap integration**: replace OSM tiles with Singapore-specific OneMap
 - **Settings page**: user profile editing, preferences
 - **Login/Auth**: wire Google OAuth, JWT token management
-- **Historical data charts**: price trend visualization on food entry detail page
-- **Live voting**: RabbitMQ WebSocket for real-time upvote/downvote
 
 ## Later
-- Admin dashboard
+- **Food moderation system**: Admin page to approve/reject user-submitted foods (RBAC with existing role system)
+- **Rate limiting**: Per-user cap on food submissions (prevent spam)
+- **AI verification pipeline**: Confidence scoring for user-submitted foods (cheap AI check on food name legitimacy)
+- Admin dashboard (approve/reject foods, user management)
+- Historical data charts (price trend visualization on food entry detail page)
+- Live voting (RabbitMQ WebSocket for real-time upvote/downvote)
 - Mobile responsive layout
 - Backend search improvements (full-text, fuzzy)
-- Receipt upload (currently out-of-scope per PRD)
-- Containerized deployment (was removed from docker-compose)

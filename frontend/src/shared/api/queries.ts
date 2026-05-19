@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiClient } from './client'
 import type {
   EateryMapItem,
@@ -117,5 +117,17 @@ export function useFoodHistoricalData(foodEntryId: string | null) {
     },
     enabled: !!foodEntryId,
     staleTime: 120_000,
+  })
+}
+
+export function useSubmitFoodEntry() {
+  return useMutation({
+    mutationFn: async (data: {
+      eateryId: string
+      foodName: string
+      sgCents: number
+    }) => {
+      await apiClient.post('/food-entries/submit', data)
+    },
   })
 }

@@ -1,12 +1,14 @@
 import { useMapStore } from '@/stores/mapStore'
+import { Plus } from 'lucide-react'
 import MapSection from './MapSection'
 import ModeToggle from './ModeToggle'
 import SearchBar from './SearchBar'
 import FoodTagPicker from './FoodTagPicker'
 import EateryPanel from './EateryPanel'
+import SubmissionWizard from './SubmissionWizard'
 
 export default function HomePage() {
-  const { mode } = useMapStore()
+  const { mode, setWizardOpen } = useMapStore()
 
   return (
     <div className="relative h-[calc(100vh-57px)] w-full overflow-hidden">
@@ -22,6 +24,17 @@ export default function HomePage() {
       </div>
 
       <EateryPanel />
+
+      <button
+        type="button"
+        onClick={() => setWizardOpen(true)}
+        className="absolute bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary-700 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600"
+        aria-label="Submit price"
+      >
+        <Plus size={24} />
+      </button>
+
+      <SubmissionWizard />
     </div>
   )
 }
