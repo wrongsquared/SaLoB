@@ -1,5 +1,37 @@
 # Progress
 
+## Session 2026-05-20 — FoodEntryDetailPage Rebuild
+
+### Backend Changes
+- **NEW:** `submitterUsername` field in `FoodEntryHistoricalDTO` — top-level username of the consensus entry submitter, populated from `consensusEntryDetails.submitterUsername()`
+
+### Frontend Changes
+- **REBUILT:** `FoodEntryDetailPage/` folder structure (replaced single `FoodEntryDetailPage.tsx`):
+  - `index.tsx` — Layout driver: back button, large header, Report/Submit placeholder buttons, 2-column responsive grid
+  - `PriceChart.tsx` — Recharts `AreaChart` with gradient fill, dot markers, tooltip. Mock prices generated via sine+noise seeded from consensus price. 1M/6M/12M toggle (UI only — TODO: wire to `startDate` requery)
+  - `CommunityEntryRow.tsx` — Entry row with photo/initial, timestamp, price, vote pill. `cursor-pointer`, `role="button"`, keyboard accessible. Click navigates to `/food-entry/:newId` for full refetch
+  - `SubmitterPanel.tsx` — Avatar (profile photo with initial-letter fallback), username from `history.submitterUsername`, Trust Score/Tenure/Entries stats, food photo, timestamp, price
+- **FIXED:** `FoodHistoricalData` type — added `submitterUsername: string`
+- **REMOVED:** Price Authority Score footer, Ref ID header, Verification badges (Photo/Geo) from SubmitterPanel
+
+### API Contract
+- **UPDATED:** `docs/api-spec.yaml` — added `submitterUsername` to `FoodHistoricalData` schema
+- **UPDATED:** MSW handlers — added `submitterUsername` to mock historical data response
+
+### Key Design Decisions
+- Mock chart prices use deterministic sine+noise around consensus price — looks realistic but is fake. TODO: implement real price-per-date algorithm
+- Community entries show `benchmarkDateEntries` (entries from consensus date). Future: clicking chart point filters by date
+- Time range toggle re-renders chart but doesn't requery yet (TODO: pass different `startDate` to `useFoodHistoricalData`)
+- Report Outlier / Submit Entry are placeholder buttons (no-op)
+- Clicking a community entry navigates to new URL, triggering full page refetch (simpler than local state management)
+- Responsive: stacks vertically on mobile, 2-column on `lg:` breakpoint
+
+### Verification
+- `npx tsc --noEmit` ✓
+- `npm run lint` ✓
+- `npm run build` ✓
+- Backend `./gradlew compileJava` ✓
+
 ## Session 2026-05-20 — HomePage Full Rebuild
 
 ### Backend Changes

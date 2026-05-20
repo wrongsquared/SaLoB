@@ -94,6 +94,7 @@ export const handlers = [
       sgCentsConsensusPrice: entry.sgCents,
       eateryId: "a1b2c3d4-e29b-41d4-a716-446655440001",
       eateryAddress: "1 Example St, Singapore",
+      submitterUsername: entry.submitterUsername,
       availableDates: ["2026-05-01", "2026-04-28", "2026-04-15"],
       benchmarkDateEntries: [entry],
       consensusEntry: {

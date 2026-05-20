@@ -66,6 +66,7 @@ export interface FoodHistoricalData {
   sgCentsConsensusPrice: number
   eateryId: string
   eateryAddress: string
+  submitterUsername: string
   availableDates: string[]
   benchmarkDateEntries: FoodPreview[]
   consensusEntry: FoodEntryDetail

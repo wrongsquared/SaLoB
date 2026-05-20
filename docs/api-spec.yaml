@@ -386,6 +386,7 @@ components:
         sgCentsConsensusPrice: { type: integer }
         eateryId: { type: string, format: uuid }
         eateryAddress: { type: string }
+        submitterUsername: { type: string }
         availableDates:
           type: array
           items:

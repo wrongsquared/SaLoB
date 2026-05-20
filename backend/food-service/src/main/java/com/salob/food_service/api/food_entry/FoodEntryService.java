@@ -119,11 +119,16 @@ public class FoodEntryService {
         }
 
         // Return all the 'price points', with additional info for the point with the 'consensus price'
+        String consensusSubmitter = consensusEntryDetails != null
+                ? consensusEntryDetails.submitterUsername()
+                : null;
+
         return FoodEntryHistoricalDTO.builder()
                 .foodName(targetEntry.getFood().getLabel())
                 .sgCentsConsensusPrice(consensusPrice)
                 .eateryId(targetEntry.getEatery().getId())
                 .eateryAddress(targetEntry.getEatery().getAddress())
+                .submitterUsername(consensusSubmitter)
                 .availableDates(new ArrayList<>(availableDates))
                 .benchmarkDateEntries(benchmarkDateEntries)
                 .consensusEntry(consensusEntryDetails)
