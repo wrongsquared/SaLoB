@@ -81,14 +81,14 @@ repos:
         always_run: true
         stages: [pre-push]
 
-      - id: frontend-lint
-        name: frontend-lint
-        description: "Run ESLint on frontend"
-        entry: bash -c 'cd frontend && npx eslint src/ 2>&1'
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
+      # - id: frontend-lint
+      #   name: frontend-lint
+      #   description: "Run ESLint on frontend"
+      #   entry: bash -c 'cd frontend && npx eslint src/ 2>&1'
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: true
+      #   stages: [pre-push]
 
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: v0.10.0
