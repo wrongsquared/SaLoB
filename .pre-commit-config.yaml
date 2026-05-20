@@ -84,7 +84,7 @@ repos:
       - id: frontend-lint
         name: frontend-lint
         description: "Run ESLint on frontend"
-        entry: bash -c 'cd frontend && ./node_modules/.bin/eslint src/ 2>&1'
+        entry: bash -c 'cd frontend && npx eslint src/ 2>&1'
         language: system
         pass_filenames: false
         always_run: true
