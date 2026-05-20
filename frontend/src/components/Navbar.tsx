@@ -10,7 +10,7 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   return (
-    <header className="bg-background-50 min-h-full border-b-1 border-black">
+    <header className="sticky top-0 z-50 bg-background-50 min-h-full border-b-1 border-black">
       <div className="w-full flex items-center justify-between py-4 px-20">
         <div className="flex items-center gap-10">
           <div className="text-xl font-extrabold text-primary-700">SaLoB</div>

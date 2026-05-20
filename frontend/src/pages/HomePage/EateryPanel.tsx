@@ -81,7 +81,7 @@ export default function EateryPanel() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-20 flex h-screen w-96 flex-col border-r border-secondary-200 bg-white shadow-xl"
+      className="absolute left-0 top-0 z-20 flex h-full w-full flex-col border-r border-secondary-200 bg-white shadow-xl md:w-96"
       role="dialog"
       aria-label="Eatery details"
     >

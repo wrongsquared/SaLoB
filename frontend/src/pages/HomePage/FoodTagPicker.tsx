@@ -29,12 +29,12 @@ export default function FoodTagPicker() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Search foods to show on map... (max 5)"
           disabled={selectedFoods.length >= 5}
-          className="w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2 pr-10 text-sm text-secondary-900 backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2.5 pr-10 text-base text-secondary-900 backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {isLoading && (
           <Loader2
-            size={16}
-            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-secondary-400"
+            size={20}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-secondary-400"
           />
         )}
       </div>

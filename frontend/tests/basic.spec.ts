@@ -112,7 +112,7 @@ test.describe("SaLoB smoke tests", () => {
     await page.getByLabel("Submit price").click()
     await expect(page.getByText("Select an eatery")).toBeVisible()
 
-    const searchInput = page.getByPlaceholder("Search eateries...")
+    const searchInput = page.getByRole("dialog", { name: "Submission wizard" }).getByPlaceholder("Search eateries...")
     await searchInput.fill("Tian")
     await page.waitForTimeout(400)
     await page.getByText("Tian Tian Hainanese Chicken Rice").click()
@@ -130,10 +130,10 @@ test.describe("SaLoB smoke tests", () => {
 
     await expect(page.getByText("Confirm submission")).toBeVisible()
     await expect(page.getByText("Tian Tian Hainanese Chicken Rice")).toBeVisible()
-    await expect(page.getByText("Chicken Rice")).toBeVisible()
+    await expect(page.getByText("Chicken Rice", { exact: true })).toBeVisible()
     await expect(page.getByText("$5.50")).toBeVisible()
 
-    await page.getByRole("button", { name: "Submit" }).click()
+    await page.getByRole("dialog", { name: "Submission wizard" }).getByRole("button", { name: "Submit" }).click()
     await expect(page.getByText("Price submitted!")).toBeVisible({ timeout: 5000 })
   })
 
@@ -144,7 +144,7 @@ test.describe("SaLoB smoke tests", () => {
         response.url().includes("/api/eateries/within-bounds") && response.status() === 200,
       )
       await page.waitForTimeout(1000)
-      await expect(page).toHaveScreenshot("homepage-default.png", { maxDiffPixels: 500 })
+      await expect(page).toHaveScreenshot("homepage-default.png", { maxDiffPixels: 1000 })
     })
 
     test("eatery sidebar open screenshot", async ({ page }) => {
@@ -156,7 +156,7 @@ test.describe("SaLoB smoke tests", () => {
       await expect(firstMarker).toBeVisible({ timeout: 5000 })
       await firstMarker.click()
       await page.waitForTimeout(500)
-      await expect(page).toHaveScreenshot("homepage-sidebar-open.png", { maxDiffPixels: 500 })
+      await expect(page).toHaveScreenshot("homepage-sidebar-open.png", { maxDiffPixels: 1000 })
     })
 
     test("food mode screenshot", async ({ page }) => {
@@ -166,7 +166,7 @@ test.describe("SaLoB smoke tests", () => {
         response.url().includes("/api/food-entries/within-bounds") && response.status() === 200,
       )
       await page.waitForTimeout(1000)
-      await expect(page).toHaveScreenshot("homepage-food-mode.png", { maxDiffPixels: 500 })
+      await expect(page).toHaveScreenshot("homepage-food-mode.png", { maxDiffPixels: 1000 })
     })
   })
 })

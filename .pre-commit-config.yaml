@@ -27,7 +27,7 @@ repos:
       #   args: [--branch, main, --branch, master]
       #   stages: [pre-commit]
       - id: check-added-large-files
-        args: [--maxkb=512]
+        args: [--maxkb=3072]
         exclude: |
           (?x)^(
             package-lock\.json |

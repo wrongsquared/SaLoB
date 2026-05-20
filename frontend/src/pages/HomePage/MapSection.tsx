@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useMapStore } from "@/stores/mapStore";
@@ -35,12 +36,15 @@ function syncBounds(map: L.Map) {
 }
 
 function BoundsTracker() {
+  const map = useMap();
+
+  useEffect(() => {
+    syncBounds(map);
+  }, [map]);
+
   useMapEvents({
-    load: (e) => {
-      syncBounds(e.target)
-    },
-    moveend: (e) => {
-      syncBounds(e.target)
+    moveend: () => {
+      syncBounds(map);
     },
   })
 
@@ -51,7 +55,7 @@ export default function MapSection() {
   const mode = useMapStore((s) => s.mode);
 
   return (
-    <div className="fixed inset-0 isolate">
+    <div className="absolute inset-0 isolate">
       <MapContainer center={[1.3521, 103.8198]} zoom={13} className="h-full w-full" zoomControl={false} keyboard={true} scrollWheelZoom={true} doubleClickZoom={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

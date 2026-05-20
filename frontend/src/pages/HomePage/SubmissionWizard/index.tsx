@@ -39,7 +39,7 @@ export default function SubmissionWizard() {
   const submitSuccess = submitMutation.isSuccess
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-label="Submission wizard">
       <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-secondary-100 px-6 py-4">
           <span className="text-sm text-secondary-400">
