@@ -91,10 +91,10 @@ SaLoB/
 │   ├── tests/             # Playwright E2E smoke tests
 │   └── public/            # Static assets + MSW service worker
 ├── docs/
-│   ├── PRD.md             # Full product requirements
-│   ├── PROGRESS.md        # Session log & key decisions
+│   ├── PRD.md             # Product requirements (domain, WTF, architecture)
 │   ├── ADR.md             # Architectural decision records
-│   └── ROADMAP.md         # High-level roadmap
+│   ├── ROADMAP.md         # Feature backlog with priorities
+│   └── TECHNICAL.md       # Data flows, caching, implementation details
 ├── misc/                  # Pseudocode, sketches
 ├── .pre-commit-config.yaml
 ├── .secrets.baseline
@@ -168,3 +168,18 @@ Backend seeders have a hard dependency: **user-service must seed BEFORE food-ser
 | `.secrets.baseline` | Tracked | detect-secrets allowlist baseline |
 
 Each backend service reads its `.env` via `spring.config.import: optional:file:.env[.properties]`.
+
+---
+
+## Required `.env` Blanks
+
+The following variables in `.env.example` files are left blank and must be filled before certain features work:
+
+| Variable | Service | Purpose |
+|---|---|---|
+| `ONEMAP_API_TOKEN` | food-service | OneMap POI search/autocomplete for Singapore eateries |
+| `GOOGLE_CLIENT_ID` | user-service | Google OAuth login (optional for local dev) |
+| `GOOGLE_CLIENT_SECRET` | user-service | Google OAuth login (optional for local dev) |
+| `OPENAI_API_KEY` | food-service | AI food verification pipeline (future) |
+
+These are intentionally blank in `.env.example` — the application will run without them, but the corresponding features will be disabled or fall back to defaults.

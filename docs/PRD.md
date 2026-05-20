@@ -129,18 +129,6 @@ EateryClosureFlag ──┬── flaggerId
 
 ## UI Flow
 
-### Page Structure (React Router)
-
-| Path | Component | Layout | Purpose |
-|---|---|---|---|
-| `/` | MapView | LeLayout | Main homepage — Leaflet map + eatery/food mode toggle |
-| `/dashboard` | Dashboard | LeLayout | User dashboard (stats, recent activity) |
-| `/analytics` | Analytics | LeLayout | Price trend analytics, inflation insights |
-| `/reports` | Reports | LeLayout | Exportable reports |
-| `/login` | Login | None | Auth page (email/password + Google OAuth) |
-
-**Layout (LeLayout):** Navbar at top with nav links (Dashboard, Map View, Analytics, Reports) + Login/Profile button. `<Outlet />` renders the active page below.
-
 ### Screens (referenced from docs/moodboard/)
 
 #### 1. HomePage (HomePage.jpg)
@@ -186,52 +174,6 @@ EateryClosureFlag ──┬── flaggerId
 - Registration link
 - Future: Google OAuth button
 
-### Data Fetching Patterns
-- **TanStack Query** for all server state
-- **Debounced map queries** — On pan/zoom, debounce bbox requests (300ms) to avoid flooding
-- **Eatery panel cache** — React Query cache with staleTime=5min for eatery details
-- **Historical data cache** — staleTime=2min (relatively static once saved)
-- **Optimistic updates** for votes — show immediate UI change, refetch on background
-
----
-
-## API Endpoints (Complete Reference)
-
-### User Service (`/api/auth`, `/api/users`)
-
-| Method | Path | Auth | Request | Response | Notes |
-|---|---|---|---|---|---|
-| POST | `/api/auth/login` | No | `{ usernameOrEmail, password }` | `{ jwt }` | Returns signed JWT (RS256) |
-| POST | `/api/auth/register` | No | `{ email, username, password }` | 204 | Creates with CONTRIBUTOR role |
-| GET | `/api/users/me` | JWT | Header: X-User-Id | `{ id, email, username, roles[], avatarUrl }` | Current user profile |
-| GET | `/.well-known/jwks.json` | No | — | JWKS keyset | Public keys for JWT verification |
-
-### Food Service — Eateries (`/api/eateries`)
-
-| Method | Path | Auth | Params | Response | Notes |
-|---|---|---|---|---|---|
-| GET | `/within-bounds` | No | `minLat, maxLat, minLon, maxLon` | `EateryMapDTO[]` | Rate-limited (60 req/min/IP), coordinate-bucketed cache |
-| GET | `/{eateryId}` | No | Path: UUID | `EateryDetailedDTO` | Eatery info + best food entries (1 per food type) |
-| GET | `/search` | No | `search` (string) | `EateryPreviewDTO[]` | ILIKE search, 204 if empty, cached |
-
-### Food Service — Foods (`/api/foods`)
-
-| Method | Path | Auth | Params | Response | Notes |
-|---|---|---|---|---|---|
-| GET/POST | `/search` | No | `search` (string) | `FoodSearchPreview[]` | Searches by label |
-
-### Food Service — Food Entries (`/api/food-entries`)
-
-| Method | Path | Auth | Params/Body | Response | Notes |
-|---|---|---|---|---|---|
-| GET | `/historical-data/{foodEntryId}` | No | Path + `startDate` (Instant) | `FoodEntryHistoricalDTO` | Clamped to 1 year max, rate-limited |
-| GET | `/{foodEntryId}/details` | No | Path: UUID | `FoodEntryDetailedDTO` | Entry details + submitter info (via gRPC) |
-| POST | `/submit` | Yes (JWT) | Header: X-User-Id, Body: `{ eateryId, foodId, priceSgCents }` | 200 | Creates new food entry |
-
-### Rate Limiting
-- Map endpoints (`/within-bounds`, `/historical-data`, `/{foodEntryId}/details`): 60 requests/min/IP via Redis token-bucket
-- `/search`, `/submit`: No rate limit currently
-
 ---
 
 ## WTF Confidence System
@@ -252,20 +194,11 @@ sub-scores (each 0-100):
   volumeScore    = min(totalSubmissions / 20, 1) × 100
 
 rawScore         = w₁·tenureScore + w₂·voteScore + w₃·flagScore + w₄·volumeScore
-                    (weights sum to 1, TBD — suggest w₁=0.15, w₂=0.40, w₃=0.30, w₄=0.15)
+                     (weights sum to 1, TODO — suggest w₁=0.15, w₂=0.40, w₃=0.30, w₄=0.15)
 
 wtfScore         = clamp(rawScore × activityMultiplier, 0, 100)
 activityMultiplier = f(recencyOfLastActivity) — 1.0 if active within 30 days, decaying to 0.5 after 180 days
 ```
-
-**Recalculation flow (RabbitMQ async):**
-1. Food service publishes event to RabbitMQ exchange when:
-   - New food entry submitted (by user X)
-   - Vote cast on a food entry owned by user X
-   - Flag raised on a food entry owned by user X
-2. User service consumes event, recalculates WTF for that user
-3. Updates denormalized stats (`totalSubmissions`, `upvotesReceived`, `downvotesReceived`, `anomaliesFlagged`)
-4. Saves new WTF score, invalidates Redis cache for that user's WTF
 
 ### 2. Food Entry Confidence Score (per-entry reliability, 0–100)
 
@@ -297,73 +230,6 @@ finalConfidence = clamp(rawConfidence × nonDecayPercent / 100, 0, 100)
 
 When displaying an eatery's food entries, group by food label, pick the entry with the highest confidence score per group. This is the "best" entry shown in the eatery panel.
 
-### 4. Caching Strategy (Three Levels)
-
-| Level | Key | Value | Cache Location | TTL | Invalidation Trigger |
-|---|---|---|---|---|---|
-| **L1: User WTF** | `user_wtf:{userId}` | double | user-service Redis | 15 min | RabbitMQ event on WTF recalc |
-| **L2: Entry Confidence** | `food_entry_conf:{entryId}` | double | food-service Redis | 1 hour | New vote/flag on that entry |
-| **L3: Eatery Consensus** | `eatery_consensus:{eateryId}` | `EateryDetailedDTO` | food-service Redis | 1 hour | New food entry at that eatery |
-
-**Key insight:** The commented-out `@Cacheable` methods in `EateryService` failed because Spring AOP cannot intercept `private` method calls. Extract into a dedicated `@Component` bean with `public` methods.
-
-**Batch optimization:** `getUserWtfScoreBatch` gRPC method exists in both proto and user-service — the `ConfidenceAlgorithm` should use it instead of N individual calls. Collect all unique voterIds from the entry's votes, batch-fetch their WTF scores in one gRPC round-trip.
-
----
-
-## Key Data Flows
-
-### Flow: User views an eatery on the map
-```
-1. User pans/zooms map
-2. Frontend debounces (300ms), calls GET /api/eateries/within-bounds?minLat=...
-3. API Gateway validates JWT (if present), adds X-User-Id header
-4. Gateway routes to food-service
-5. RateLimiter checks Redis token bucket (60 req/min/IP)
-6. BboxKeyGenerator rounds coords to 0.01° grid
-7. @Cacheable check — hit? return cached. Miss? query PostGIS ST_Within
-8. Return List<EateryMapDTO> (id, name, lat, lon, typeLabel)
-9. Frontend renders markers on Leaflet map
-```
-
-### Flow: User clicks an eatery
-```
-1. Frontend calls GET /api/eateries/{eateryId}
-2. Food service loads eatery entity + fetches all food entries (LAZY)
-3. For each food entry:
-   a. Collect all unique voter IDs from entry.votes
-   b. Batch-fetch WTF scores via gRPC getUserWtfScoreBatch (L1 cache hit ideally)
-   c. Compute confidence via ConfidenceAlgorithm
-   d. Track best entry per food label (highest confidence)
-4. Return EateryDetailedDTO with deduplicated foodPreviews
-5. Frontend slides in left panel with eatery info + food entry rows
-```
-
-### Flow: User submits a price entry
-```
-1. User clicks "+" → wizard overlay
-2. Step 1: Search eatery (GET /api/eateries/search?search=...) → select
-3. Step 2: Search food (GET /api/foods/search?search=...) → select
-4. Step 3: Enter price → POST /api/food-entries/submit
-   Header: X-User-Id (from JWT)
-   Body: { eateryId, foodId, priceSgCents }
-5. Food service creates FoodEntry entity
-6. RabbitMQ event published: "new_entry" with submitterId
-7. User service consumes → recalculates WTF for submitter → updates cache
-8. Frontend invalidates eatery query → refetch shows new entry
-```
-
-### Flow: User votes on an entry
-```
-1. Frontend: POST /api/food-entries/{id}/vote (endpoint TBD)
-2. Food service: validate voter hasn't already voted (UK constraint)
-3. Vote saved, upvoteCount/downvoteCount incremented
-4. L2 cache (entry confidence) invalidated
-5. RabbitMQ event published: "new_vote" with entry owner ID
-6. WebSocket broadcast to subscribed clients: /topic/eatery/{eateryId}/entries
-7. Other users see vote count update live
-```
-
 ---
 
 ## Future Considerations (Not in MVP)
@@ -376,41 +242,6 @@ When displaying an eatery's food entries, group by food label, pick the entry wi
 - **OneMap API integration:** For smarter eatery search/autocomplete (noted as TODO in `EateryService`).
 - **Google OAuth:** Dependency installed, not wired up yet.
 - **Kubernetes manifests:** Exist in `backend/k8s/` but not actively used.
-
----
-
-## Pages & Route Summary
-
-| Page | Route | Access | Layout | Key Components |
-|---|---|---|---|---|
-| Map View | `/` | Public | LeLayout | LeafletMap, ModeToggle (segmented), EateryPanel, FAB ("+") |
-| Dashboard | `/dashboard` | Public | LeLayout | UserStats, RecentActivity |
-| Analytics | `/analytics` | Public | LeLayout | PriceChart, InflationMetrics |
-| Reports | `/reports` | Public | LeLayout | ReportBuilder, ExportButton |
-| Login | `/login` | Public | None | LoginForm, RegisterForm, Google SSO |
-
-All public for now. Future: submission + voting gated behind auth.
-
----
-
-## Current Frontend Gap Analysis
-
-The frontend is scaffolded but **no business logic is wired up**:
-
-| What's Needed | Status |
-|---|---|
-| `QueryClientProvider` + TanStack Query setup | ❌ Not present |
-| `src/api/` — axios client + all endpoint functions | ❌ Not created |
-| `src/stores/` — Zustand stores (auth, mode toggle) | ❌ Not created |
-| `src/hooks/` — custom hooks (useEateries, useFoodEntries, etc.) | ❌ Not created |
-| Leaflet map component | ❌ Stub only |
-| Eatery panel (collapsible left) | ❌ Not created |
-| Submission wizard overlay | ❌ Not created |
-| Historical price chart (recharts) | ❌ Not created |
-| Auth flow (login/register + JWT storage) | ❌ Not created |
-| WebSocket subscription setup | ❌ Not created |
-| `@/lib/utils.ts` → cn() export | ❌ Wrong path (exists in `@/shared/utils.ts`) |
-| Responsive layout refinement | ❌ Basic layout exists |
 
 ---
 
