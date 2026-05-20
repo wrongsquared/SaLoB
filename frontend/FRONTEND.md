@@ -17,7 +17,6 @@
 - Keep responsive design in mind; Think about mobile-first and progressive enhancement. Test at 375px, 768px, and 1440px widths.
 - Every view must handle loading state (skeleton/spinner), empty state (meaningful "no data" message), and error state (retry option or graceful fallback).
 - Pages must not be zoomable. Add `user-scalable=no, maximum-scale=1.0` to viewport meta; disable Leaflet double-click zoom.
-- Use `fixed` positioning for map overlays (sidebar, controls, FAB) to prevent layout inconsistencies with the map's viewport-covering layout.
 - Favor optimistic UI: show success state immediately on user actions, revert on error (e.g., "Report as Closed" toggle, vote counts).
 
 ## Shared vs Reusable
@@ -37,5 +36,11 @@
 
 ## Testing
 - Every UI change requires Playwright smoke tests that assert key elements are visible.
-- Add screenshot tests for new screens or UI states. Use `maxDiffPixels: 500` to allow tile rendering differences.
+- Add screenshot tests for new screens or UI states. Use `maxDiffPixels: 1000` — map tile rendering varies between runs.
 - Run `npx playwright test --update-snapshots` to create/update baseline images when layout intentionally changes.
+- `getByRole('dialog')` throws strict-mode violations when multiple dialogs exist. Always scope: `getByRole('dialog', { name: 'Specific Name' })`.
+
+## Leaflet + React StrictMode
+- Leaflet's `load` event fires only once. Under React StrictMode double-mount, the second mount's listener never fires. Use `useMap()` + `useEffect` to sync state on mount instead of relying on `load`.
+- The navbar must have `sticky top-0 z-50` to render above the map container. Without it, `absolute`/`fixed` map overlays cover the navbar.
+- Keep map container as `absolute inset-0` within a `relative` parent (not `fixed`). Add `isolate` class to contain Leaflet's internal high z-index panes.

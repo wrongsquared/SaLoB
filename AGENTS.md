@@ -50,5 +50,14 @@ Before implementing any feature or fixing any bug, follow this workflow:
 - No new MD files post-feature; update existing docs.
 - Favor optimistic UI for user actions (show success state immediately, revert on error). Examples: "Report as Closed" button, vote counts, submission confirmations.
 
+## Playwright + MSW Configuration
+- MSW must be awaited before `createRoot()`. Fire-and-forget `enableMocking()` causes race conditions where API calls escape to the network before the service worker is ready.
+- In `playwright.config.ts`, set MSW via `webServer.env: { VITE_ENABLE_MSW: "true" }` — shell prefix syntax (`VITE_ENABLE_MSW=true npm run dev`) fails in Playwright's child process.
+- Vite defaults to port 5173. If Playwright expects port 3000, add `server: { port: 3000 }` to `vite.config.ts`.
+- Pre-commit `check-added-large-files` default is 512KB. Playwright screenshots are ~1MB each. Raise to `--maxkb=3072` in `.pre-commit-config.yaml`.
+
+## Backend DTOs
+- Java records are positional — adding a field changes constructor parameter order. Always update the service builder call to match the new field order.
+
 # Re-iteration ad-nauseam, because this is the most critical part of the process:
 - If you have any doubts - ANY DOUBTS - about the implementation, design, API contract, data model, etc... ASK BEFORE CODING. This is critical to avoid rework and ensure alignment.
