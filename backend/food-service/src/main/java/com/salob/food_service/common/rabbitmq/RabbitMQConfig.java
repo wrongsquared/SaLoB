@@ -13,20 +13,20 @@ import org.springframework.context.annotation.Configuration;
 @EnableRabbit
 public class RabbitMQConfig {
 
-    @Bean
-    public Jackson2JsonMessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
-    }
+	@Bean
+	public Jackson2JsonMessageConverter jsonMessageConverter() {
+		return new Jackson2JsonMessageConverter();
+	}
 
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) {
-        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(converter);
-        return template;
-    }
+	@Bean
+	public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) {
+		RabbitTemplate template = new RabbitTemplate(connectionFactory);
+		template.setMessageConverter(converter);
+		return template;
+	}
 
-    @Bean
-    public TopicExchange eventsExchange() {
-        return new TopicExchange(RabbitMQConstants.EVENTS_EXCHANGE);
-    }
+	@Bean
+	public TopicExchange eventsExchange() {
+		return new TopicExchange(RabbitMQConstants.EVENTS_EXCHANGE);
+	}
 }

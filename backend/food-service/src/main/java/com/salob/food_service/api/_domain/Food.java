@@ -17,15 +17,15 @@ import lombok.*;
 @AllArgsConstructor
 public class Food extends BaseEntity {
 
-    @NotBlank
-    @Column(unique = true, nullable = false)
-    private String label; // e.g., "Chicken Rice"
+	@NotBlank
+	@Column(unique = true, nullable = false)
+	private String label; // e.g., "Chicken Rice"
 
-    @Builder.Default
-    @Column(name = "photo_obj_key")
-    private String photoObjKey = "";
+	@Builder.Default
+	@Column(name = "photo_obj_key")
+	private String photoObjKey = "";
 
-    @Builder.Default
-    @OneToMany(mappedBy = "food", fetch = FetchType.LAZY)
-    private List<FoodEntry> foodEntries = new ArrayList<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "food", fetch = FetchType.LAZY)
+	private List<FoodEntry> foodEntries = new ArrayList<>();
 }

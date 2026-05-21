@@ -18,43 +18,31 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private final UserRepository userRepo;
-    private final MinioStorageService minioService;
+	private final UserRepository userRepo;
+	private final MinioStorageService minioService;
 
-    public User findById(UUID id) {
-        return userRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-    }
+	public User findById(UUID id) {
+		return userRepo.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
 
-    public List<UUID> getAllUserIDs() {
-        return userRepo.findAll().stream().map(User::getId).toList();
-    }
+	public List<UUID> getAllUserIDs() {
+		return userRepo.findAll().stream().map(User::getId).toList();
+	}
 
-    public MeResponse me(UUID id) {
-        return userRepo.findById(id)
-                .map(user -> MeResponse.builder()
-                        .id(user.getId())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .roles(user.getRoles().stream()
-                                .map(Role::getLabel)
-                                .sorted()
-                                .toList())
-                        .avatarUrl(minioService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(15)))
-                        .build())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    }
+	public MeResponse me(UUID id) {
+		return userRepo.findById(id).map(user -> MeResponse.builder().id(user.getId()).email(user.getEmail())
+				.username(user.getUsername()).roles(user.getRoles().stream().map(Role::getLabel).sorted().toList())
+				.avatarUrl(minioService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(15))).build())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+	}
 
-    public double getUserWtfScore(UUID userId) {
-        return userRepo.findById(userId)
-                .map(User::getWtfScore)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-    }
+	public double getUserWtfScore(UUID userId) {
+		return userRepo.findById(userId).map(User::getWtfScore)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+	}
 
-    public List<WtfScoreItem> getUserWtfScoreBatch(List<UUID> userIds) {
-        return userRepo.findAllById(userIds)
-                .stream()
-                .map(user -> new WtfScoreItem(user.getId(), user.getWtfScore()))
-                .toList();
-    }
+	public List<WtfScoreItem> getUserWtfScoreBatch(List<UUID> userIds) {
+		return userRepo.findAllById(userIds).stream().map(user -> new WtfScoreItem(user.getId(), user.getWtfScore()))
+				.toList();
+	}
 }

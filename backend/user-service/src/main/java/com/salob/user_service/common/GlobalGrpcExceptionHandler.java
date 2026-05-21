@@ -7,8 +7,8 @@ import net.devh.boot.grpc.server.advice.GrpcExceptionHandler;
 @GrpcAdvice
 public class GlobalGrpcExceptionHandler {
 
-    @GrpcExceptionHandler(Exception.class)
-    public Status handleException(Exception e) {
-        return Status.UNKNOWN.withDescription(e.getMessage()).withCause(e);
-    }
+	@GrpcExceptionHandler(Exception.class)
+	public Status handleException(Exception e) {
+		return Status.UNKNOWN.withDescription(e.getMessage()).withCause(e);
+	}
 }

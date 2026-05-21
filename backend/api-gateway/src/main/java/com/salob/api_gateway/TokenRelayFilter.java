@@ -17,33 +17,28 @@ import java.util.List;
 @Component
 public class TokenRelayFilter implements GlobalFilter {
 
-    @Override
-    public Mono<Void> filter(@NonNull ServerWebExchange exchange, GatewayFilterChain chain) {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> securityContext.getAuthentication().getPrincipal())
-                .cast(Jwt.class)
-                .map(jwt -> {
-                    String userId = jwt.getSubject();
-                    String username = jwt.getClaimAsString("username");
-                    List<String> roles = jwt.getClaimAsStringList("roles");
-                    String rolesStr = roles != null ? String.join(",", roles) : "";
+	@Override
+	public Mono<Void> filter(@NonNull ServerWebExchange exchange, GatewayFilterChain chain) {
+		return ReactiveSecurityContextHolder.getContext()
+				.map(securityContext -> securityContext.getAuthentication().getPrincipal()).cast(Jwt.class).map(jwt -> {
+					String userId = jwt.getSubject();
+					String username = jwt.getClaimAsString("username");
+					List<String> roles = jwt.getClaimAsStringList("roles");
+					String rolesStr = roles != null ? String.join(",", roles) : "";
 
-                    ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+					ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
 
-                    if (userId != null) {
-                        builder.header("X-User-Id", userId);
-                    }
-                    if (username != null) {
-                        builder.header("X-User-Name", username);
-                    }
+					if (userId != null) {
+						builder.header("X-User-Id", userId);
+					}
+					if (username != null) {
+						builder.header("X-User-Name", username);
+					}
 
-                    ServerHttpRequest mutatedRequest = builder
-                            .header("X-User-Roles", rolesStr)
-                            .build();
+					ServerHttpRequest mutatedRequest = builder.header("X-User-Roles", rolesStr).build();
 
-                    return exchange.mutate().request(mutatedRequest).build();
-                })
-                .defaultIfEmpty(exchange) // If no JWT (like /api/auth/login), pass exchange as-is
-                .flatMap(chain::filter);
-    }
+					return exchange.mutate().request(mutatedRequest).build();
+				}).defaultIfEmpty(exchange) // If no JWT (like /api/auth/login), pass exchange as-is
+				.flatMap(chain::filter);
+	}
 }

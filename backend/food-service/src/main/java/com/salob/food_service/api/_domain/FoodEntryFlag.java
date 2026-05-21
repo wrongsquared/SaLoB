@@ -14,13 +14,13 @@ import java.util.UUID;
 @Table(name = "food_entry_flags")
 public class FoodEntryFlag extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "food_entry_id", nullable = false)
-    private FoodEntry foodEntry;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "food_entry_id", nullable = false)
+	private FoodEntry foodEntry;
 
-    @Column(name = "flagger_id", nullable = false)
-    private UUID flaggerId;
+	@Column(name = "flagger_id", nullable = false)
+	private UUID flaggerId;
 
-    @Column(name = "reason", nullable = false, length = 512)
-    private String reason;
+	@Column(name = "reason", nullable = false, length = 512)
+	private String reason;
 }

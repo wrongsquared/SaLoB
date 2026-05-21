@@ -38,39 +38,41 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "sessions")
 public class Session {
-    @Id
-    @JdbcTypeCode(SqlTypes.UUID)
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+	@Id
+	@JdbcTypeCode(SqlTypes.UUID)
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(name = "id", updatable = false, nullable = false)
+	private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", nullable = false)
+	private User user;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false)
-    private AuthProvider provider;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "provider", nullable = false)
+	private AuthProvider provider;
 
-    @Column(name = "provider_user_id", nullable = false)
-    private String providerUserId;
+	@Column(name = "provider_user_id", nullable = false)
+	private String providerUserId;
 
-    @Lob @Column(name = "access_token", nullable = false)
-    private String accessToken;
+	@Lob
+	@Column(name = "access_token", nullable = false)
+	private String accessToken;
 
-    @Lob @Column(name = "refresh_token")
-    private String refreshToken;
+	@Lob
+	@Column(name = "refresh_token")
+	private String refreshToken;
 
-    @Column(name = "access_token_expires_at", nullable = false)
-    private Instant accessTokenExpiresAt;
+	@Column(name = "access_token_expires_at", nullable = false)
+	private Instant accessTokenExpiresAt;
 
-    @Column(name = "refresh_token_expires_at")
-    private Instant refreshTokenExpiresAt;
+	@Column(name = "refresh_token_expires_at")
+	private Instant refreshTokenExpiresAt;
 
-    @CreatedDate
-    @Column(name = "created_at", updatable = false, nullable = false)
-    private Instant createdAt;
+	@CreatedDate
+	@Column(name = "created_at", updatable = false, nullable = false)
+	private Instant createdAt;
 
-    @Column(name = "revoked_at")
-    private Instant revokedAt;
+	@Column(name = "revoked_at")
+	private Instant revokedAt;
 }

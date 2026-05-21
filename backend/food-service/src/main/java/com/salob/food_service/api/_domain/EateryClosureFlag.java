@@ -14,10 +14,10 @@ import lombok.*;
 @Table(name = "eatery_closure_flags")
 public class EateryClosureFlag extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "eatery_id", nullable = false)
-    private Eatery eatery;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "eatery_id", nullable = false)
+	private Eatery eatery;
 
-    @Column(name = "flagger_id")
-    private UUID flaggerId;
+	@Column(name = "flagger_id")
+	private UUID flaggerId;
 }

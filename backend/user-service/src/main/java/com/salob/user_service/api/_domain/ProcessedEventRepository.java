@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface ProcessedEventRepository extends JpaRepository<ProcessedEvent, UUID> {
 
-    @Modifying
-    @Query("DELETE FROM ProcessedEvent p WHERE p.processedAt < :cutoff")
-    int deleteByProcessedAtBefore(@Param("cutoff") Instant cutoff);
+	@Modifying
+	@Query("DELETE FROM ProcessedEvent p WHERE p.processedAt < :cutoff")
+	int deleteByProcessedAtBefore(@Param("cutoff") Instant cutoff);
 }

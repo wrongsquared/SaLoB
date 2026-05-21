@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface EateryTypeRepository extends JpaRepository<EateryType, UUID> {
-    Optional<EateryType> findByLabel(String label);
+	Optional<EateryType> findByLabel(String label);
 
-    boolean existsByLabel(String label);
+	boolean existsByLabel(String label);
 }

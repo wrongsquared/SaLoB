@@ -33,105 +33,95 @@ import java.util.Set;
 @org.jspecify.annotations.NullMarked
 @RequiredArgsConstructor
 public class SeedDataRunner implements CommandLineRunner {
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final MinioStorageService minioStorageService;
+	private final UserRepository userRepository;
+	private final RoleRepository roleRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final MinioStorageService minioStorageService;
 
-    @Override
-    public void run(String[] args) {
-        try {
-            userRepository.deleteAllInBatch();
-            log.debug("Deleted users");
-        } catch (Exception e) {
-            log.warn("Failed to delete users: {}", e.getMessage());
-        }
+	@Override
+	public void run(String[] args) {
+		try {
+			userRepository.deleteAllInBatch();
+			log.debug("Deleted users");
+		} catch (Exception e) {
+			log.warn("Failed to delete users: {}", e.getMessage());
+		}
 
-        log.info("Starting seeding process...");
-        seedRoles();
-        seedUsers();
-        log.info("Seeding complete");
-    }
+		log.info("Starting seeding process...");
+		seedRoles();
+		seedUsers();
+		log.info("Seeding complete");
+	}
 
-    private void seedRoles() {
-        for (UserRole userRole : UserRole.values()) {
-            getOrCreateRole(userRole.name());
-        }
-    }
+	private void seedRoles() {
+		for (UserRole userRole : UserRole.values()) {
+			getOrCreateRole(userRole.name());
+		}
+	}
 
-    private void seedUsers() {
-        ArrayList<User> users = new ArrayList<>();
+	private void seedUsers() {
+		ArrayList<User> users = new ArrayList<>();
 
-        try {
-            Role contributorRole = getOrCreateRole(UserRole.CONTRIBUTOR.name());
-            File imageDir = new ClassPathResource("static/user-images").getFile();
-            File[] imageFiles = Objects.requireNonNull(
-                    imageDir.listFiles((ignoredDir, name) -> name.toLowerCase().endsWith(".jpg")),
-                    "No .jpg user images were found in static/user-images"
-            );
+		try {
+			Role contributorRole = getOrCreateRole(UserRole.CONTRIBUTOR.name());
+			File imageDir = new ClassPathResource("static/user-images").getFile();
+			File[] imageFiles = Objects.requireNonNull(
+					imageDir.listFiles((ignoredDir, name) -> name.toLowerCase().endsWith(".jpg")),
+					"No .jpg user images were found in static/user-images");
 
-            if (imageFiles.length == 0) {
-                throw new IllegalStateException("No .jpg user images were found in static/user-images");
-            }
+			if (imageFiles.length == 0) {
+				throw new IllegalStateException("No .jpg user images were found in static/user-images");
+			}
 
-            Arrays.sort(imageFiles, Comparator.comparing(File::getName));
+			Arrays.sort(imageFiles, Comparator.comparing(File::getName));
 
-            Random random = new Random(42);
-            Instant now = Instant.now();
-            long daysInSeconds = 365L * 24 * 60 * 60;
+			Random random = new Random(42);
+			Instant now = Instant.now();
+			long daysInSeconds = 365L * 24 * 60 * 60;
 
-            for (File imageFile : imageFiles) {
-                String filename = imageFile.getName();
-                String username = filename.substring(0, filename.lastIndexOf('.'));
-                String objectKey = "user-images/" + filename;
+			for (File imageFile : imageFiles) {
+				String filename = imageFile.getName();
+				String username = filename.substring(0, filename.lastIndexOf('.'));
+				String objectKey = "user-images/" + filename;
 
-                String uploadedKey = minioStorageService.uploadImage(imageFile.toPath(), objectKey);
-                if (uploadedKey == null) {
-                    log.error(
-                            "Failed to upload seed image '{}' to MinIO as '{}'. Aborting seeding. Likely causes: MinIO is unreachable, credentials are invalid, the bucket cannot be created/accessed, or the file cannot be read.",
-                            filename,
-                            objectKey
-                    );
-                    throw new IllegalStateException("MinIO upload failed for seed image: " + filename);
-                }
+				String uploadedKey = minioStorageService.uploadImage(imageFile.toPath(), objectKey);
+				if (uploadedKey == null) {
+					log.error(
+							"Failed to upload seed image '{}' to MinIO as '{}'. Aborting seeding. Likely causes: MinIO is unreachable, credentials are invalid, the bucket cannot be created/accessed, or the file cannot be read.",
+							filename, objectKey);
+					throw new IllegalStateException("MinIO upload failed for seed image: " + filename);
+				}
 
-                Set<Role> roles = new HashSet<>();
-                roles.add(contributorRole);
-                User user = User.builder()
-                        .username(username)
-                        .email(username.toLowerCase() + "@salob.com")
-                        .passwordHash(passwordEncoder.encode("password"))
-                        .roles(roles)
-                        .authProvider(AuthProvider.LOCAL)
-                        .avatarObjKey(uploadedKey)
-                        .wtfScore(random.nextDouble() * 100)
-                        .build();
+				Set<Role> roles = new HashSet<>();
+				roles.add(contributorRole);
+				User user = User.builder().username(username).email(username.toLowerCase() + "@salob.com")
+						.passwordHash(passwordEncoder.encode("password")).roles(roles).authProvider(AuthProvider.LOCAL)
+						.avatarObjKey(uploadedKey).wtfScore(random.nextDouble() * 100).build();
 
-                long createdAtOffset = (long) (random.nextDouble() * daysInSeconds);
-                Instant createdAt = now.minusSeconds(createdAtOffset);
-                user.setCreatedAt(createdAt);
+				long createdAtOffset = (long) (random.nextDouble() * daysInSeconds);
+				Instant createdAt = now.minusSeconds(createdAtOffset);
+				user.setCreatedAt(createdAt);
 
-                Instant lastActivity = createdAt.plusSeconds((long) (random.nextDouble() * Math.max(1, createdAtOffset)));
-                user.setLastActivityAt(lastActivity);
+				Instant lastActivity = createdAt
+						.plusSeconds((long) (random.nextDouble() * Math.max(1, createdAtOffset)));
+				user.setLastActivityAt(lastActivity);
 
-                users.add(user);
-            }
+				users.add(user);
+			}
 
-            userRepository.saveAll(users);
-        } catch (Exception e) {
-            log.error("User seeding aborted: {}", e.getMessage(), e);
-            throw new IllegalStateException("Failed to seed users", e);
-        }
-    }
+			userRepository.saveAll(users);
+		} catch (Exception e) {
+			log.error("User seeding aborted: {}", e.getMessage(), e);
+			throw new IllegalStateException("Failed to seed users", e);
+		}
+	}
 
-    private Role getOrCreateRole(String label) {
-        Optional<Role> existingRole = roleRepository.findByLabel(label);
-        if (existingRole.isPresent()) {
-            return existingRole.get();
-        }
-        Role newRole = Role.builder()
-                .label(label)
-                .build();
-        return roleRepository.save(newRole);
-    }
+	private Role getOrCreateRole(String label) {
+		Optional<Role> existingRole = roleRepository.findByLabel(label);
+		if (existingRole.isPresent()) {
+			return existingRole.get();
+		}
+		Role newRole = Role.builder().label(label).build();
+		return roleRepository.save(newRole);
+	}
 }

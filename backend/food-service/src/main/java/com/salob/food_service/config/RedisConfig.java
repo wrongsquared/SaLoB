@@ -21,40 +21,29 @@ import java.time.Duration;
 @EnableCaching
 public class RedisConfig {
 
-    @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        ObjectMapper objectMapper = new ObjectMapper();
+	@Bean
+	public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+		ObjectMapper objectMapper = new ObjectMapper();
 
-        // 1. Tell Jackson to understand Java 8 Dates (LocalDateTime, etc.)
-        objectMapper.registerModule(new JavaTimeModule());
+		// 1. Tell Jackson to understand Java 8 Dates (LocalDateTime, etc.)
+		objectMapper.registerModule(new JavaTimeModule());
 
-        // 2. Prevent crashes if you add a new field to a DTO but Redis still has the old JSON
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		// 2. Prevent crashes if you add a new field to a DTO but Redis still has the
+		// old JSON
+		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        // 3. THE MAGIC FIX: Tell Jackson to save the Class Type into the JSON
-        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Object.class)
-                .build();
+		// 3. THE MAGIC FIX: Tell Jackson to save the Class Type into the JSON
+		PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build();
 
-        objectMapper.activateDefaultTyping(
-                ptv,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
-        );
+		objectMapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
 
-        // 4. Wrap our custom ObjectMapper in the Redis serializer
-        var serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+		// 4. Wrap our custom ObjectMapper in the Redis serializer
+		var serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
-        RedisCacheConfiguration config = RedisCacheConfiguration
-                .defaultCacheConfig()
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(serializer)
-                )
-                .entryTtl(Duration.ofMinutes(10))
-                .disableCachingNullValues();
+		RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+				.serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+				.entryTtl(Duration.ofMinutes(10)).disableCachingNullValues();
 
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .build();
-    }
+		return RedisCacheManager.builder(connectionFactory).cacheDefaults(config).build();
+	}
 }

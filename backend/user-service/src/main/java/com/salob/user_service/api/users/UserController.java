@@ -14,14 +14,13 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
-    private final UserService userService;
+	private final UserService userService;
 
-    @GetMapping("/me")
-    public ResponseEntity<MeResponse> me(
-           @RequestHeader("X-User-Id") UUID id
-//           @RequestHeader("X-User-Name") String username,
-//           @RequestHeader("X-User-Roles") String roles // Comma-separated string
-    ) {
-        return ResponseEntity.ok(userService.me(id));
-    }
+	@GetMapping("/me")
+	public ResponseEntity<MeResponse> me(@RequestHeader("X-User-Id") UUID id
+	// @RequestHeader("X-User-Name") String username,
+	// @RequestHeader("X-User-Roles") String roles // Comma-separated string
+	) {
+		return ResponseEntity.ok(userService.me(id));
+	}
 }

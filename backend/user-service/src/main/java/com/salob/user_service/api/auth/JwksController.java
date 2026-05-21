@@ -9,10 +9,10 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 public class JwksController {
-    private final JwtService jwtService;
+	private final JwtService jwtService;
 
-    @GetMapping("/.well-known/jwks.json")
-    public Map<String, Object> getKeys() {
-        return jwtService.getJwksJson();
-    }
+	@GetMapping("/.well-known/jwks.json")
+	public Map<String, Object> getKeys() {
+		return jwtService.getJwksJson();
+	}
 }

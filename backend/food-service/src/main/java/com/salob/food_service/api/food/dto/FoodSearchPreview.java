@@ -10,7 +10,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FoodSearchPreview {
-    UUID foodId;
-    String foodName;
-    String photoUrl;
+	UUID foodId;
+	String foodName;
+	String photoUrl;
 }

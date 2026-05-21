@@ -16,34 +16,27 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class FoodEntryFlagSeeder {
-    private final FoodEntryFlagRepository foodEntryFlagRepo;
+	private final FoodEntryFlagRepository foodEntryFlagRepo;
 
-    @Transactional
-    public List<FoodEntryFlag> seed(List<UUID> userIDs, List<FoodEntry> foodEntries) {
-        List<FoodEntryFlag> foodEntryFlags = new ArrayList<>();
+	@Transactional
+	public List<FoodEntryFlag> seed(List<UUID> userIDs, List<FoodEntry> foodEntries) {
+		List<FoodEntryFlag> foodEntryFlags = new ArrayList<>();
+		Instant now = Instant.now();
+		long daysInSeconds = 365L * 24 * 60 * 60;
 
-        var random = new Random(42);
-        for (FoodEntry foodEntry : foodEntries) {
-            int numFlags = random.nextInt(20);
-            for (int i = 0; i < numFlags; i++) {
-                UUID flaggerId = userIDs.get(random.nextInt(userIDs.size()));
+		var random = new Random(42);
+		for (FoodEntry foodEntry : foodEntries) {
+			int numFlags = random.nextInt(20);
+			for (int i = 0; i < numFlags; i++) {
+				UUID flaggerId = userIDs.get(random.nextInt(userIDs.size()));
 
-                FoodEntryFlag flag = FoodEntryFlag.builder()
-                    .foodEntry(foodEntry)
-                    .flaggerId(flaggerId)
-                    .reason("Inappropriate content " + (i + 1))
-                    .build();
-                foodEntryFlags.add(flag);
-            }
-        }
+				FoodEntryFlag flag = FoodEntryFlag.builder().foodEntry(foodEntry).flaggerId(flaggerId)
+						.reason("Inappropriate content " + (i + 1)).build();
+				flag.setCreatedAt(now.minusSeconds((long) (random.nextDouble() * daysInSeconds)));
+				foodEntryFlags.add(flag);
+			}
+		}
 
-        List<FoodEntryFlag> saved = foodEntryFlagRepo.saveAll(foodEntryFlags);
-        Instant now = Instant.now();
-        long daysInSeconds = 365L * 24 * 60 * 60;
-        for (FoodEntryFlag flag : saved) {
-            long offset = (long) (random.nextDouble() * daysInSeconds);
-            flag.setCreatedAt(now.minusSeconds(offset));
-        }
-        return foodEntryFlagRepo.saveAll(saved);
-    }
+		return foodEntryFlagRepo.saveAll(foodEntryFlags);
+	}
 }

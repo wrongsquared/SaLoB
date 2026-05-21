@@ -6,6 +6,7 @@
    a. **ASK BEFORE CODING** — Clarify design, API contracts, data models, etc. upfront to avoid rework.
    b. **API contracts**: Read `docs/api-spec.yaml` before writing queries/endpoints; update it after changes.
    c. Frontend → `frontend/FRONTEND.md` + `docs/moodboard`. Backend → `backend/BACKEND.md`.
+   d. **Parallelism:** Consider whether the plan can use subagents (Task tool) for independent workstreams (e.g. backend + frontend in parallel).
 3. **Execute & Iterate:** Implement, diagnose failures, re-execute. Keep security & logging in mind (see sections below).
 4. **Document:** Update `docs/PRD.md`, `docs/ADR.md`, `docs/ROADMAP.md`, `docs/TECHNICAL.md` as needed.
 5. **Write Tests:** Unit, integration (Testcontainers), UI (Playwright + screenshots).

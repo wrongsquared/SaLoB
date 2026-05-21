@@ -18,35 +18,31 @@ import java.util.Map;
 @EnableRabbit
 public class RabbitMQConfig {
 
-    @Bean
-    public Jackson2JsonMessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
-    }
+	@Bean
+	public Jackson2JsonMessageConverter jsonMessageConverter() {
+		return new Jackson2JsonMessageConverter();
+	}
 
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                         Jackson2JsonMessageConverter converter) {
-        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(converter);
-        return template;
-    }
+	@Bean
+	public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) {
+		RabbitTemplate template = new RabbitTemplate(connectionFactory);
+		template.setMessageConverter(converter);
+		return template;
+	}
 
-    @Bean
-    public TopicExchange eventsExchange() {
-        return new TopicExchange(RabbitMQConstants.EVENTS_EXCHANGE);
-    }
+	@Bean
+	public TopicExchange eventsExchange() {
+		return new TopicExchange(RabbitMQConstants.EVENTS_EXCHANGE);
+	}
 
-    @Bean
-    public Queue wtfRecalcQueue() {
-        return new Queue(RabbitMQConstants.QUEUE_WTF_RECALC, true, false, false,
-                Map.of("x-dead-letter-exchange", "salob.dlx",
-                        "x-dead-letter-routing-key", "wtf.dead"));
-    }
+	@Bean
+	public Queue wtfRecalcQueue() {
+		return new Queue(RabbitMQConstants.QUEUE_WTF_RECALC, true, false, false,
+				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.dead"));
+	}
 
-    @Bean
-    public Binding wtfRecalcBinding(TopicExchange eventsExchange, Queue wtfRecalcQueue) {
-        return BindingBuilder.bind(wtfRecalcQueue)
-                .to(eventsExchange)
-                .with("wtf.#");
-    }
+	@Bean
+	public Binding wtfRecalcBinding(TopicExchange eventsExchange, Queue wtfRecalcQueue) {
+		return BindingBuilder.bind(wtfRecalcQueue).to(eventsExchange).with("wtf.#");
+	}
 }

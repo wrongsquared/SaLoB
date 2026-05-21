@@ -25,60 +25,51 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class JwtService {
-    @Value("${jwt.expiration-seconds}")
-    private long expirationSeconds;
+	@Value("${jwt.expiration-seconds}")
+	private long expirationSeconds;
 
-    @Getter
-    private final RSAKey rsaKey;
+	@Getter
+	private final RSAKey rsaKey;
 
-    public JwtService(
-            @Value("${jwt.keystore-password}") String password,
-            @Value("${jwt.key-alias}") String alias
-    ) throws Exception {
+	public JwtService(@Value("${jwt.keystore-password}") String password, @Value("${jwt.key-alias}") String alias)
+			throws Exception {
 
-        // Load the Keystore from classpath
-        KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("salob.p12")) {
-            if (is == null) throw new FileNotFoundException("Keystore file salob.p12 not found!");
-            keyStore.load(is, password.toCharArray());
-        }
+		// Load the Keystore from classpath
+		KeyStore keyStore = KeyStore.getInstance("PKCS12");
+		try (InputStream is = getClass().getClassLoader().getResourceAsStream("salob.p12")) {
+			if (is == null)
+				throw new FileNotFoundException("Keystore file salob.p12 not found!");
+			keyStore.load(is, password.toCharArray());
+		}
 
-        // Extract Public and Private Key components
-        RSAPrivateKey privateKey = (RSAPrivateKey) keyStore.getKey(alias, password.toCharArray());
-        Certificate cert = keyStore.getCertificate(alias);
-        RSAPublicKey publicKey = (RSAPublicKey) cert.getPublicKey();
+		// Extract Public and Private Key components
+		RSAPrivateKey privateKey = (RSAPrivateKey) keyStore.getKey(alias, password.toCharArray());
+		Certificate cert = keyStore.getCertificate(alias);
+		RSAPublicKey publicKey = (RSAPublicKey) cert.getPublicKey();
 
-        // Build the immutable Nimbus JWK object matching your Key ID
-        this.rsaKey = new RSAKey.Builder(publicKey)
-                .privateKey(privateKey)
-                .keyID(alias)
-                .build();
-    }
+		// Build the immutable Nimbus JWK object matching your Key ID
+		this.rsaKey = new RSAKey.Builder(publicKey).privateKey(privateKey).keyID(alias).build();
+	}
 
-    public Optional<String> createJwt(User user) {
-        try {
-            List<String> roleLabels = user.getRoles().stream()
-                    .map(Role::getLabel)
-                    .sorted()
-                    .toList();
+	public Optional<String> createJwt(User user) {
+		try {
+			List<String> roleLabels = user.getRoles().stream().map(Role::getLabel).sorted().toList();
 
-            // Using Auth0 java-jwt matching your current code structure
-            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) rsaKey.toPublicKey(), (RSAPrivateKey) rsaKey.toPrivateKey());
-            String jwt = JWT.create()
-                    .withKeyId(rsaKey.getKeyID()) // Embed kid in the header
-                    .withSubject(user.getId().toString())
-                    .withClaim("username", user.getUsername())
-                    .withArrayClaim("roles", roleLabels.toArray(new String[0]))
-                    .withExpiresAt(new Date(System.currentTimeMillis() + expirationSeconds * 1000))
-                    .sign(algorithm);
+			// Using Auth0 java-jwt matching your current code structure
+			Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) rsaKey.toPublicKey(),
+					(RSAPrivateKey) rsaKey.toPrivateKey());
+			String jwt = JWT.create().withKeyId(rsaKey.getKeyID()) // Embed kid in the header
+					.withSubject(user.getId().toString()).withClaim("username", user.getUsername())
+					.withArrayClaim("roles", roleLabels.toArray(new String[0]))
+					.withExpiresAt(new Date(System.currentTimeMillis() + expirationSeconds * 1000)).sign(algorithm);
 
-            return Optional.of(jwt);
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
+			return Optional.of(jwt);
+		} catch (Exception e) {
+			return Optional.empty();
+		}
+	}
 
-    public Map<String, Object> getJwksJson() {
-        return new JWKSet(this.rsaKey).toJSONObject();
-    }
+	public Map<String, Object> getJwksJson() {
+		return new JWKSet(this.rsaKey).toJSONObject();
+	}
 }

@@ -1,5 +1,36 @@
 # Roadmap
 
+## Touch Ups
+
+### Map Icon Visibility
+Icons are hard to see against noisy OSM tiles (especially the small 14px Lucide SVGs on eatery markers).
+**Open questions:**
+- Darken or blur the tile layer behind markers? (CSS `mix-blend-mode` or a semi-transparent overlay)
+- Increase circle size and icon scale on hover/selected state?
+- Add a subtle white stroke/shadow around the icon SVG to separate it from the background?
+- Possibly reduce tile opacity globally and render a flat coloured underlay?
+
+### Map Clustering Aesthetics
+Cluster numbers are barely readable — small text on a tiny circle.
+**Open questions:**
+- Replace the default spider/cluster with a larger circle (e.g. 48px diameter, bold white number on dark background)?
+- Show a stacked row of miniature "pins" instead of a number badge (like Google Maps clusters)?
+- Customize the `MarkerClusterGroup` iconCreateFunction to render a larger circle with the count?
+- Should clusters show a sum of icons (e.g. 3 small Store icons) instead of a numeric count?
+
+---
+
+## Vote UI (Frontend)
+**Description:** Add upvote/downvote interaction to the food entry detail page. Backend endpoint (`POST /api/food-entries/{id}/vote`) and event pipeline are complete.
+**Points of contention:**
+- Auth dependency: vote endpoint requires `X-User-Id` header — is the auth/JWT flow wired on the frontend yet, or do we use the current hardcoded UUID placeholder?
+- Optimistic vs server-confirmed: backend has a UK constraint + self-vote check. If we update the count optimistically and the server rejects, we must revert. Is that acceptable UX, or do we wait for the server response?
+- Scope: only on the detail page, or also on map popups and community entry rows?
+- Refresh strategy: invalidate the detail query after voting (triggers full refetch) vs manual count increment/decrement on the cached data (snappy but fragile)?
+**Key files:** `FoodEntryDetailPage/index.tsx`, `CommunityEntryRow.tsx`, `queries.ts` (new mutation), `api-spec.yaml` (already updated ✅)
+
+---
+
 ## Historical Data Charts — Confidence-Based Time Series
 **Description:** For each time interval going backwards from today, find the food entry with the best confidence score at that interval. Display as a Recharts line chart on the FoodEntryDetailPage.
 **Open question:** What are the time intervals (daily/weekly/monthly)? If no entries exist for an interval, should we interpolate, skip, or show last known price?

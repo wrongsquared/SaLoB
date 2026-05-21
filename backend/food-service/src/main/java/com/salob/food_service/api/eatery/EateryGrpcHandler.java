@@ -14,30 +14,26 @@ import java.util.UUID;
 @GrpcService
 @RequiredArgsConstructor
 public class EateryGrpcHandler extends EateryServiceGrpc.EateryServiceImplBase {
-    private final EateryService eateryService;
+	private final EateryService eateryService;
 
-    @Override
-    public void getEatery(EateryRequest request, StreamObserver<EateryResponse> responseObserver) {
-        try {
-            UUID eateryId = UUID.fromString(request.getEateryId());
-            Eatery eatery = eateryService.findById(eateryId);
-            var response = EateryResponse.newBuilder()
-                    .setId(eatery.getId().toString())
-                    .setName(eatery.getName())
-                    .setLat(eatery.getLocation().getY())
-                    .setLon(eatery.getLocation().getX())
-                    .build();
+	@Override
+	public void getEatery(EateryRequest request, StreamObserver<EateryResponse> responseObserver) {
+		try {
+			UUID eateryId = UUID.fromString(request.getEateryId());
+			Eatery eatery = eateryService.findById(eateryId);
+			var response = EateryResponse.newBuilder().setId(eatery.getId().toString()).setName(eatery.getName())
+					.setLat(eatery.getLocation().getY()).setLon(eatery.getLocation().getX()).build();
 
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (EateryNotFoundException e) {
-            responseObserver.onError(e);
-        }
-    }
+			responseObserver.onNext(response);
+			responseObserver.onCompleted();
+		} catch (EateryNotFoundException e) {
+			responseObserver.onError(e);
+		}
+	}
 
-    // DEBUG
-//    @PostConstruct
-//    public void init() {
-//        System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
-//    }
+	// DEBUG
+	// @PostConstruct
+	// public void init() {
+	// System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");
+	// }
 }

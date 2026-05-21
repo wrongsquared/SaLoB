@@ -26,28 +26,28 @@ import java.util.UUID;
 @AllArgsConstructor
 @Table(name = "roles")
 public class Role {
-    @Id
-    @JdbcTypeCode(SqlTypes.UUID)
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+	@Id
+	@JdbcTypeCode(SqlTypes.UUID)
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(name = "id", updatable = false, nullable = false)
+	private UUID id;
 
-    @Column(name = "label", nullable = false, unique = true, length = 32)
-    private String label;
+	@Column(name = "label", nullable = false, unique = true, length = 32)
+	private String label;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof Role role)) {
-            return false;
-        }
-        return id != null && id.equals(role.getId());
-    }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Role role)) {
+			return false;
+		}
+		return id != null && id.equals(role.getId());
+	}
 
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }

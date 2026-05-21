@@ -25,89 +25,76 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/api/food-entries")
 public class FoodEntryController {
-    private final FoodEntryService foodEntryService;
-    private final RateLimiter rateLimiter;
+	private final FoodEntryService foodEntryService;
+	private final RateLimiter rateLimiter;
 
-    @GetMapping("/historical-data/{foodEntryId}")
-    public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(
-            @Valid @PathVariable UUID foodEntryId,
-            @Valid @RequestParam Instant startDate,
-            HttpServletRequest request
-    ) {
-        String clientIP = Utils.getClientIp(request);
-        if (!rateLimiter.isRequestAllowed(clientIP)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
+	@GetMapping("/historical-data/{foodEntryId}")
+	public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(@Valid @PathVariable UUID foodEntryId,
+			@Valid @RequestParam Instant startDate, HttpServletRequest request) {
+		String clientIP = Utils.getClientIp(request);
+		if (!rateLimiter.isRequestAllowed(clientIP)) {
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 
-        // startDate cannot be in the future
-        if (startDate.isAfter(Instant.now())) {
-            return ResponseEntity.badRequest().build();
-        }
+		// startDate cannot be in the future
+		if (startDate.isAfter(Instant.now())) {
+			return ResponseEntity.badRequest().build();
+		}
 
-        // 1-year hard limit - clamp
-        Instant oneYearAgo = Instant.now().minus(Duration.ofDays(365));
-        Instant clampedStartDate = startDate.isBefore(oneYearAgo) ? oneYearAgo : startDate;
+		// 1-year hard limit - clamp
+		Instant oneYearAgo = Instant.now().minus(Duration.ofDays(365));
+		Instant clampedStartDate = startDate.isBefore(oneYearAgo) ? oneYearAgo : startDate;
 
-        FoodEntryHistoricalDTO foodEntryDetailed = foodEntryService.getFoodEntryHistoricalData(foodEntryId, clampedStartDate);
-        return ResponseEntity.ok(foodEntryDetailed);
-    }
+		FoodEntryHistoricalDTO foodEntryDetailed = foodEntryService.getFoodEntryHistoricalData(foodEntryId,
+				clampedStartDate);
+		return ResponseEntity.ok(foodEntryDetailed);
+	}
 
-    @GetMapping("/{foodEntryId}/details")
-    public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(
-            @Valid @PathVariable UUID foodEntryId,
-            HttpServletRequest request
-    ) {
-        String clientIP = Utils.getClientIp(request);
-        if (!rateLimiter.isRequestAllowed(clientIP)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
+	@GetMapping("/{foodEntryId}/details")
+	public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(@Valid @PathVariable UUID foodEntryId,
+			HttpServletRequest request) {
+		String clientIP = Utils.getClientIp(request);
+		if (!rateLimiter.isRequestAllowed(clientIP)) {
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 
-        FoodEntryDetailedDTO details = foodEntryService.getFoodEntryDetailed(foodEntryId);
-        return ResponseEntity.ok(details);
-    }
+		FoodEntryDetailedDTO details = foodEntryService.getFoodEntryDetailed(foodEntryId);
+		return ResponseEntity.ok(details);
+	}
 
-    @PostMapping("/submit")
-    public ResponseEntity<Void> submitFoodEntry(
-            @Valid @RequestHeader("X-User-Id") UUID id,
-            @Valid@RequestBody FoodEntrySubmissionRequest req
-    ) {
-        foodEntryService.submitFoodEntry(id, req);
-        return ResponseEntity.ok().build();
-    }
+	@PostMapping("/submit")
+	public ResponseEntity<Void> submitFoodEntry(@Valid @RequestHeader("X-User-Id") UUID id,
+			@Valid @RequestBody FoodEntrySubmissionRequest req) {
+		foodEntryService.submitFoodEntry(id, req);
+		return ResponseEntity.ok().build();
+	}
 
-    @PostMapping("/{foodEntryId}/vote")
-    public ResponseEntity<Void> castVote(
-            @Valid @PathVariable UUID foodEntryId,
-            @Valid @RequestHeader("X-User-Id") UUID voterId,
-            @Valid @RequestBody VoteRequest req
-    ) {
-        foodEntryService.castVote(voterId, foodEntryId, req.isUpvote());
-        return ResponseEntity.ok().build();
-    }
+	@PostMapping("/{foodEntryId}/vote")
+	public ResponseEntity<Void> castVote(@Valid @PathVariable UUID foodEntryId,
+			@Valid @RequestHeader("X-User-Id") UUID voterId, @Valid @RequestBody VoteRequest req) {
+		foodEntryService.castVote(voterId, foodEntryId, req.isUpvote());
+		return ResponseEntity.ok().build();
+	}
 
-    /**
-     * Fetch food entries within a bounding box (food mode map view).
-     * Results are deduplicated by (eatery, food), keeping highest confidence.
-     * Example: /api/food-entries/within-bounds?minLat=1.27&maxLat=1.32&minLon=103.80&maxLon=103.86
-     */
-    @GetMapping("/within-bounds")
-    public ResponseEntity<List<FoodEntryMapDTO>> getFoodEntriesWithinBounds(
-            @Valid @RequestParam double minLat,
-            @Valid @RequestParam double maxLat,
-            @Valid @RequestParam double minLon,
-            @Valid @RequestParam double maxLon,
-            HttpServletRequest request
-    ) {
-        String clientIp = Utils.getClientIp(request);
-        if (!rateLimiter.isRequestAllowed(clientIp)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
+	/**
+	 * Fetch food entries within a bounding box (food mode map view). Results are
+	 * deduplicated by (eatery, food), keeping highest confidence. Example:
+	 * /api/food-entries/within-bounds?minLat=1.27&maxLat=1.32&minLon=103.80&maxLon=103.86
+	 */
+	@GetMapping("/within-bounds")
+	public ResponseEntity<List<FoodEntryMapDTO>> getFoodEntriesWithinBounds(@Valid @RequestParam double minLat,
+			@Valid @RequestParam double maxLat, @Valid @RequestParam double minLon, @Valid @RequestParam double maxLon,
+			HttpServletRequest request) {
+		String clientIp = Utils.getClientIp(request);
+		if (!rateLimiter.isRequestAllowed(clientIp)) {
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 
-        if (minLat >= maxLat || minLon >= maxLon) {
-            return ResponseEntity.badRequest().build();
-        }
+		if (minLat >= maxLat || minLon >= maxLon) {
+			return ResponseEntity.badRequest().build();
+		}
 
-        List<FoodEntryMapDTO> entries = foodEntryService.findFoodEntriesWithinBounds(minLat, maxLat, minLon, maxLon);
-        return ResponseEntity.ok(entries);
-    }
+		List<FoodEntryMapDTO> entries = foodEntryService.findFoodEntriesWithinBounds(minLat, maxLat, minLon, maxLon);
+		return ResponseEntity.ok(entries);
+	}
 }

@@ -20,76 +20,70 @@ import org.springframework.transaction.annotation.Transactional;
  * Seeds random food entry votes for testing.
  *
  * Unique constraint: (voter_id, food_entry_id) - one vote per voter per entry.
- * This seeder handles duplicates gracefully (idempotent):
- * - If a vote already exists, it's skipped
- * - Safe to run multiple times without errors
+ * This seeder handles duplicates gracefully (idempotent): - If a vote already
+ * exists, it's skipped - Safe to run multiple times without errors
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class FoodEntryVoteSeeder {
-    private static final int MAX_VOTES_PER_ENTRY = 80;
-    private final FoodEntryVoteRepository foodEntryVoteRepository;
+	private static final int MAX_VOTES_PER_ENTRY = 80;
+	private final FoodEntryVoteRepository foodEntryVoteRepository;
 
-    /**
-     * Seed votes for food entries.
-     *
-     * @param userIDs list of user IDs to randomly draw voters from
-     * @param foodEntries list of food entries to vote on
-     * @return number of votes created (skips duplicates)
-     */
-    @Transactional
-    public int seed(List<UUID> userIDs, List<FoodEntry> foodEntries) {
-        if (userIDs.isEmpty() || foodEntries.isEmpty()) {
-            log.warn("Skipping vote seeding: missing users or food entries");
-            return 0;
-        }
+	/**
+	 * Seed votes for food entries.
+	 *
+	 * @param userIDs
+	 *            list of user IDs to randomly draw voters from
+	 * @param foodEntries
+	 *            list of food entries to vote on
+	 * @return number of votes created (skips duplicates)
+	 */
+	@Transactional
+	public int seed(List<UUID> userIDs, List<FoodEntry> foodEntries) {
+		if (userIDs.isEmpty() || foodEntries.isEmpty()) {
+			log.warn("Skipping vote seeding: missing users or food entries");
+			return 0;
+		}
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<FoodEntryVote> votes = new ArrayList<>();
-        Set<String> usedPairs = new HashSet<>();
+		ThreadLocalRandom random = ThreadLocalRandom.current();
+		List<FoodEntryVote> votes = new ArrayList<>();
+		Set<String> usedPairs = new HashSet<>();
+		Instant now = Instant.now();
+		long daysInSeconds = 365L * 24 * 60 * 60;
 
-        for (FoodEntry foodEntry : foodEntries) {
-            int maxVotesForThisEntry = Math.min(userIDs.size(), MAX_VOTES_PER_ENTRY);
-            int numVotes = random.nextInt(1, maxVotesForThisEntry + 1);
+		for (FoodEntry foodEntry : foodEntries) {
+			int maxVotesForThisEntry = Math.min(userIDs.size(), MAX_VOTES_PER_ENTRY);
+			int numVotes = random.nextInt(1, maxVotesForThisEntry + 1);
 
-            List<UUID> shuffledUsers = new ArrayList<>(userIDs);
-            Collections.shuffle(shuffledUsers, random);
+			List<UUID> shuffledUsers = new ArrayList<>(userIDs);
+			Collections.shuffle(shuffledUsers, random);
 
-            for (int i = 0; i < numVotes; i++) {
-                UUID voterId = shuffledUsers.get(i);
-                String pairKey = voterId + ":" + foodEntry.getId();
+			for (int i = 0; i < numVotes; i++) {
+				UUID voterId = shuffledUsers.get(i);
+				String pairKey = voterId + ":" + foodEntry.getId();
 
-                if (usedPairs.contains(pairKey)) {
-                    continue;
-                }
+				if (usedPairs.contains(pairKey)) {
+					continue;
+				}
 
-                if (foodEntryVoteRepository.existsByVoterIdAndFoodEntryId(voterId, foodEntry.getId())) {
-                    usedPairs.add(pairKey);
-                    continue;
-                }
+				if (foodEntryVoteRepository.existsByVoterIdAndFoodEntryId(voterId, foodEntry.getId())) {
+					usedPairs.add(pairKey);
+					continue;
+				}
 
-                boolean isUpvote = random.nextBoolean();
-                FoodEntryVote vote = FoodEntryVote.builder()
-                    .foodEntry(foodEntry)
-                    .voterId(voterId)
-                    .isUpvote(isUpvote)
-                    .build();
+				boolean isUpvote = random.nextBoolean();
+				FoodEntryVote vote = FoodEntryVote.builder().foodEntry(foodEntry).voterId(voterId).isUpvote(isUpvote)
+						.build();
+				vote.setCreatedAt(now.minusSeconds((long) (random.nextDouble() * daysInSeconds)));
 
-                votes.add(vote);
-                usedPairs.add(pairKey);
-            }
-        }
+				votes.add(vote);
+				usedPairs.add(pairKey);
+			}
+		}
 
-        foodEntryVoteRepository.saveAll(votes);
-        Instant now = Instant.now();
-        long daysInSeconds = 365L * 24 * 60 * 60;
-        for (FoodEntryVote vote : votes) {
-            long offset = (long) (random.nextDouble() * daysInSeconds);
-            vote.setCreatedAt(now.minusSeconds(offset));
-        }
-        foodEntryVoteRepository.saveAll(votes);
-        log.info("Seeded {} food entry votes", votes.size());
-        return votes.size();
-    }
+		foodEntryVoteRepository.saveAll(votes);
+		log.info("Seeded {} food entry votes", votes.size());
+		return votes.size();
+	}
 }

@@ -13,21 +13,17 @@ import java.time.temporal.ChronoUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(
-        name = "app.scheduling.cleanup.enabled",
-        havingValue = "true",
-        matchIfMissing = true
-)
+@ConditionalOnProperty(name = "app.scheduling.cleanup.enabled", havingValue = "true", matchIfMissing = true)
 public class ProcessedEventCleanupTask {
 
-    private final ProcessedEventRepository processedEventRepo;
+	private final ProcessedEventRepository processedEventRepo;
 
-    @Scheduled(cron = "0 0 3 * * ?")
-    public void purgeOldEvents() {
-        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
-        int deleted = processedEventRepo.deleteByProcessedAtBefore(cutoff);
-        if (deleted > 0) {
-            log.info("Purged {} processed_events older than 7 days", deleted);
-        }
-    }
+	@Scheduled(cron = "0 0 3 * * ?")
+	public void purgeOldEvents() {
+		Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+		int deleted = processedEventRepo.deleteByProcessedAtBefore(cutoff);
+		if (deleted > 0) {
+			log.info("Purged {} processed_events older than 7 days", deleted);
+		}
+	}
 }

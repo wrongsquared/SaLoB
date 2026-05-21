@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "app.seed.images")
 public class SeedImageProperties {
-    private boolean scrapeEnabled = true;
-    private String imageSourceTemplate = "https://source.unsplash.com/featured/?{query}";
-    private String userAgent = "SaLoBFoodSeeder/1.0";
-    private int requestTimeoutSeconds = 10;
+	private boolean scrapeEnabled = true;
+	private String imageSourceTemplate = "https://source.unsplash.com/featured/?{query}";
+	private String userAgent = "SaLoBFoodSeeder/1.0";
+	private int requestTimeoutSeconds = 10;
 }

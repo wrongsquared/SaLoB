@@ -63,6 +63,15 @@ repos:
 
   - repo: local
     hooks:
+      - id: java-format
+        name: java-format (spotless)
+        description: "Format all Java sources with Spotless (Eclipse formatter)"
+        entry: bash -c 'for dir in backend/food-service backend/user-service backend/api-gateway; do (cd "$dir" && ./gradlew spotlessApply 2>&1) || exit 1; done && git add -u'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       - id: backend-compile
         name: backend-compile
         description: "Compile all backend services with Gradle"

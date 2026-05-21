@@ -17,39 +17,39 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class FoodServiceTest {
 
-    @Mock
-    private FoodRepository foodRepo;
+	@Mock
+	private FoodRepository foodRepo;
 
-    private FoodService foodService;
+	private FoodService foodService;
 
-    @BeforeEach
-    void setUp() {
-        foodService = new FoodService(foodRepo);
-    }
+	@BeforeEach
+	void setUp() {
+		foodService = new FoodService(foodRepo);
+	}
 
-    @Test
-    void searchForFood_returnsMatchingResults() {
-        UUID foodId = UUID.randomUUID();
-        Food food = Food.builder().label("Chicken Rice").build();
-        food.setId(foodId);
+	@Test
+	void searchForFood_returnsMatchingResults() {
+		UUID foodId = UUID.randomUUID();
+		Food food = Food.builder().label("Chicken Rice").build();
+		food.setId(foodId);
 
-        when(foodRepo.findByLabelContainingIgnoreCase("chicken")).thenReturn(List.of(food));
+		when(foodRepo.findByLabelContainingIgnoreCase("chicken")).thenReturn(List.of(food));
 
-        List<FoodSearchPreview> results = foodService.searchForFood("chicken");
+		List<FoodSearchPreview> results = foodService.searchForFood("chicken");
 
-        assertEquals(1, results.size());
-        assertEquals(foodId, results.getFirst().getFoodId());
-        assertEquals("Chicken Rice", results.getFirst().getFoodName());
-        verify(foodRepo).findByLabelContainingIgnoreCase("chicken");
-    }
+		assertEquals(1, results.size());
+		assertEquals(foodId, results.getFirst().getFoodId());
+		assertEquals("Chicken Rice", results.getFirst().getFoodName());
+		verify(foodRepo).findByLabelContainingIgnoreCase("chicken");
+	}
 
-    @Test
-    void searchForFood_whenNoMatch_returnsEmptyList() {
-        when(foodRepo.findByLabelContainingIgnoreCase("nonexistent")).thenReturn(List.of());
+	@Test
+	void searchForFood_whenNoMatch_returnsEmptyList() {
+		when(foodRepo.findByLabelContainingIgnoreCase("nonexistent")).thenReturn(List.of());
 
-        List<FoodSearchPreview> results = foodService.searchForFood("nonexistent");
+		List<FoodSearchPreview> results = foodService.searchForFood("nonexistent");
 
-        assertTrue(results.isEmpty());
-        verify(foodRepo).findByLabelContainingIgnoreCase("nonexistent");
-    }
+		assertTrue(results.isEmpty());
+		verify(foodRepo).findByLabelContainingIgnoreCase("nonexistent");
+	}
 }

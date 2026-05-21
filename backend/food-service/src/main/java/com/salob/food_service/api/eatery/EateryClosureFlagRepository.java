@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface EateryClosureFlagRepository extends JpaRepository<EateryClosureFlag, UUID> {
 
-    boolean existsByEateryIdAndFlaggerId(UUID eateryId, UUID flaggerId);
+	boolean existsByEateryIdAndFlaggerId(UUID eateryId, UUID flaggerId);
 }

@@ -19,19 +19,19 @@ import java.util.List;
 @RequestMapping("/api/foods")
 @RequiredArgsConstructor
 public class FoodController {
-    private final FoodService foodService;
+	private final FoodService foodService;
 
-    @RequestMapping("/search")
-    public ResponseEntity<List<FoodSearchPreview>> searchForFood(@Valid @RequestParam String search) {
-        return ResponseEntity.ok(foodService.searchForFood(search));
-    }
+	@RequestMapping("/search")
+	public ResponseEntity<List<FoodSearchPreview>> searchForFood(@Valid @RequestParam String search) {
+		return ResponseEntity.ok(foodService.searchForFood(search));
+	}
 
-    /**
-     * Create a new food item. Idempotent — returns existing food if name matches.
-     * Example: POST /api/foods with body {"foodName": "Chicken Rice"}
-     */
-    @PostMapping
-    public ResponseEntity<FoodSearchPreview> createFood(@Valid @RequestBody FoodCreationRequest req) {
-        return ResponseEntity.ok(foodService.createFood(req));
-    }
+	/**
+	 * Create a new food item. Idempotent — returns existing food if name matches.
+	 * Example: POST /api/foods with body {"foodName": "Chicken Rice"}
+	 */
+	@PostMapping
+	public ResponseEntity<FoodSearchPreview> createFood(@Valid @RequestBody FoodCreationRequest req) {
+		return ResponseEntity.ok(foodService.createFood(req));
+	}
 }

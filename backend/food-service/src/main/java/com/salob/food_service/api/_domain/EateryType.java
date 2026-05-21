@@ -16,11 +16,11 @@ import lombok.*;
 @AllArgsConstructor
 public class EateryType extends BaseEntity {
 
-    @NotBlank
-    @Column(unique = true, nullable = false)
-    private String label; // e.g., "Hawker Stall"
+	@NotBlank
+	@Column(unique = true, nullable = false)
+	private String label; // e.g., "Hawker Stall"
 
-    @Builder.Default
-    @OneToMany(mappedBy = "type", fetch = FetchType.LAZY)
-    private List<Eatery> eateries = new ArrayList<>();
+	@Builder.Default
+	@OneToMany(mappedBy = "type", fetch = FetchType.LAZY)
+	private List<Eatery> eateries = new ArrayList<>();
 }

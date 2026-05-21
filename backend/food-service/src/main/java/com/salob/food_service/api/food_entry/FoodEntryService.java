@@ -36,254 +36,210 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FoodEntryService {
 
-    private final FoodEntryRepository foodEntryRepo;
-    private final EateryRepository eateryRepo;
-    private final FoodRepository foodRepo;
+	private final FoodEntryRepository foodEntryRepo;
+	private final EateryRepository eateryRepo;
+	private final FoodRepository foodRepo;
 
-    private final ConfidenceAlgorithm confidenceAlgo;
-    private final MinioStorageService minioService;
-    private final com.salob.food_service.common.rabbitmq.WtfEventPublisher wtfEventPublisher;
-    private final com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository foodEntryVoteRepo;
+	private final ConfidenceAlgorithm confidenceAlgo;
+	private final MinioStorageService minioService;
+	private final com.salob.food_service.common.rabbitmq.WtfEventPublisher wtfEventPublisher;
+	private final com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository foodEntryVoteRepo;
 
-    @GrpcClient("user-service")
-    private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
+	@GrpcClient("user-service")
+	private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
 
-    /**
-     * Given a 'foodEntryId', find all the other food entries of the same "food" from the same "eatery",
-     * and then aggregate their price points.
-     */
-    public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate) {
-        FoodEntry targetEntry = foodEntryRepo
-            .findById(foodEntryId)
-            .orElseThrow(() -> new RuntimeException("FoodEntry not found"));
+	/**
+	 * Given a 'foodEntryId', find all the other food entries of the same "food"
+	 * from the same "eatery", and then aggregate their price points.
+	 */
+	public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate) {
+		FoodEntry targetEntry = foodEntryRepo.findById(foodEntryId)
+				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-        // Fetch all the same food from the same eatery as 'targetEntry', created after startDate
-        List<FoodEntry> allEntriesOfSameFoodAndEatery = foodEntryRepo
-            .findByFood_IdAndEatery_Id(targetEntry.getFood().getId(), targetEntry.getEatery().getId())
-            .stream()
-            .filter(entry -> entry.getCreatedAt().isAfter(startDate) || entry.getCreatedAt().equals(startDate))
-            .toList();
+		// Fetch all the same food from the same eatery as 'targetEntry', created after
+		// startDate
+		List<FoodEntry> allEntriesOfSameFoodAndEatery = foodEntryRepo
+				.findByFood_IdAndEatery_Id(targetEntry.getFood().getId(), targetEntry.getEatery().getId()).stream()
+				.filter(entry -> entry.getCreatedAt().isAfter(startDate) || entry.getCreatedAt().equals(startDate))
+				.toList();
 
-        // Calculate confidence for each entry and find the best (and concurrently, save the dates that there ARE entries)
-        int consensusPrice = -1;
-        double bestConfidence = -1.0;
-        FoodEntry consensusEntry = null;
+		// Calculate confidence for each entry and find the best (and concurrently, save
+		// the dates that there ARE entries)
+		int consensusPrice = -1;
+		double bestConfidence = -1.0;
+		FoodEntry consensusEntry = null;
 
-        Set<LocalDate> availableDates = new TreeSet<>();
-        for (FoodEntry foodEntry : allEntriesOfSameFoodAndEatery) {
-            double confidence = confidenceAlgo.computeFinalConfidence(foodEntry);
+		Set<LocalDate> availableDates = new TreeSet<>();
+		for (FoodEntry foodEntry : allEntriesOfSameFoodAndEatery) {
+			double confidence = confidenceAlgo.computeFinalConfidence(foodEntry);
 
-            LocalDate entryDate = foodEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
-            availableDates.add(entryDate);
+			LocalDate entryDate = foodEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+			availableDates.add(entryDate);
 
-            if (confidence > bestConfidence) {
-                bestConfidence = confidence;
-                consensusPrice = foodEntry.getSgCents();
-                consensusEntry = foodEntry;
-            }
-        }
+			if (confidence > bestConfidence) {
+				bestConfidence = confidence;
+				consensusPrice = foodEntry.getSgCents();
+				consensusEntry = foodEntry;
+			}
+		}
 
-        // Collect all the entries from the date where the 'consensus entry' was created
-        List<FoodEntryPreviewDTO> benchmarkDateEntries = new ArrayList<>();
-        FoodEntryDetailedDTO consensusEntryDetails = null;
-        if (consensusEntry != null) {
-            LocalDate consensusDate = consensusEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
-            Instant dayStart = consensusDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-            Instant dayEnd = consensusDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+		// Collect all the entries from the date where the 'consensus entry' was created
+		List<FoodEntryPreviewDTO> benchmarkDateEntries = new ArrayList<>();
+		FoodEntryDetailedDTO consensusEntryDetails = null;
+		if (consensusEntry != null) {
+			LocalDate consensusDate = consensusEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+			Instant dayStart = consensusDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+			Instant dayEnd = consensusDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 
-            List<FoodEntry> entriesOnConsensusDate = foodEntryRepo.findByEatery_IdAndCreatedAtBetween(
-                targetEntry.getEatery().getId(),
-                dayStart,
-                dayEnd
-            );
+			List<FoodEntry> entriesOnConsensusDate = foodEntryRepo
+					.findByEatery_IdAndCreatedAtBetween(targetEntry.getEatery().getId(), dayStart, dayEnd);
 
-            for (FoodEntry entry : entriesOnConsensusDate) {
-                String photoObjKey = entry.getFood().getPhotoObjKey();
-                String presignedUrl = minioService.getPresignedUrl(photoObjKey, Duration.ofMinutes(30));
-                benchmarkDateEntries.add(
-                    new FoodEntryPreviewDTO(
-                        entry.getId(),
-                        entry.getFood().getLabel(),
-                        entry.getSgCents(),
-                        entry.getUpvoteCount(),
-                        entry.getDownvoteCount(),
-                        presignedUrl,
-                        entry.getSubmitterId(),
-                        null,
-                        entry.getCreatedAt()
-                    )
-                );
-            }
-            consensusEntryDetails = toDetailed(consensusEntry);
-        }
+			for (FoodEntry entry : entriesOnConsensusDate) {
+				String photoObjKey = entry.getFood().getPhotoObjKey();
+				String presignedUrl = minioService.getPresignedUrl(photoObjKey, Duration.ofMinutes(30));
+				benchmarkDateEntries.add(new FoodEntryPreviewDTO(entry.getId(), entry.getFood().getLabel(),
+						entry.getSgCents(), entry.getUpvoteCount(), entry.getDownvoteCount(), presignedUrl,
+						entry.getSubmitterId(), null, entry.getCreatedAt()));
+			}
+			consensusEntryDetails = toDetailed(consensusEntry);
+		}
 
-        // Return all the 'price points', with additional info for the point with the 'consensus price'
-        String consensusSubmitter = consensusEntryDetails != null ? consensusEntryDetails.submitterUsername() : null;
+		// Return all the 'price points', with additional info for the point with the
+		// 'consensus price'
+		String consensusSubmitter = consensusEntryDetails != null ? consensusEntryDetails.submitterUsername() : null;
 
-        return FoodEntryHistoricalDTO.builder()
-            .foodName(targetEntry.getFood().getLabel())
-            .sgCentsConsensusPrice(consensusPrice)
-            .eateryId(targetEntry.getEatery().getId())
-            .eateryAddress(targetEntry.getEatery().getAddress())
-            .submitterUsername(consensusSubmitter)
-            .availableDates(new ArrayList<>(availableDates))
-            .benchmarkDateEntries(benchmarkDateEntries)
-            .consensusEntry(consensusEntryDetails)
-            .build();
-    }
+		return FoodEntryHistoricalDTO.builder().foodName(targetEntry.getFood().getLabel())
+				.sgCentsConsensusPrice(consensusPrice).eateryId(targetEntry.getEatery().getId())
+				.eateryAddress(targetEntry.getEatery().getAddress()).submitterUsername(consensusSubmitter)
+				.availableDates(new ArrayList<>(availableDates)).benchmarkDateEntries(benchmarkDateEntries)
+				.consensusEntry(consensusEntryDetails).build();
+	}
 
-    public FoodEntryDetailedDTO getFoodEntryDetailed(UUID foodEntryId) {
-        FoodEntry entry = foodEntryRepo
-            .findById(foodEntryId)
-            .orElseThrow(() -> new RuntimeException("FoodEntry not found"));
-        return toDetailed(entry);
-    }
+	public FoodEntryDetailedDTO getFoodEntryDetailed(UUID foodEntryId) {
+		FoodEntry entry = foodEntryRepo.findById(foodEntryId)
+				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
+		return toDetailed(entry);
+	}
 
-    public void submitFoodEntry(UUID submitterId, FoodEntrySubmissionRequest req) {
-        // Use references....no need to fetch the entire object
-        Eatery eateryRef = eateryRepo.getReferenceById(req.eateryId());
-        Food foodRef = foodRepo.getReferenceById(req.foodId());
+	public void submitFoodEntry(UUID submitterId, FoodEntrySubmissionRequest req) {
+		// Use references....no need to fetch the entire object
+		Eatery eateryRef = eateryRepo.getReferenceById(req.eateryId());
+		Food foodRef = foodRepo.getReferenceById(req.foodId());
 
-        // Build entity using the proxies
-        FoodEntry entry = FoodEntry.builder()
-            .food(foodRef)
-            .eatery(eateryRef)
-            .sgCents(req.priceSgCents())
-            .upvoteCount(0)
-            .downvoteCount(0)
-            .submitterId(submitterId)
-            .build();
+		// Build entity using the proxies
+		FoodEntry entry = FoodEntry.builder().food(foodRef).eatery(eateryRef).sgCents(req.priceSgCents()).upvoteCount(0)
+				.downvoteCount(0).submitterId(submitterId).build();
 
-        // Triggers only a single INSERT query
-        foodEntryRepo.save(entry);
+		// Triggers only a single INSERT query
+		foodEntryRepo.save(entry);
 
-        // Publish event so user-service can recalculate submitter's WTF
-        wtfEventPublisher.publishEntryCreated(submitterId);
-    }
+		// Publish event so user-service can recalculate submitter's WTF
+		wtfEventPublisher.publishEntryCreated(submitterId);
+	}
 
-    public void castVote(UUID voterId, UUID foodEntryId, boolean isUpvote) {
-        FoodEntry entry = foodEntryRepo
-            .findById(foodEntryId)
-            .orElseThrow(() -> new RuntimeException("FoodEntry not found"));
+	public void castVote(UUID voterId, UUID foodEntryId, boolean isUpvote) {
+		FoodEntry entry = foodEntryRepo.findById(foodEntryId)
+				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-        // Self-vote check: cannot vote on your own entry
-        if (entry.getSubmitterId().equals(voterId)) {
-            throw new RuntimeException("Cannot vote on your own entry");
-        }
+		// Self-vote check: cannot vote on your own entry
+		if (entry.getSubmitterId().equals(voterId)) {
+			throw new RuntimeException("Cannot vote on your own entry");
+		}
 
-        // UK constraint check: one vote per (voter, entry)
-        if (foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)) {
-            throw new RuntimeException("Already voted on this entry");
-        }
+		// UK constraint check: one vote per (voter, entry)
+		if (foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)) {
+			throw new RuntimeException("Already voted on this entry");
+		}
 
-        // Save the vote
-        FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
-        foodEntryVoteRepo.save(vote);
+		// Save the vote
+		FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
+		foodEntryVoteRepo.save(vote);
 
-        // TODO: DB Trigger to listen for changes on foodEntryVote
-        // Atomically increment the count on the food entry
-        if (isUpvote) {
-            entry.setUpvoteCount(entry.getUpvoteCount() + 1);
-        } else {
-            entry.setDownvoteCount(entry.getDownvoteCount() + 1);
-        }
-        foodEntryRepo.save(entry);
+		// TODO: DB Trigger to listen for changes on foodEntryVote
+		// Atomically increment the count on the food entry
+		if (isUpvote) {
+			entry.setUpvoteCount(entry.getUpvoteCount() + 1);
+		} else {
+			entry.setDownvoteCount(entry.getDownvoteCount() + 1);
+		}
+		foodEntryRepo.save(entry);
 
-        // Publish event for WTF recalculation (affects entry owner)
-        wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
-    }
+		// Publish event for WTF recalculation (affects entry owner)
+		wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
+	}
 
-    /**
-     * Find food entries within a bounding box, deduplicated by (eatery, food) —
-     * keeping the entry with the highest confidence score per group.
-     *
-     * Caching: Results are cached by coordinate-bucketed key to avoid repeated
-     * confidence computations during map panning.
-     */
-    @Cacheable(value = "food_entries_bbox", keyGenerator = "bboxKeyGenerator")
-    public List<FoodEntryMapDTO> findFoodEntriesWithinBounds(
-        double minLat,
-        double maxLat,
-        double minLon,
-        double maxLon
-    ) {
-        List<Object[]> rows = foodEntryRepo.findWithinBoundsWithEateryLocation(minLat, maxLat, minLon, maxLon);
+	/**
+	 * Find food entries within a bounding box, deduplicated by (eatery, food) —
+	 * keeping the entry with the highest confidence score per group.
+	 *
+	 * Caching: Results are cached by coordinate-bucketed key to avoid repeated
+	 * confidence computations during map panning.
+	 */
+	@Cacheable(value = "food_entries_bbox", keyGenerator = "bboxKeyGenerator")
+	public List<FoodEntryMapDTO> findFoodEntriesWithinBounds(double minLat, double maxLat, double minLon,
+			double maxLon) {
+		List<Object[]> rows = foodEntryRepo.findWithinBoundsWithEateryLocation(minLat, maxLat, minLon, maxLon);
 
-        // Deduplicate by (eateryId, foodName), keeping highest confidence
-        Map<String, FoodEntry> bestByEateryFood = new LinkedHashMap<>();
-        Map<String, Double> bestConfidenceByEateryFood = new LinkedHashMap<>();
+		// Deduplicate by (eateryId, foodName), keeping highest confidence
+		Map<String, FoodEntry> bestByEateryFood = new LinkedHashMap<>();
+		Map<String, Double> bestConfidenceByEateryFood = new LinkedHashMap<>();
 
-        for (Object[] row : rows) {
-            UUID entryId = (UUID) row[0];
-            FoodEntry entry = foodEntryRepo.findById(entryId).orElse(null);
-            if (entry == null) continue;
+		for (Object[] row : rows) {
+			UUID entryId = (UUID) row[0];
+			FoodEntry entry = foodEntryRepo.findById(entryId).orElse(null);
+			if (entry == null)
+				continue;
 
-            UUID eateryId = (UUID) row[3];
-            String foodName = (String) row[1];
-            String key = eateryId + ":" + foodName;
+			UUID eateryId = (UUID) row[3];
+			String foodName = (String) row[1];
+			String key = eateryId + ":" + foodName;
 
-            double confidence = confidenceAlgo.computeFinalConfidence(entry);
-            Double currentBest = bestConfidenceByEateryFood.get(key);
-            if (currentBest == null || confidence > currentBest) {
-                bestConfidenceByEateryFood.put(key, confidence);
-                bestByEateryFood.put(key, entry);
-            }
-        }
+			double confidence = confidenceAlgo.computeFinalConfidence(entry);
+			Double currentBest = bestConfidenceByEateryFood.get(key);
+			if (currentBest == null || confidence > currentBest) {
+				bestConfidenceByEateryFood.put(key, confidence);
+				bestByEateryFood.put(key, entry);
+			}
+		}
 
-        List<FoodEntryMapDTO> result = new ArrayList<>();
-        for (Map.Entry<String, FoodEntry> e : bestByEateryFood.entrySet()) {
-            FoodEntry entry = e.getValue();
-            String key = e.getKey();
-            UUID eateryId = UUID.fromString(key.split(":")[0]);
+		List<FoodEntryMapDTO> result = new ArrayList<>();
+		for (Map.Entry<String, FoodEntry> e : bestByEateryFood.entrySet()) {
+			FoodEntry entry = e.getValue();
+			String key = e.getKey();
+			UUID eateryId = UUID.fromString(key.split(":")[0]);
 
-            // Find the matching row for location data
-            Object[] locationRow = rows
-                .stream()
-                .filter(r -> ((UUID) r[3]).equals(eateryId) && ((String) r[1]).equals(entry.getFood().getLabel()))
-                .findFirst()
-                .orElse(null);
+			// Find the matching row for location data
+			Object[] locationRow = rows.stream()
+					.filter(r -> ((UUID) r[3]).equals(eateryId) && ((String) r[1]).equals(entry.getFood().getLabel()))
+					.findFirst().orElse(null);
 
-            if (locationRow != null) {
-                result.add(
-                    new FoodEntryMapDTO(
-                        entry.getId(),
-                        entry.getFood().getLabel(),
-                        entry.getSgCents(),
-                        eateryId,
-                        (String) locationRow[4],
-                        ((Number) locationRow[5]).doubleValue(),
-                        ((Number) locationRow[6]).doubleValue()
-                    )
-                );
-            }
-        }
+			if (locationRow != null) {
+				result.add(new FoodEntryMapDTO(entry.getId(), entry.getFood().getLabel(), entry.getSgCents(), eateryId,
+						(String) locationRow[4], ((Number) locationRow[5]).doubleValue(),
+						((Number) locationRow[6]).doubleValue()));
+			}
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {
-        UUID submitterId = entry.getSubmitterId();
-        long entriesSubmitted = submitterId == null ? 0L : foodEntryRepo.countBySubmitterId(submitterId);
+	private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {
+		UUID submitterId = entry.getSubmitterId();
+		long entriesSubmitted = submitterId == null ? 0L : foodEntryRepo.countBySubmitterId(submitterId);
 
-        String foodPhotoPresignedUrl = minioService.getPresignedUrl(
-            entry.getFood().getPhotoObjKey(),
-            Duration.ofMinutes(30)
-        );
+		String foodPhotoPresignedUrl = minioService.getPresignedUrl(entry.getFood().getPhotoObjKey(),
+				Duration.ofMinutes(30));
 
-        assert submitterId != null;
-        var userDetailsRequest = UserDetailsRequest.newBuilder().setUserId(submitterId.toString()).build();
-        UserDetailsResponse userDetailsResponse = userServiceStub.getUserDetails(userDetailsRequest);
+		assert submitterId != null;
+		var userDetailsRequest = UserDetailsRequest.newBuilder().setUserId(submitterId.toString()).build();
+		UserDetailsResponse userDetailsResponse = userServiceStub.getUserDetails(userDetailsRequest);
 
-        return FoodEntryDetailedDTO.builder()
-            .foodEntryId(entry.getId())
-            .foodPhotoPresignedUrl(foodPhotoPresignedUrl)
-            .submittedAt(entry.getCreatedAt())
-            .submitterId(submitterId)
-            .submitterUsername(userDetailsResponse.getUsername())
-            .submitterProfilePhotoPresignedUrl(userDetailsResponse.getPhotoUrl())
-            .submitterWtfScore(userDetailsResponse.getWtfScore())
-            .submitterTenureDays(userDetailsResponse.getTenureDays())
-            .submitterEntriesSubmitted(entriesSubmitted)
-            .build();
-    }
+		return FoodEntryDetailedDTO.builder().foodEntryId(entry.getId()).foodPhotoPresignedUrl(foodPhotoPresignedUrl)
+				.submittedAt(entry.getCreatedAt()).submitterId(submitterId)
+				.submitterUsername(userDetailsResponse.getUsername())
+				.submitterProfilePhotoPresignedUrl(userDetailsResponse.getPhotoUrl())
+				.submitterWtfScore(userDetailsResponse.getWtfScore())
+				.submitterTenureDays(userDetailsResponse.getTenureDays()).submitterEntriesSubmitted(entriesSubmitted)
+				.build();
+	}
 }

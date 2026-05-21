@@ -7,18 +7,18 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 public class RateLimiterConfig {
-//    @Bean
-//    public KeyResolver ipKeyResolver() {
-//        return exchange -> Mono.just(
-//                exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-//        );
-//    }
+	// @Bean
+	// public KeyResolver ipKeyResolver() {
+	// return exchange -> Mono.just(
+	// exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+	// );
+	// }
 
-    @Bean
-    public KeyResolver userKeyResolver() {
-        return exchange -> {
-            String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-            return Mono.just(authHeader != null ? authHeader : "anonymous");
-        };
-    }
+	@Bean
+	public KeyResolver userKeyResolver() {
+		return exchange -> {
+			String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+			return Mono.just(authHeader != null ? authHeader : "anonymous");
+		};
+	}
 }

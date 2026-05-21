@@ -2,6 +2,8 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '7.0.3'
+	id 'com.github.spotbugs' version '6.1.7'
 }
 
 group = 'com.salob'
@@ -17,11 +19,22 @@ repositories {
 	mavenCentral()
 }
 
-ext {
-	set('springCloudVersion', "2025.1.1")
+spotless {
+	java {
+		eclipse()
+		target 'src/**/*.java'
+	}
+}
+
+spotbugs {
+	ignoreFailures = true
+	effort = 'max'
+	reportLevel = 'low'
 }
 
 dependencies {
+	spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0'
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -37,6 +50,10 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+ext {
+	set('springCloudVersion', "2025.1.1")
 }
 
 dependencyManagement {

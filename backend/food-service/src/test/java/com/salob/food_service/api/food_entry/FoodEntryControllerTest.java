@@ -26,91 +26,73 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class FoodEntryControllerTest {
 
-    @Mock
-    private FoodEntryService foodEntryService;
+	@Mock
+	private FoodEntryService foodEntryService;
 
-    @Mock
-    private RateLimiter rateLimiter;
+	@Mock
+	private RateLimiter rateLimiter;
 
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
+	private MockMvc mockMvc;
+	private ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() {
-        FoodEntryController controller = new FoodEntryController(foodEntryService, rateLimiter);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        objectMapper = new ObjectMapper();
-    }
+	@BeforeEach
+	void setUp() {
+		FoodEntryController controller = new FoodEntryController(foodEntryService, rateLimiter);
+		mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+		objectMapper = new ObjectMapper();
+	}
 
-    @Test
-    void getHistoricalData_returnsOk() throws Exception {
-        UUID entryId = UUID.randomUUID();
-        when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
+	@Test
+	void getHistoricalData_returnsOk() throws Exception {
+		UUID entryId = UUID.randomUUID();
+		when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
 
-        FoodEntryHistoricalDTO dto = FoodEntryHistoricalDTO.builder()
-                .foodName("Chicken Rice")
-                .sgCentsConsensusPrice(400)
-                .eateryId(UUID.randomUUID())
-                .eateryAddress("1 Test Street")
-                .availableDates(List.of())
-                .benchmarkDateEntries(List.of())
-                .consensusEntry(null)
-                .build();
-        when(foodEntryService.getFoodEntryHistoricalData(eq(entryId), any(Instant.class)))
-                .thenReturn(dto);
+		FoodEntryHistoricalDTO dto = FoodEntryHistoricalDTO.builder().foodName("Chicken Rice")
+				.sgCentsConsensusPrice(400).eateryId(UUID.randomUUID()).eateryAddress("1 Test Street")
+				.availableDates(List.of()).benchmarkDateEntries(List.of()).consensusEntry(null).build();
+		when(foodEntryService.getFoodEntryHistoricalData(eq(entryId), any(Instant.class))).thenReturn(dto);
 
-        mockMvc.perform(get("/api/food-entries/historical-data/{foodEntryId}", entryId)
-                        .param("startDate", "2025-01-01T00:00:00Z")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.foodName").value("Chicken Rice"))
-                .andExpect(jsonPath("$.sgCentsConsensusPrice").value(400));
-    }
+		mockMvc.perform(get("/api/food-entries/historical-data/{foodEntryId}", entryId)
+				.param("startDate", "2025-01-01T00:00:00Z").accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.foodName").value("Chicken Rice"))
+				.andExpect(jsonPath("$.sgCentsConsensusPrice").value(400));
+	}
 
-    @Test
-    void getHistoricalData_whenStartDateInFuture_returns400() throws Exception {
-        when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
+	@Test
+	void getHistoricalData_whenStartDateInFuture_returns400() throws Exception {
+		when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
 
-        // year 3000 — definitely in the future
-        mockMvc.perform(get("/api/food-entries/historical-data/{foodEntryId}", UUID.randomUUID())
-                        .param("startDate", "3000-01-01T00:00:00Z"))
-                .andExpect(status().isBadRequest());
+		// year 3000 — definitely in the future
+		mockMvc.perform(get("/api/food-entries/historical-data/{foodEntryId}", UUID.randomUUID()).param("startDate",
+				"3000-01-01T00:00:00Z")).andExpect(status().isBadRequest());
 
-        verifyNoInteractions(foodEntryService);
-    }
+		verifyNoInteractions(foodEntryService);
+	}
 
-    @Test
-    void getFoodEntryDetails_returnsOk() throws Exception {
-        UUID entryId = UUID.randomUUID();
-        when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
+	@Test
+	void getFoodEntryDetails_returnsOk() throws Exception {
+		UUID entryId = UUID.randomUUID();
+		when(rateLimiter.isRequestAllowed(anyString())).thenReturn(true);
 
-        FoodEntryDetailedDTO dto = FoodEntryDetailedDTO.builder()
-                .foodEntryId(entryId)
-                .submitterId(UUID.randomUUID())
-                .submitterUsername("testuser")
-                .build();
-        when(foodEntryService.getFoodEntryDetailed(entryId)).thenReturn(dto);
+		FoodEntryDetailedDTO dto = FoodEntryDetailedDTO.builder().foodEntryId(entryId).submitterId(UUID.randomUUID())
+				.submitterUsername("testuser").build();
+		when(foodEntryService.getFoodEntryDetailed(entryId)).thenReturn(dto);
 
-        mockMvc.perform(get("/api/food-entries/{foodEntryId}/details", entryId)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.foodEntryId").isString())
-                .andExpect(jsonPath("$.submitterUsername").value("testuser"));
-    }
+		mockMvc.perform(get("/api/food-entries/{foodEntryId}/details", entryId).accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.foodEntryId").isString())
+				.andExpect(jsonPath("$.submitterUsername").value("testuser"));
+	}
 
-    @Test
-    void submitFoodEntry_returnsOk() throws Exception {
-        UUID submitterId = UUID.randomUUID();
-        FoodEntrySubmissionRequest req = new FoodEntrySubmissionRequest(
-                UUID.randomUUID(), UUID.randomUUID(), 500);
+	@Test
+	void submitFoodEntry_returnsOk() throws Exception {
+		UUID submitterId = UUID.randomUUID();
+		FoodEntrySubmissionRequest req = new FoodEntrySubmissionRequest(UUID.randomUUID(), UUID.randomUUID(), 500);
 
-        // POST /submit reads X-User-Id from header
-        mockMvc.perform(post("/api/food-entries/submit")
-                        .header("X-User-Id", submitterId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk());
+		// POST /submit reads X-User-Id from header
+		mockMvc.perform(post("/api/food-entries/submit").header("X-User-Id", submitterId.toString())
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req)))
+				.andExpect(status().isOk());
 
-        verify(foodEntryService).submitFoodEntry(eq(submitterId), any(FoodEntrySubmissionRequest.class));
-    }
+		verify(foodEntryService).submitFoodEntry(eq(submitterId), any(FoodEntrySubmissionRequest.class));
+	}
 }

@@ -20,36 +20,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-    @Mock
-    private UserService userService;
+	@Mock
+	private UserService userService;
 
-    private MockMvc mockMvc;
+	private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        UserController controller = new UserController(userService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-    }
+	@BeforeEach
+	void setUp() {
+		UserController controller = new UserController(userService);
+		mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+	}
 
-    @Test
-    void me_returnsUserProfile() throws Exception {
-        UUID userId = UUID.randomUUID();
-        MeResponse response = MeResponse.builder()
-                .id(userId)
-                .email("test@example.com")
-                .username("testuser")
-                .roles(List.of("CONTRIBUTOR"))
-                .avatarUrl("https://avatar.url")
-                .build();
+	@Test
+	void me_returnsUserProfile() throws Exception {
+		UUID userId = UUID.randomUUID();
+		MeResponse response = MeResponse.builder().id(userId).email("test@example.com").username("testuser")
+				.roles(List.of("CONTRIBUTOR")).avatarUrl("https://avatar.url").build();
 
-        when(userService.me(userId)).thenReturn(response);
+		when(userService.me(userId)).thenReturn(response);
 
-        mockMvc.perform(get("/api/users/me")
-                        .header("X-User-Id", userId.toString())
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.roles[0]").value("CONTRIBUTOR"));
-    }
+		mockMvc.perform(get("/api/users/me").header("X-User-Id", userId.toString()).accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.email").value("test@example.com"))
+				.andExpect(jsonPath("$.username").value("testuser"))
+				.andExpect(jsonPath("$.roles[0]").value("CONTRIBUTOR"));
+	}
 }

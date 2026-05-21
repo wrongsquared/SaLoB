@@ -7,8 +7,8 @@ import net.devh.boot.grpc.server.advice.GrpcExceptionHandler;
 
 @GrpcAdvice
 public class GlobalGrpcExceptionHandler {
-    @GrpcExceptionHandler(EateryNotFoundException.class)
-    public Status handleEateryNotFound(EateryNotFoundException e) {
-        return Status.NOT_FOUND.withDescription(e.getMessage()).withCause(e);
-    }
+	@GrpcExceptionHandler(EateryNotFoundException.class)
+	public Status handleEateryNotFound(EateryNotFoundException e) {
+		return Status.NOT_FOUND.withDescription(e.getMessage()).withCause(e);
+	}
 }

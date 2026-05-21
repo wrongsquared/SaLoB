@@ -11,30 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EateryTypeSeeder {
 
-    private final EateryTypeRepository eateryTypeRepository;
+	private final EateryTypeRepository eateryTypeRepository;
 
-    @Transactional
-    public List<EateryType> seed() {
-        List.of(
-            "Hawker Stall",
-            "Cafe",
-            "Restaurant",
-            "Food Court",
-            "Bakery",
-            "Bistro",
-            "Kopitiam",
-            "Bubble Tea Shop",
-            "Dessert Shop",
-            "Fast Food"
-        ).forEach(this::seedTypeIfMissing);
-        return eateryTypeRepository.findAll();
-    }
+	@Transactional
+	public List<EateryType> seed() {
+		List.of("Hawker Stall", "Cafe", "Restaurant", "Food Court", "Bakery", "Bistro", "Kopitiam", "Bubble Tea Shop",
+				"Dessert Shop", "Fast Food").forEach(this::seedTypeIfMissing);
+		return eateryTypeRepository.findAll();
+	}
 
-    private void seedTypeIfMissing(String label) {
-        if (eateryTypeRepository.existsByLabel(label)) {
-            return;
-        }
+	private void seedTypeIfMissing(String label) {
+		if (eateryTypeRepository.existsByLabel(label)) {
+			return;
+		}
 
-        eateryTypeRepository.save(EateryType.builder().label(label).build());
-    }
+		eateryTypeRepository.save(EateryType.builder().label(label).build());
+	}
 }

@@ -18,51 +18,42 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 @Slf4j
 public class FoodEntrySeeder {
-    private static final int MIN_ENTRIES_PER_EATERY = 3;
-    private static final int MAX_ENTRIES_PER_EATERY = 30;
+	private static final int MIN_ENTRIES_PER_EATERY = 3;
+	private static final int MAX_ENTRIES_PER_EATERY = 30;
 
-    private static final int MIN_PRICE_CENTS = 300;
-    private static final int MAX_PRICE_CENTS = 10000;
+	private static final int MIN_PRICE_CENTS = 300;
+	private static final int MAX_PRICE_CENTS = 10000;
 
-    private final FoodEntryRepository foodEntryRepository;
+	private final FoodEntryRepository foodEntryRepository;
 
-    @Transactional
-    public List<FoodEntry> seed(List<UUID> userIDs, List<Food> foods, List<Eatery> eateries) {
-        if (foods.isEmpty() || eateries.isEmpty()) {
-            log.warn("Skipping food entry seeding because foods or eateries are missing");
-            return new ArrayList<>();
-        }
+	@Transactional
+	public List<FoodEntry> seed(List<UUID> userIDs, List<Food> foods, List<Eatery> eateries) {
+		if (foods.isEmpty() || eateries.isEmpty()) {
+			log.warn("Skipping food entry seeding because foods or eateries are missing");
+			return new ArrayList<>();
+		}
 
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<FoodEntry> entries = new ArrayList<>(eateries.size() * 3);
+		ThreadLocalRandom random = ThreadLocalRandom.current();
+		List<FoodEntry> entries = new ArrayList<>(eateries.size() * 3);
+		Instant now = Instant.now();
+		long daysInSeconds = 365L * 24 * 60 * 60;
 
-        int minEntriesPerEatery = Math.min(foods.size(), MIN_ENTRIES_PER_EATERY);
-        int maxEntriesPerEatery = Math.min(foods.size(), MAX_ENTRIES_PER_EATERY);
-        for (Eatery eatery : eateries) {
-            int numEntriesForEatery = random.nextInt(minEntriesPerEatery, maxEntriesPerEatery);
+		int minEntriesPerEatery = Math.min(foods.size(), MIN_ENTRIES_PER_EATERY);
+		int maxEntriesPerEatery = Math.min(foods.size(), MAX_ENTRIES_PER_EATERY);
+		for (Eatery eatery : eateries) {
+			int numEntriesForEatery = random.nextInt(minEntriesPerEatery, maxEntriesPerEatery);
 
-            for (int i = 0; i < numEntriesForEatery; i++) {
-                Food food = foods.get(random.nextInt(foods.size()));
-                int priceCents = random.nextInt(MIN_PRICE_CENTS, MAX_PRICE_CENTS + 1);
+			for (int i = 0; i < numEntriesForEatery; i++) {
+				Food food = foods.get(random.nextInt(foods.size()));
+				int priceCents = random.nextInt(MIN_PRICE_CENTS, MAX_PRICE_CENTS + 1);
 
-                entries.add(
-                    FoodEntry.builder()
-                        .eatery(eatery)
-                        .food(food)
-                        .sgCents(priceCents)
-                        .submitterId(userIDs.get(random.nextInt(userIDs.size())))
-                        .build()
-                );
-            }
-        }
+				FoodEntry entry = FoodEntry.builder().eatery(eatery).food(food).sgCents(priceCents)
+						.submitterId(userIDs.get(random.nextInt(userIDs.size()))).build();
+				entry.setCreatedAt(now.minusSeconds((long) (random.nextDouble() * daysInSeconds)));
+				entries.add(entry);
+			}
+		}
 
-        List<FoodEntry> saved = foodEntryRepository.saveAll(entries);
-        Instant now = Instant.now();
-        long daysInSeconds = 365L * 24 * 60 * 60;
-        for (FoodEntry entry : saved) {
-            long offset = (long) (random.nextDouble() * daysInSeconds);
-            entry.setCreatedAt(now.minusSeconds(offset));
-        }
-        return foodEntryRepository.saveAll(saved);
-    }
+		return foodEntryRepository.saveAll(entries);
+	}
 }

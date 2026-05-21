@@ -9,6 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface FoodRepository extends JpaRepository<Food, UUID> {
-    boolean existsByLabel(String label);
-    List<Food> findByLabelContainingIgnoreCase(String label); // iLike
+	boolean existsByLabel(String label);
+	List<Food> findByLabelContainingIgnoreCase(String label); // iLike
 }

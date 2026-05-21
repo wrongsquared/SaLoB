@@ -16,25 +16,26 @@ import java.security.interfaces.RSAPublicKey;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public BCryptPasswordEncoder bCryptPasswordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)                    // Disable CSRF checks (for testing APIs)
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()                // Allow all requests without authentication
-                )
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> {}));
-        return http.build();
-    }
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http.csrf(AbstractHttpConfigurer::disable) // Disable CSRF checks (for testing APIs)
+				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll() // Allow all requests without
+																				// authentication
+				).oauth2ResourceServer(oauth -> oauth.jwt(jwt -> {
+				}));
+		return http.build();
+	}
 
-    // Build the decoder directly using the local public key loaded from the .p12 file
-    @Bean
-    public JwtDecoder jwtDecoder(JwtService jwtService) throws Exception {
-        var publicKey = (RSAPublicKey) jwtService.getRsaKey().toPublicKey();
-        return NimbusJwtDecoder.withPublicKey(publicKey).build();
-    }
+	// Build the decoder directly using the local public key loaded from the .p12
+	// file
+	@Bean
+	public JwtDecoder jwtDecoder(JwtService jwtService) throws Exception {
+		var publicKey = (RSAPublicKey) jwtService.getRsaKey().toPublicKey();
+		return NimbusJwtDecoder.withPublicKey(publicKey).build();
+	}
 }

@@ -24,100 +24,97 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock private JwtService jwtService;
-    @Mock private UserRepository userRepo;
-    @Mock private RoleRepository roleRepo;
-    @Mock private PasswordEncoder passwordEncoder;
+	@Mock
+	private JwtService jwtService;
+	@Mock
+	private UserRepository userRepo;
+	@Mock
+	private RoleRepository roleRepo;
+	@Mock
+	private PasswordEncoder passwordEncoder;
 
-    private AuthService authService;
+	private AuthService authService;
 
-    @BeforeEach
-    void setUp() {
-        authService = new AuthService(jwtService, userRepo, roleRepo, passwordEncoder);
-    }
+	@BeforeEach
+	void setUp() {
+		authService = new AuthService(jwtService, userRepo, roleRepo, passwordEncoder);
+	}
 
-    // =========================================================================
-    // SECTION 1: login
-    // =========================================================================
+	// =========================================================================
+	// SECTION 1: login
+	// =========================================================================
 
-    @Test
-    void login_withValidCredentials_returnsJwt() {
-        String email = "test@example.com";
-        String password = "password123";
-        String jwtToken = "fake-jwt-token";
+	@Test
+	void login_withValidCredentials_returnsJwt() {
+		String email = "test@example.com";
+		String password = "password123";
+		String jwtToken = "fake-jwt-token";
 
-        User user = User.builder()
-                .email(email)
-                .username("testuser")
-                .passwordHash("encoded-password")
-                .authProvider(AuthProvider.LOCAL)
-                .build();
-        user.setId(UUID.randomUUID());
+		User user = User.builder().email(email).username("testuser").passwordHash("encoded-password")
+				.authProvider(AuthProvider.LOCAL).build();
+		user.setId(UUID.randomUUID());
 
-        when(userRepo.findByUsernameOrEmail(email, email)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(password, "encoded-password")).thenReturn(true);
-        when(jwtService.createJwt(user)).thenReturn(Optional.of(jwtToken));
+		when(userRepo.findByUsernameOrEmail(email, email)).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches(password, "encoded-password")).thenReturn(true);
+		when(jwtService.createJwt(user)).thenReturn(Optional.of(jwtToken));
 
-        LoginResponse result = authService.login(new LoginRequest(email, password));
+		LoginResponse result = authService.login(new LoginRequest(email, password));
 
-        assertEquals(jwtToken, result.jwt());
-        verify(userRepo).findByUsernameOrEmail(email, email);
-        verify(passwordEncoder).matches(password, "encoded-password");
-        verify(jwtService).createJwt(user);
-    }
+		assertEquals(jwtToken, result.jwt());
+		verify(userRepo).findByUsernameOrEmail(email, email);
+		verify(passwordEncoder).matches(password, "encoded-password");
+		verify(jwtService).createJwt(user);
+	}
 
-    @Test
-    void login_withUnknownUser_throws400() {
-        when(userRepo.findByUsernameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
+	@Test
+	void login_withUnknownUser_throws400() {
+		when(userRepo.findByUsernameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
 
-        assertThrows(ResponseStatusException.class,
-                () -> authService.login(new LoginRequest("unknown@test.com", "password")));
-    }
+		assertThrows(ResponseStatusException.class,
+				() -> authService.login(new LoginRequest("unknown@test.com", "password")));
+	}
 
-    @Test
-    void login_withWrongPassword_throws400() {
-        User user = User.builder()
-                .email("test@example.com")
-                .passwordHash("encoded-password")
-                .authProvider(AuthProvider.LOCAL)
-                .build();
+	@Test
+	void login_withWrongPassword_throws400() {
+		User user = User.builder().email("test@example.com").passwordHash("encoded-password")
+				.authProvider(AuthProvider.LOCAL).build();
 
-        when(userRepo.findByUsernameOrEmail(anyString(), anyString())).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+		when(userRepo.findByUsernameOrEmail(anyString(), anyString())).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
-        assertThrows(ResponseStatusException.class,
-                () -> authService.login(new LoginRequest("test@example.com", "wrong-password")));
-    }
+		assertThrows(ResponseStatusException.class,
+				() -> authService.login(new LoginRequest("test@example.com", "wrong-password")));
+	}
 
-    // =========================================================================
-    // SECTION 2: register
-    // =========================================================================
+	// =========================================================================
+	// SECTION 2: register
+	// =========================================================================
 
-    @Test
-    void register_withNewEmail_createsUser() {
-        String email = "new@example.com";
-        String username = "newuser";
-        String password = "password123";
+	@Test
+	void register_withNewEmail_createsUser() {
+		String email = "new@example.com";
+		String username = "newuser";
+		String password = "password123";
 
-        Role contributorRole = Role.builder().label(UserRole.CONTRIBUTOR.name()).build();
-        contributorRole.setId(UUID.randomUUID());
+		Role contributorRole = Role.builder().label(UserRole.CONTRIBUTOR.name()).build();
+		contributorRole.setId(UUID.randomUUID());
 
-        when(userRepo.existsByEmailOrUsername(email, username)).thenReturn(false);
-        when(roleRepo.findByLabel(UserRole.CONTRIBUTOR.name())).thenReturn(Optional.of(contributorRole));
-        when(passwordEncoder.encode(password)).thenReturn("encoded");
+		when(userRepo.existsByEmailOrUsername(email, username)).thenReturn(false);
+		when(roleRepo.findByLabel(UserRole.CONTRIBUTOR.name())).thenReturn(Optional.of(contributorRole));
+		when(passwordEncoder.encode(password)).thenReturn("encoded");
 
-        authService.register(new RegisterRequest(email, username, password));
+		authService.register(new RegisterRequest(email, username, password));
 
-        verify(userRepo).save(any(User.class));
-        verify(userRepo).existsByEmailOrUsername(email, username);
-        verify(roleRepo).findByLabel(UserRole.CONTRIBUTOR.name());
-    }
+		verify(userRepo).save(any(User.class));
+		verify(userRepo).existsByEmailOrUsername(email, username);
+		verify(roleRepo).findByLabel(UserRole.CONTRIBUTOR.name());
+	}
 
-    @Test
-    void register_withExistingEmailOrUsername_throws409() {
-        when(userRepo.existsByEmailOrUsername(anyString(), anyString())).thenReturn(true);
+	@Test
+	void register_withExistingEmailOrUsername_throws409() {
+		when(userRepo.existsByEmailOrUsername(anyString(), anyString())).thenReturn(true);
 
-        assertThrows(ResponseStatusException.class,
-                () -> authService.register(new RegisterRequest("existing@test.com", "existing", "password")));
-    }
+		assertThrows(ResponseStatusException.class,
+				() -> authService.register(new RegisterRequest("existing@test.com", "existing", "password")));
+	}
 }

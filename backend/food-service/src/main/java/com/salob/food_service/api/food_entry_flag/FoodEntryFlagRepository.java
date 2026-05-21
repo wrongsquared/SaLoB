@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface FoodEntryFlagRepository extends JpaRepository<FoodEntryFlag, UUID> {}
+public interface FoodEntryFlagRepository extends JpaRepository<FoodEntryFlag, UUID> {
+}
