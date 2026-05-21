@@ -104,7 +104,7 @@ export default function FoodEntryDetailPage() {
               Community Entries
             </h2>
             <div className="divide-y divide-secondary-100 rounded-xl border border-secondary-200 bg-white">
-              {history.benchmarkDateEntries.map((entry) => (
+              {history.communityEntries.map((entry) => (
                 <CommunityEntryRow
                   key={entry.foodEntryId}
                   entry={entry}

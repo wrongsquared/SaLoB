@@ -14,6 +14,17 @@ import java.util.UUID;
 public interface FoodEntryRepository extends JpaRepository<FoodEntry, UUID> {
 	List<FoodEntry> findByFood_IdAndEatery_Id(UUID foodId, UUID eateryId);
 	List<FoodEntry> findByEatery_IdAndCreatedAtBetween(UUID eateryId, Instant start, Instant end);
+
+	@Query("""
+			SELECT DISTINCT fe FROM FoodEntry fe
+			LEFT JOIN FETCH fe.votes
+			WHERE fe.food.id = :foodId
+			  AND fe.eatery.id = :eateryId
+			  AND fe.createdAt >= :startDate
+			ORDER BY fe.createdAt ASC
+			""")
+	List<FoodEntry> findHistoricalEntriesWithVotes(@Param("foodId") UUID foodId, @Param("eateryId") UUID eateryId,
+			@Param("startDate") Instant startDate);
 	long countBySubmitterId(UUID submitterId);
 
 	/**

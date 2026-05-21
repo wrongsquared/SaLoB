@@ -61,14 +61,21 @@ export interface FoodEntryDetail {
   submitterEntriesSubmitted: number
 }
 
+export interface DatePrice {
+  date: string
+  sgCents: number
+  confidence: number
+  entryCount: number
+}
+
 export interface FoodHistoricalData {
   foodName: string
   sgCentsConsensusPrice: number
   eateryId: string
   eateryAddress: string
   submitterUsername: string
-  availableDates: string[]
-  benchmarkDateEntries: FoodPreview[]
+  datePrices: DatePrice[]
+  communityEntries: FoodPreview[]
   consensusEntry: FoodEntryDetail
 }
 

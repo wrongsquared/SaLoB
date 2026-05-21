@@ -95,8 +95,12 @@ export const handlers = [
       eateryId: "a1b2c3d4-e29b-41d4-a716-446655440001",
       eateryAddress: "1 Example St, Singapore",
       submitterUsername: entry.submitterUsername,
-      availableDates: ["2026-05-01", "2026-04-28", "2026-04-15"],
-      benchmarkDateEntries: [entry],
+      datePrices: [
+        { date: "2026-04-15", sgCents: 430, confidence: 25.0, entryCount: 1 },
+        { date: "2026-04-28", sgCents: 460, confidence: 62.3, entryCount: 2 },
+        { date: "2026-05-01", sgCents: entry.sgCents, confidence: 80.0, entryCount: 1 },
+      ],
+      communityEntries: [entry],
       consensusEntry: {
         foodEntryId: entry.foodEntryId,
         foodPhotoPresignedUrl: entry.photoPresignedUrl,

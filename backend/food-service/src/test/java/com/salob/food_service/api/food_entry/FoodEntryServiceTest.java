@@ -6,6 +6,7 @@ import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.api._domain.FoodEntryVote;
 import com.salob.food_service.api.eatery.EateryRepository;
 import com.salob.food_service.api.food.FoodRepository;
+import com.salob.food_service.api.food_entry.dto.DatePrice;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
@@ -146,56 +147,59 @@ class FoodEntryServiceTest {
 		Instant now = Instant.now();
 		Instant startDate = now.minus(java.time.Duration.ofDays(30));
 
+		testEntry.setCreatedAt(now.minus(java.time.Duration.ofDays(5)));
+
 		/*
-		 * Create a second entry (older, lower confidence) to test that the method picks
-		 * the consensus correctly.
+		 * Create a second entry (older, lower confidence) for the datePrices
+		 * computation
 		 */
 		FoodEntry olderEntry = FoodEntry.builder().food(testFood).eatery(testEatery).sgCents(350).upvoteCount(5)
 				.downvoteCount(1).submitterId(submitterId).build();
 		olderEntry.setId(UUID.randomUUID());
 		olderEntry.setCreatedAt(now.minus(java.time.Duration.ofDays(15)));
 
-		testEntry.setCreatedAt(now.minus(java.time.Duration.ofDays(5)));
+		/* Create a community entry (same day as target, different submitter) */
+		FoodEntry communityEntry = FoodEntry.builder().food(testFood).eatery(testEatery).sgCents(420).upvoteCount(3)
+				.downvoteCount(0).submitterId(UUID.randomUUID()).build();
+		communityEntry.setId(UUID.randomUUID());
+		communityEntry.setCreatedAt(testEntry.getCreatedAt().plusSeconds(3600));
 
 		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryRepo.findByFood_IdAndEatery_Id(foodId, eateryId)).thenReturn(List.of(olderEntry, testEntry));
+
+		/* Submitter username lookup (called once for the target entry) */
+		UserDetailsResponse submitterDetails = UserDetailsResponse.newBuilder().setUserId(submitterId.toString())
+				.setUsername("testuser").build();
+		when(userServiceStub.getUserDetails(any(UserDetailsRequest.class))).thenReturn(submitterDetails);
+
+		/* Community entries on the same day (excludes the target entry itself) */
+		when(foodEntryRepo.findByEatery_IdAndCreatedAtBetween(eq(eateryId), any(Instant.class), any(Instant.class)))
+				.thenReturn(List.of(communityEntry));
+
+		/* DatePrices uses its own query with eager votes */
+		when(foodEntryRepo.findHistoricalEntriesWithVotes(foodId, eateryId, startDate))
+				.thenReturn(List.of(olderEntry, testEntry));
 		when(confidenceAlgo.computeFinalConfidence(olderEntry)).thenReturn(30.0);
 		when(confidenceAlgo.computeFinalConfidence(testEntry)).thenReturn(80.0);
-		/*
-		 * Mock the benchmark entries query (findByEatery_IdAndCreatedAtBetween) This is
-		 * called for entries on the consensus date (testEntry's date).
-		 */
-		when(foodEntryRepo.findByEatery_IdAndCreatedAtBetween(eq(eateryId), any(Instant.class), any(Instant.class)))
-				.thenReturn(List.of(testEntry));
 
+		/* Photo URLs for community entry and toDetailed */
 		when(minioService.getPresignedUrl("chicken-key", Duration.ofMinutes(30)))
 				.thenReturn("https://presigned.url/photo");
 
-		/*
-		 * toDetailed() calls userServiceStub.getUserDetails() for the consensus entry.
-		 * Without this mock, Mockito returns null → NPE on .getUsername().
-		 */
-		UserDetailsResponse userDetails = UserDetailsResponse.newBuilder().setUserId(submitterId.toString())
-				.setUsername("testuser").build();
-		when(userServiceStub.getUserDetails(any(UserDetailsRequest.class))).thenReturn(userDetails);
+		/* toDetailed calls countBySubmitterId */
+		when(foodEntryRepo.countBySubmitterId(submitterId)).thenReturn(5L);
 
 		FoodEntryHistoricalDTO result = foodEntryService.getFoodEntryHistoricalData(foodEntryId, startDate);
 
 		assertNotNull(result);
-		/*
-		 * Records use accessor methods without "get" prefix. FoodEntryHistoricalDTO is
-		 * a record: result.foodName(), not getFoodName().
-		 */
 		assertEquals("Chicken Rice", result.foodName());
 		assertEquals(400, result.sgCentsConsensusPrice());
 		assertEquals(eateryId, result.eateryId());
 		assertEquals("1 Test Street", result.eateryAddress());
-		assertFalse(result.availableDates().isEmpty());
-		assertEquals(1, result.benchmarkDateEntries().size());
+		assertEquals("testuser", result.submitterUsername());
+		assertFalse(result.datePrices().isEmpty());
+		assertEquals(1, result.communityEntries().size());
 
-		/*
-		 * Verify the consensus entry details are present.
-		 */
+		/* Consensus entry details */
 		assertNotNull(result.consensusEntry());
 		assertEquals(foodEntryId, result.consensusEntry().foodEntryId());
 	}

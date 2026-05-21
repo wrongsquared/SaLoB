@@ -6,6 +6,7 @@ import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.api._domain.FoodEntryVote;
 import com.salob.food_service.api.eatery.EateryRepository;
 import com.salob.food_service.api.food.FoodRepository;
+import com.salob.food_service.api.food_entry.dto.DatePrice;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryMapDTO;
@@ -16,6 +17,7 @@ import com.salob.food_service.storage.minio.MinioStorageService;
 import com.salob.proto.user.UserDetailsRequest;
 import com.salob.proto.user.UserDetailsResponse;
 import com.salob.proto.user.UserServiceGrpc;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -53,66 +55,39 @@ public class FoodEntryService {
 	 * from the same "eatery", and then aggregate their price points.
 	 */
 	public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate) {
+		// Get the actual "Food Entry" object from the UUID
 		FoodEntry targetEntry = foodEntryRepo.findById(foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-		// Fetch all the same food from the same eatery as 'targetEntry', created after
-		// startDate
-		List<FoodEntry> allEntriesOfSameFoodAndEatery = foodEntryRepo
-				.findByFood_IdAndEatery_Id(targetEntry.getFood().getId(), targetEntry.getEatery().getId()).stream()
-				.filter(entry -> entry.getCreatedAt().isAfter(startDate) || entry.getCreatedAt().equals(startDate))
+		// Get the submitter's username for the target entry (from the user-service)
+		var reqUserDetails = UserDetailsRequest.newBuilder().setUserId(targetEntry.getSubmitterId().toString()).build();
+		UserDetailsResponse resUserDetails = userServiceStub.getUserDetails(reqUserDetails);
+		String submitterUsername = resUserDetails.getUsername();
+
+		// Find other entries from the same eatery on the same day (for "community
+		// entries" section)
+		// Convert into "FoodEntryPreviewDTO" for the frontend
+		LocalDate entryDate = targetEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+		Instant dayStart = entryDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+		Instant dayEnd = entryDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+		List<FoodEntryPreviewDTO> otherEntriesOnSameDay = foodEntryRepo
+				.findByEatery_IdAndCreatedAtBetween(targetEntry.getEatery().getId(), dayStart, dayEnd).stream()
+				.filter(e -> !e.getId().equals(foodEntryId)) // Exclude the target entry itself
+				.map(e -> new FoodEntryPreviewDTO(e.getId(), e.getFood().getLabel(), e.getSgCents(), e.getUpvoteCount(),
+						e.getDownvoteCount(),
+						minioService.getPresignedUrl(e.getFood().getPhotoObjKey(), Duration.ofMinutes(30)),
+						e.getSubmitterId(), submitterUsername, e.getCreatedAt()))
 				.toList();
 
-		// Calculate confidence for each entry and find the best (and concurrently, save
-		// the dates that there ARE entries)
-		int consensusPrice = -1;
-		double bestConfidence = -1.0;
-		FoodEntry consensusEntry = null;
-
-		Set<LocalDate> availableDates = new TreeSet<>();
-		for (FoodEntry foodEntry : allEntriesOfSameFoodAndEatery) {
-			double confidence = confidenceAlgo.computeFinalConfidence(foodEntry);
-
-			LocalDate entryDate = foodEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
-			availableDates.add(entryDate);
-
-			if (confidence > bestConfidence) {
-				bestConfidence = confidence;
-				consensusPrice = foodEntry.getSgCents();
-				consensusEntry = foodEntry;
-			}
-		}
-
-		// Collect all the entries from the date where the 'consensus entry' was created
-		List<FoodEntryPreviewDTO> benchmarkDateEntries = new ArrayList<>();
-		FoodEntryDetailedDTO consensusEntryDetails = null;
-		if (consensusEntry != null) {
-			LocalDate consensusDate = consensusEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
-			Instant dayStart = consensusDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-			Instant dayEnd = consensusDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-
-			List<FoodEntry> entriesOnConsensusDate = foodEntryRepo
-					.findByEatery_IdAndCreatedAtBetween(targetEntry.getEatery().getId(), dayStart, dayEnd);
-
-			for (FoodEntry entry : entriesOnConsensusDate) {
-				String photoObjKey = entry.getFood().getPhotoObjKey();
-				String presignedUrl = minioService.getPresignedUrl(photoObjKey, Duration.ofMinutes(30));
-				benchmarkDateEntries.add(new FoodEntryPreviewDTO(entry.getId(), entry.getFood().getLabel(),
-						entry.getSgCents(), entry.getUpvoteCount(), entry.getDownvoteCount(), presignedUrl,
-						entry.getSubmitterId(), null, entry.getCreatedAt()));
-			}
-			consensusEntryDetails = toDetailed(consensusEntry);
-		}
-
-		// Return all the 'price points', with additional info for the point with the
-		// 'consensus price'
-		String consensusSubmitter = consensusEntryDetails != null ? consensusEntryDetails.submitterUsername() : null;
+		// Computing historical price points for the chart
+		List<DatePrice> datePrices = computeDatePrices(targetEntry.getFood().getId(), targetEntry.getEatery().getId(),
+				startDate);
 
 		return FoodEntryHistoricalDTO.builder().foodName(targetEntry.getFood().getLabel())
-				.sgCentsConsensusPrice(consensusPrice).eateryId(targetEntry.getEatery().getId())
-				.eateryAddress(targetEntry.getEatery().getAddress()).submitterUsername(consensusSubmitter)
-				.availableDates(new ArrayList<>(availableDates)).benchmarkDateEntries(benchmarkDateEntries)
-				.consensusEntry(consensusEntryDetails).build();
+				.sgCentsConsensusPrice(targetEntry.getSgCents()).eateryId(targetEntry.getEatery().getId())
+				.eateryAddress(targetEntry.getEatery().getAddress()).submitterUsername(submitterUsername)
+				.datePrices(datePrices).communityEntries(otherEntriesOnSameDay).consensusEntry(toDetailed(targetEntry))
+				.build();
 	}
 
 	public FoodEntryDetailedDTO getFoodEntryDetailed(UUID foodEntryId) {
@@ -217,6 +192,46 @@ public class FoodEntryService {
 				result.add(new FoodEntryMapDTO(entry.getId(), entry.getFood().getLabel(), entry.getSgCents(), eateryId,
 						(String) locationRow[4], ((Number) locationRow[5]).doubleValue(),
 						((Number) locationRow[6]).doubleValue()));
+			}
+		}
+
+		return result;
+	}
+
+	private List<DatePrice> computeDatePrices(UUID foodId, UUID eateryId, Instant startDate) {
+		List<FoodEntry> entries = foodEntryRepo.findHistoricalEntriesWithVotes(foodId, eateryId, startDate);
+		if (entries.isEmpty()) {
+			return List.of();
+		}
+
+		long totalDays = Duration.between(startDate, Instant.now()).toDays();
+		ZoneId zone = ZoneId.systemDefault();
+
+		Map<LocalDate, List<FoodEntry>> bucketed = new LinkedHashMap<>();
+		for (FoodEntry entry : entries) {
+			LocalDate bucketDate = entry.getCreatedAt().atZone(zone).toLocalDate();
+			if (totalDays > 180) {
+				bucketDate = bucketDate.withDayOfMonth(1);
+			} else if (totalDays > 30) {
+				bucketDate = bucketDate.with(DayOfWeek.MONDAY);
+			}
+			bucketed.computeIfAbsent(bucketDate, k -> new ArrayList<>()).add(entry);
+		}
+
+		List<DatePrice> result = new ArrayList<>();
+		for (Map.Entry<LocalDate, List<FoodEntry>> bucket : bucketed.entrySet()) {
+			FoodEntry best = null;
+			double bestConf = -1;
+			for (FoodEntry e : bucket.getValue()) {
+				double conf = confidenceAlgo.computeFinalConfidence(e);
+				if (conf > bestConf) {
+					bestConf = conf;
+					best = e;
+				}
+			}
+			if (best != null) {
+				result.add(new DatePrice(bucket.getKey().atStartOfDay(zone).toInstant(), best.getSgCents(), bestConf,
+						bucket.getValue().size()));
 			}
 		}
 

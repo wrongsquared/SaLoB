@@ -13,26 +13,13 @@ import type { FoodHistoricalData } from '@/shared/types/api'
 
 type TimeRange = '1M' | '6M' | '12M'
 
-function generateMockPrices(
-  dates: string[],
-  consensusPrice: number,
-): { date: string; price: number }[] {
-  const seed = consensusPrice * 7
-  return dates.map((date, i) => {
-    const variation = Math.sin((i * 0.3 + seed) % 6.28) * 0.15
-    const noise = ((i * 13 + seed * 3) % 100) / 1000
-    const price = consensusPrice * (1 + variation + noise)
-    return { date, price: Math.round(price) }
-  })
-}
-
 export default function PriceChart({ history }: { history: FoodHistoricalData }) {
   const [range, setRange] = useState<TimeRange>('1M')
 
-  const chartData = generateMockPrices(
-    history.availableDates,
-    history.sgCentsConsensusPrice,
-  )
+  const chartData = history.datePrices.map((dp) => ({
+    date: dp.date,
+    price: dp.sgCents,
+  }))
 
   const consensusSgd = centsToSgd(history.sgCentsConsensusPrice)
 
