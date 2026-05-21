@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Building2, Coffee, Store, UtensilsCrossed, CakeSlice, Wine, CupSoda, Hamburger } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEateriesWithinBounds, useFoodEntriesWithinBounds } from "@/shared/api/queries";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useMapStore } from "@/stores/mapStore";
@@ -28,8 +31,31 @@ const foodColorPalette = [
   "rgb(var(--accent-500))",
 ];
 
-function coloredCircleIcon(color: string, emoji: string, size: number): L.DivIcon {
-  const safeEmoji = emoji.replace(/[<>&"']/g, "");
+const typeIcons: Record<string, LucideIcon> = {
+  "Hawker Stall": Store,
+  "Hawker Centre": Building2,
+  Cafe: Coffee,
+  Restaurant: UtensilsCrossed,
+  "Food Court": UtensilsCrossed,
+  Bakery: CakeSlice,
+  Bistro: Wine,
+  Kopitiam: Coffee,
+  "Bubble Tea Shop": CupSoda,
+  "Dessert Shop": CakeSlice,
+  "Fast Food": Hamburger,
+};
+
+const iconCache = new Map<string, string>();
+
+function lucideToSvg(Icon: LucideIcon, size: number, color: string): string {
+  const key = `${Icon.displayName || Icon.name}_${size}_${color}`;
+  if (iconCache.has(key)) return iconCache.get(key)!;
+  const svg = renderToStaticMarkup(<Icon size={size} color={color} />);
+  iconCache.set(key, svg);
+  return svg;
+}
+
+function coloredCircleIcon(color: string, innerHtml: string, size: number): L.DivIcon {
   return L.divIcon({
     className: "",
     html: `<div style="
@@ -41,8 +67,7 @@ function coloredCircleIcon(color: string, emoji: string, size: number): L.DivIco
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      font-size: ${Math.round(size * 0.5)}px;
-    ">${safeEmoji}</div>`,
+    ">${innerHtml}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -(size / 2 + 2)],
@@ -50,11 +75,16 @@ function coloredCircleIcon(color: string, emoji: string, size: number): L.DivIco
 }
 
 function eateryIcon(typeLabel: string) {
-  return coloredCircleIcon(typeColors[typeLabel] ?? "rgb(var(--secondary-400))", "", 28);
+  const color = typeColors[typeLabel] ?? "rgb(var(--secondary-400))";
+  const Icon = typeIcons[typeLabel];
+  const inner = Icon ? lucideToSvg(Icon, 14, "white") : "";
+  return coloredCircleIcon(color, inner, 28);
 }
 
 function foodIcon(idx: number) {
-  return coloredCircleIcon(foodColorPalette[idx % foodColorPalette.length], "🍽", 24);
+  const color = foodColorPalette[idx % foodColorPalette.length];
+  const inner = lucideToSvg(Hamburger, 12, "white");
+  return coloredCircleIcon(color, inner, 24);
 }
 
 export function EateryModeMarkers() {
