@@ -29,3 +29,12 @@ Leaflet's `load` event fires only once. Under React StrictMode double-mount, the
 
 ## ADR-010: Map Container Positioning
 Map uses `absolute inset-0` within a `relative` parent (not `fixed`). Navbar uses `sticky top-0 z-50` to render above the map. Map wrapper has `isolate` class to contain Leaflet's internal high z-index panes.
+
+## ADR-011: RabbitMQ Topic Exchange for Domain Events
+A single `salob.events` topic exchange carries all domain events. Each consumer creates its own queue and binds with routing key patterns (e.g., `wtf.#`, `eatery.#`). This is more extensible than one exchange per domain — adding a new consumer never requires infrastructure changes beyond a queue + binding.
+
+## ADR-012: Shared Routing Constants in shared-proto
+Exchange names, queue names, and routing key constants live in `shared-proto/src/main/java/.../RabbitMQConstants.java`. Both services depend on shared-proto, so this eliminates magic string duplication. The shared-proto build was updated to include `src/main/java` as an additional source directory.
+
+## ADR-013: Idempotent Event Processing
+User-service stores a hash of each processed event in a `processed_events` table. Before processing, the consumer checks if the hash exists. If yes, the event is skipped. This prevents double-counting when RabbitMQ redelivers unacknowledged messages after a consumer crash.

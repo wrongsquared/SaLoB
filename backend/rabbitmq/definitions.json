@@ -8,7 +8,7 @@
     {
       "name": "salob.events",
       "vhost": "salob",
-      "type": "direct",
+      "type": "topic",
       "durable": true,
       "auto_delete": false,
       "internal": false,
@@ -26,17 +26,17 @@
   ],
   "queues": [
     {
-      "name": "salob.orders",
+      "name": "user-service.wtf.recalc",
       "vhost": "salob",
       "durable": true,
       "auto_delete": false,
       "arguments": {
         "x-dead-letter-exchange": "salob.dlx",
-        "x-dead-letter-routing-key": "orders.dead"
+        "x-dead-letter-routing-key": "wtf.dead"
       }
     },
     {
-      "name": "salob.orders.dlq",
+      "name": "user-service.wtf.recalc.dlq",
       "vhost": "salob",
       "durable": true,
       "auto_delete": false,
@@ -47,17 +47,17 @@
     {
       "source": "salob.events",
       "vhost": "salob",
-      "destination": "salob.orders",
+      "destination": "user-service.wtf.recalc",
       "destination_type": "queue",
-      "routing_key": "orders.created",
+      "routing_key": "wtf.#",
       "arguments": {}
     },
     {
       "source": "salob.dlx",
       "vhost": "salob",
-      "destination": "salob.orders.dlq",
+      "destination": "user-service.wtf.recalc.dlq",
       "destination_type": "queue",
-      "routing_key": "orders.dead",
+      "routing_key": "wtf.dead",
       "arguments": {}
     }
   ]

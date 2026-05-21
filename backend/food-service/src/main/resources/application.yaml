@@ -36,6 +36,17 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST}
+    template:
+      retry:
+        enabled: true
+        max-attempts: 3
+        initial-interval: 1000
 grpc:
   client:
     user-service:

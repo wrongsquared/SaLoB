@@ -2,14 +2,14 @@
 
 ## [HIGH] User WTF Recalculation Algorithm
 **Description:** Implement the full WTF scoring algorithm for users (currently static baseline of 50). Combines tenure score, vote score, flag score, and volume score with activity-based decay multiplier. Triggered asynchronously via RabbitMQ events when entries/votes/flags change.
-**Dependencies:** RabbitMQ event publishing from food-service, user-service event consumer, Redis cache invalidation
-**Key files:** `UserService.java`, `WtfRecalculationService.java` (new), `ConfidenceAlgorithm.java` (uses result)
+**Status:** ✅ Backend complete — `WtfRecalculationService`, RabbitMQ publisher/consumer, idempotent event processing, `lastActivityAt` column
+**Remaining:** No frontend impact (server-side only)
 **Formula:** See `docs/TECHNICAL.md` for full algorithm specification
 
-## Vote Endpoint + WebSocket Live Updates
-**Description:** Implement `POST /api/food-entries/{id}/vote` endpoint with UK constraint (one vote per user per entry). Broadcast vote count changes via WebSocket (STOMP over RabbitMQ) so all connected clients see updates in real-time.
-**Dependencies:** WebSocket infrastructure (already has `@stomp/stompjs` + `sockjs-client` in frontend), RabbitMQ exchange for broadcast
-**Key files:** `FoodEntryController.java` (new endpoint), `VoteService.java` (new), frontend vote mutation hook
+## Vote Endpoint
+**Description:** `POST /api/food-entries/{id}/vote` endpoint with UK constraint (one vote per user per entry), self-vote check, atomic upvote/downvote increments, and RabbitMQ event publishing for WTF recalculation.
+**Status:** ✅ Backend complete — `FoodEntryService.castVote()`, `FoodEntryController` endpoint, `WtfEventPublisher`
+**Future:** WebSocket broadcast (STOMP over RabbitMQ) for live vote count updates; frontend mutation hook
 
 ## Historical Data Charts — Confidence-Based Time Series
 **Description:** For each time interval going backwards from today, find the food entry with the best confidence score at that interval. Display as a Recharts line chart on the FoodEntryDetailPage.
@@ -26,17 +26,16 @@
 **Description:** Augment eatery search with OneMap's POI database for Singapore-specific autocomplete. When a user searches for an eatery that doesn't exist in our DB, OneMap provides address, block number, and building name for lazy-insertion.
 **Dependencies:** OneMap API key (add to `.env`), new endpoint `POST /api/eateries` with address validation
 **Key files:** `EateryService.java` (currently has TODO for OneMap), `EateryController.java`
-**Note:** Update `README.md` to document OneMap API key as a required `.env` blank
+
+## Eatery Closure Flow
+**Description:** Two-part feature — (1) "Report as Closed" button (frontend) → `POST /api/eateries/{id}/report-closed` (already exists ✅), (2) admin review flow that aggregates closure flags, auto-closes eatery after threshold, or flags for admin review.
+**Dependencies:** Admin RBAC, notification system
+**Key files:** `EateryClosureFlagRepository.java`, `EateryService.reportClosed()`, admin dashboard page
 
 ## AI Food Verification
 **Description:** When a user creates a new food type (not in seeded database), automatically run through AI legitimacy check. AI approves/rejects based on plausibility (e.g., "Chicken Rice at $500" → reject, "Hainanese Chicken Rice at a McDonald's" → suspicious). No human moderation — AI decision is final. No corrections suggested.
 **Dependencies:** LLM provider integration (OpenAI/Anthropic), prompt engineering for food legitimacy
 **Key files:** `FoodService.java` (currently has TODO for AI pipeline), `FoodController.java`
-
-## Eatery Closure Flow Completion
-**Description:** Backend has `EateryClosureFlagRepository` and frontend has "Report as Closed" button, but no admin review flow. Complete the flow: aggregate closure flags, auto-close eatery after threshold, or flag for admin review.
-**Dependencies:** Admin RBAC, notification system
-**Key files:** `EateryClosureFlagRepository.java`, `EateryService.reportClosed()`, admin dashboard page
 
 ## AI Assistant (Natural Language Query)
 **Description:** In-app chat widget that acts as a natural language query interface. Examples: "What is the price of chicken rice at Maxwell Food Centre in early 2023?" Can also perform navigation actions — "Do you want me to show you?" → click yes → navigates to relevant page.

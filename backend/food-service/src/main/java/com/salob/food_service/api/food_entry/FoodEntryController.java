@@ -1,6 +1,7 @@
 package com.salob.food_service.api.food_entry;
 
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
+import com.salob.food_service.api.food_entry.dto.VoteRequest;
 import com.salob.food_service.common.Utils;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
@@ -71,6 +72,16 @@ public class FoodEntryController {
             @Valid@RequestBody FoodEntrySubmissionRequest req
     ) {
         foodEntryService.submitFoodEntry(id, req);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{foodEntryId}/vote")
+    public ResponseEntity<Void> castVote(
+            @Valid @PathVariable UUID foodEntryId,
+            @Valid @RequestHeader("X-User-Id") UUID voterId,
+            @Valid @RequestBody VoteRequest req
+    ) {
+        foodEntryService.castVote(voterId, foodEntryId, req.isUpvote());
         return ResponseEntity.ok().build();
     }
 
