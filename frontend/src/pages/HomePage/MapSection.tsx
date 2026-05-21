@@ -44,7 +44,11 @@ function BoundsTracker() {
     syncBounds(map);
   }, [map]);
 
-  useMapEvents({\n    move: () => {\n      syncBounds(map);\n    },\n  })
+  useMapEvents({
+    move: () => {
+      syncBounds(map);
+    },
+  })
 
   return null
 }

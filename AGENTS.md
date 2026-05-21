@@ -16,7 +16,8 @@
    a. Run `pre-commit run --all-files` before commits.
    b. Compile-check: `./gradlew compileJava` per service (publish shared-proto to MavenLocal first).
    c. Type-check: `npx tsc --noEmit` from `frontend/`.
-   d. Run dev server, verify UI, then `npx playwright test`.
+   d. Build verification: `npx vite build` from `frontend/` (catches parse errors `tsc` misses, e.g. from escape sequences in source).
+   e. Run dev server, verify UI, then `npx playwright test`.
 7. **Commit & PR:**
    a. Pre-commit hooks run automatically on `git commit`.
    b. Scan for secrets (`detect-secrets` baseline in `.secrets.baseline`).
