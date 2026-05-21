@@ -3,6 +3,7 @@ package com.salob.food_service.seeding.seeders;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.api._domain.FoodEntryVote;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,11 +50,9 @@ public class FoodEntryVoteSeeder {
         Set<String> usedPairs = new HashSet<>();
 
         for (FoodEntry foodEntry : foodEntries) {
-            // Random votes per entry: between 1 and min(MAX_VOTES_PER_ENTRY, num_users)
             int maxVotesForThisEntry = Math.min(userIDs.size(), MAX_VOTES_PER_ENTRY);
             int numVotes = random.nextInt(1, maxVotesForThisEntry + 1);
 
-            // Ensure unique voters per entry to satisfy (voter_id, food_entry_id) constraint.
             List<UUID> shuffledUsers = new ArrayList<>(userIDs);
             Collections.shuffle(shuffledUsers, random);
 
@@ -61,12 +60,10 @@ public class FoodEntryVoteSeeder {
                 UUID voterId = shuffledUsers.get(i);
                 String pairKey = voterId + ":" + foodEntry.getId();
 
-                // Skip if already used in this batch
                 if (usedPairs.contains(pairKey)) {
                     continue;
                 }
 
-                // Check if this vote already exists in DB (idempotent constraint handling)
                 if (foodEntryVoteRepository.existsByVoterIdAndFoodEntryId(voterId, foodEntry.getId())) {
                     usedPairs.add(pairKey);
                     continue;
@@ -84,6 +81,13 @@ public class FoodEntryVoteSeeder {
             }
         }
 
+        foodEntryVoteRepository.saveAll(votes);
+        Instant now = Instant.now();
+        long daysInSeconds = 365L * 24 * 60 * 60;
+        for (FoodEntryVote vote : votes) {
+            long offset = (long) (random.nextDouble() * daysInSeconds);
+            vote.setCreatedAt(now.minusSeconds(offset));
+        }
         foodEntryVoteRepository.saveAll(votes);
         log.info("Seeded {} food entry votes", votes.size());
         return votes.size();

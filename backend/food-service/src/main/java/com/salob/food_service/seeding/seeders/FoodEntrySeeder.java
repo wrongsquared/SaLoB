@@ -4,6 +4,7 @@ import com.salob.food_service.api.food_entry.FoodEntryRepository;
 import com.salob.food_service.api._domain.Eatery;
 import com.salob.food_service.api._domain.Food;
 import com.salob.food_service.api._domain.FoodEntry;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +34,7 @@ public class FoodEntrySeeder {
         }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<FoodEntry> entries = new ArrayList<>(eateries.size() * 3); // Random number I chose
+        List<FoodEntry> entries = new ArrayList<>(eateries.size() * 3);
 
         int minEntriesPerEatery = Math.min(foods.size(), MIN_ENTRIES_PER_EATERY);
         int maxEntriesPerEatery = Math.min(foods.size(), MAX_ENTRIES_PER_EATERY);
@@ -54,6 +55,14 @@ public class FoodEntrySeeder {
                 );
             }
         }
-        return foodEntryRepository.saveAll(entries);
+
+        List<FoodEntry> saved = foodEntryRepository.saveAll(entries);
+        Instant now = Instant.now();
+        long daysInSeconds = 365L * 24 * 60 * 60;
+        for (FoodEntry entry : saved) {
+            long offset = (long) (random.nextDouble() * daysInSeconds);
+            entry.setCreatedAt(now.minusSeconds(offset));
+        }
+        return foodEntryRepository.saveAll(saved);
     }
 }

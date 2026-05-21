@@ -59,7 +59,7 @@ function foodIcon(idx: number) {
 
 export function EateryModeMarkers() {
   const { mapBounds, selectEatery } = useMapStore();
-  const debouncedBounds = useDebounce(mapBounds, 300);
+  const debouncedBounds = useDebounce(mapBounds, 400);
   const { data: eateries, isError } = useEateriesWithinBounds(debouncedBounds);
 
   if (isError) return null;
@@ -86,7 +86,7 @@ export function EateryModeMarkers() {
 export function FoodModeMarkers() {
   const navigate = useNavigate();
   const { mapBounds, selectedFoods } = useMapStore();
-  const debouncedBounds = useDebounce(mapBounds, 300);
+  const debouncedBounds = useDebounce(mapBounds, 400);
   const { data: entries, isError } = useFoodEntriesWithinBounds(debouncedBounds);
 
   if (isError) return null;

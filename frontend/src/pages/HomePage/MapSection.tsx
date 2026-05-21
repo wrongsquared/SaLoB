@@ -15,11 +15,13 @@ function syncBounds(map: L.Map) {
   const b = map.getBounds();
   const center = map.getCenter();
   const store = useMapStore.getState();
+  const latSpan = (b.getNorthEast().lat - b.getSouthWest().lat) * 0.5;
+  const lngSpan = (b.getNorthEast().lng - b.getSouthWest().lng) * 0.5;
   const newBounds = {
-    minLat: Math.round(b.getSouthWest().lat * 1_000_000) / 1_000_000,
-    maxLat: Math.round(b.getNorthEast().lat * 1_000_000) / 1_000_000,
-    minLon: Math.round(b.getSouthWest().lng * 1_000_000) / 1_000_000,
-    maxLon: Math.round(b.getNorthEast().lng * 1_000_000) / 1_000_000,
+    minLat: Math.round((b.getSouthWest().lat - latSpan) * 1_000_000) / 1_000_000,
+    maxLat: Math.round((b.getNorthEast().lat + latSpan) * 1_000_000) / 1_000_000,
+    minLon: Math.round((b.getSouthWest().lng - lngSpan) * 1_000_000) / 1_000_000,
+    maxLon: Math.round((b.getNorthEast().lng + lngSpan) * 1_000_000) / 1_000_000,
   };
   const oldBounds = store.mapBounds;
   if (
@@ -42,11 +44,7 @@ function BoundsTracker() {
     syncBounds(map);
   }, [map]);
 
-  useMapEvents({
-    moveend: () => {
-      syncBounds(map);
-    },
-  })
+  useMapEvents({\n    move: () => {\n      syncBounds(map);\n    },\n  })
 
   return null
 }

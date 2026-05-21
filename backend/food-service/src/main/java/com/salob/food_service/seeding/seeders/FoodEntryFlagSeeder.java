@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -21,7 +22,7 @@ public class FoodEntryFlagSeeder {
     public List<FoodEntryFlag> seed(List<UUID> userIDs, List<FoodEntry> foodEntries) {
         List<FoodEntryFlag> foodEntryFlags = new ArrayList<>();
 
-        var random = new Random();
+        var random = new Random(42);
         for (FoodEntry foodEntry : foodEntries) {
             int numFlags = random.nextInt(20);
             for (int i = 0; i < numFlags; i++) {
@@ -36,6 +37,13 @@ public class FoodEntryFlagSeeder {
             }
         }
 
-        return foodEntryFlagRepo.saveAll(foodEntryFlags);
+        List<FoodEntryFlag> saved = foodEntryFlagRepo.saveAll(foodEntryFlags);
+        Instant now = Instant.now();
+        long daysInSeconds = 365L * 24 * 60 * 60;
+        for (FoodEntryFlag flag : saved) {
+            long offset = (long) (random.nextDouble() * daysInSeconds);
+            flag.setCreatedAt(now.minusSeconds(offset));
+        }
+        return foodEntryFlagRepo.saveAll(saved);
     }
 }

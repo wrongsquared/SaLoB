@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -74,6 +76,10 @@ public class SeedDataRunner implements CommandLineRunner {
 
             Arrays.sort(imageFiles, Comparator.comparing(File::getName));
 
+            Random random = new Random(42);
+            Instant now = Instant.now();
+            long daysInSeconds = 365L * 24 * 60 * 60;
+
             for (File imageFile : imageFiles) {
                 String filename = imageFile.getName();
                 String username = filename.substring(0, filename.lastIndexOf('.'));
@@ -89,7 +95,6 @@ public class SeedDataRunner implements CommandLineRunner {
                     throw new IllegalStateException("MinIO upload failed for seed image: " + filename);
                 }
 
-                Random random = new Random();
                 Set<Role> roles = new HashSet<>();
                 roles.add(contributorRole);
                 User user = User.builder()
@@ -101,6 +106,14 @@ public class SeedDataRunner implements CommandLineRunner {
                         .avatarObjKey(uploadedKey)
                         .wtfScore(random.nextDouble() * 100)
                         .build();
+
+                long createdAtOffset = (long) (random.nextDouble() * daysInSeconds);
+                Instant createdAt = now.minusSeconds(createdAtOffset);
+                user.setCreatedAt(createdAt);
+
+                Instant lastActivity = createdAt.plusSeconds((long) (random.nextDouble() * Math.max(1, createdAtOffset)));
+                user.setLastActivityAt(lastActivity);
+
                 users.add(user);
             }
 

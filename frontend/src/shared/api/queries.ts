@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import type {
     EateryMapItem,
@@ -25,6 +25,7 @@ export function useEateriesWithinBounds(bounds: Bounds | null) {
         },
         enabled: !!bounds,
         staleTime: 30_000,
+        placeholderData: keepPreviousData,
     });
 }
 
@@ -111,6 +112,7 @@ export function useFoodEntriesWithinBounds(bounds: Bounds | null) {
         },
         enabled: !!bounds,
         staleTime: 30_000,
+        placeholderData: keepPreviousData,
     });
 }
 
