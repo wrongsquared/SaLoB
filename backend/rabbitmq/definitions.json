@@ -1,4 +1,11 @@
 {
+  "users": [
+    {
+      "name": "salob",
+      "password": "rabbitmq_password",
+      "tags": "administrator"
+    }
+  ],
   "vhosts": [
     {
       "name": "salob"
@@ -41,6 +48,15 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {}
+    }
+  ],
+  "permissions": [
+    {
+      "user": "salob",
+      "vhost": "salob",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
     }
   ],
   "bindings": [

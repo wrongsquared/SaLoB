@@ -80,6 +80,9 @@ class EateryServiceTest {
     @Mock
     private MinioStorageService minioStorageService;
 
+    @Mock
+    private EateryClosureFlagRepository closureFlagRepo;
+
     /*
      * The object under test. We do NOT use @InjectMocks here because
      * we want to be EXPLICIT about how dependencies are wired.
@@ -109,7 +112,7 @@ class EateryServiceTest {
          *
          * No Spring context needed — just a plain new + constructor call.
          */
-        eateryService = new EateryService(eateryRepo, confidenceAlgorithm, minioStorageService);
+        eateryService = new EateryService(eateryRepo, closureFlagRepo, confidenceAlgorithm, minioStorageService);
 
         eateryId = UUID.randomUUID();
 

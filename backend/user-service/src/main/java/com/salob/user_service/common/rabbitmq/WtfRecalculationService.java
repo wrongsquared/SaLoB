@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 /**
  * Recalculates a user's WTF score based on their denormalized stats.
@@ -45,6 +46,7 @@ public class WtfRecalculationService {
      * updated when they are also the actor (i.e., ENTRY_SUBMITTED where actor == target).
      */
     @Transactional
+    @CacheEvict(value = "user_wtf", key = "#event.targetUserId()")
     public void applyEvent(WtfEvent event) {
         // Step 1: Update target user's counters and recalculate WTF
         User targetUser = userRepo

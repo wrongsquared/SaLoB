@@ -252,6 +252,32 @@ paths:
         "200":
           description: Successfully submitted
 
+  /food-entries/{foodEntryId}/vote:
+    post:
+      summary: Vote on a food entry (upvote or downvote)
+      description: >
+        One vote per user per food entry (enforced by UK constraint + idempotency check).
+        Self-voting is rejected. Publishes a WTF recalculation event on success.
+      tags: [Food Entries]
+      parameters:
+        - name: foodEntryId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteRequest"
+      responses:
+        "200":
+          description: Vote recorded
+        "400":
+          description: Self-vote or duplicate vote
+        "404":
+          description: Food entry not found
+
   # ─── Auth ──────────────────────────────────────────────────
   /auth/login:
     post:
@@ -414,6 +440,14 @@ components:
         eateryId: { type: string, format: uuid }
         foodId: { type: string, format: uuid }
         priceSgCents: { type: integer }
+
+    VoteRequest:
+      type: object
+      required: [isUpvote]
+      properties:
+        isUpvote:
+          type: boolean
+          description: true for upvote, false for downvote
 
     LoginRequest:
       type: object

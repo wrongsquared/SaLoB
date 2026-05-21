@@ -12,6 +12,8 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+
 @Configuration
 @EnableRabbit
 public class RabbitMQConfig {
@@ -36,7 +38,9 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue wtfRecalcQueue() {
-        return new Queue(RabbitMQConstants.QUEUE_WTF_RECALC, true);
+        return new Queue(RabbitMQConstants.QUEUE_WTF_RECALC, true, false, false,
+                Map.of("x-dead-letter-exchange", "salob.dlx",
+                        "x-dead-letter-routing-key", "wtf.dead"));
     }
 
     @Bean

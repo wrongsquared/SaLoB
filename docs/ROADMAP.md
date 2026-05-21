@@ -1,16 +1,5 @@
 # Roadmap
 
-## [HIGH] User WTF Recalculation Algorithm
-**Description:** Implement the full WTF scoring algorithm for users (currently static baseline of 50). Combines tenure score, vote score, flag score, and volume score with activity-based decay multiplier. Triggered asynchronously via RabbitMQ events when entries/votes/flags change.
-**Status:** ✅ Backend complete — `WtfRecalculationService`, RabbitMQ publisher/consumer, idempotent event processing, `lastActivityAt` column
-**Remaining:** No frontend impact (server-side only)
-**Formula:** See `docs/TECHNICAL.md` for full algorithm specification
-
-## Vote Endpoint
-**Description:** `POST /api/food-entries/{id}/vote` endpoint with UK constraint (one vote per user per entry), self-vote check, atomic upvote/downvote increments, and RabbitMQ event publishing for WTF recalculation.
-**Status:** ✅ Backend complete — `FoodEntryService.castVote()`, `FoodEntryController` endpoint, `WtfEventPublisher`
-**Future:** WebSocket broadcast (STOMP over RabbitMQ) for live vote count updates; frontend mutation hook
-
 ## Historical Data Charts — Confidence-Based Time Series
 **Description:** For each time interval going backwards from today, find the food entry with the best confidence score at that interval. Display as a Recharts line chart on the FoodEntryDetailPage.
 **Open question:** What are the time intervals (daily/weekly/monthly)? If no entries exist for an interval, should we interpolate, skip, or show last known price?
