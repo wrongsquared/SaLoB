@@ -44,9 +44,26 @@ message UserDetailsResponse {
   int32 tenure_days = 5;
 }
 //----------------------------------------
+message UserDetailsBatchRequest {
+  repeated string user_ids = 1;
+}
+
+message UserDetailsBatchResponseItem {
+  string user_id = 1;
+  string username = 2;
+  string photo_url = 3;
+  double wtf_score = 4;
+  int32 tenure_days = 5;
+}
+
+message UserDetailsBatchResponse {
+  repeated UserDetailsBatchResponseItem items = 1;
+}
+//----------------------------------------
 service UserService {
   rpc GetAllUserIDs(UserIDsRequest) returns (UserIDsResponse);
   rpc GetUserWtfScore(UserWtfRequest) returns (UserWtfResponse);
   rpc GetUserWtfScoreBatch(UserWtfBatchRequest) returns (UserWtfBatchResponse);
   rpc GetUserDetails(UserDetailsRequest) returns (UserDetailsResponse);
+  rpc GetUserDetailsBatch(UserDetailsBatchRequest) returns (UserDetailsBatchResponse);
 }

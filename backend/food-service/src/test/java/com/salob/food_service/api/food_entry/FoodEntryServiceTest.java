@@ -9,12 +9,16 @@ import com.salob.food_service.api.food.FoodRepository;
 import com.salob.food_service.api.food_entry.dto.DatePrice;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
+import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.api.food_entry.dto.VoteRequest;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.common.rabbitmq.WtfEventPublisher;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.storage.minio.MinioStorageService;
+import com.salob.proto.user.UserDetailsBatchRequest;
+import com.salob.proto.user.UserDetailsBatchResponse;
+import com.salob.proto.user.UserDetailsBatchResponseItem;
 import com.salob.proto.user.UserDetailsRequest;
 import com.salob.proto.user.UserDetailsResponse;
 import com.salob.proto.user.UserServiceGrpc;
@@ -159,8 +163,9 @@ class FoodEntryServiceTest {
 		olderEntry.setCreatedAt(now.minus(java.time.Duration.ofDays(15)));
 
 		/* Create a community entry (same day as target, different submitter) */
+		UUID communitySubmitterId = UUID.randomUUID();
 		FoodEntry communityEntry = FoodEntry.builder().food(testFood).eatery(testEatery).sgCents(420).upvoteCount(3)
-				.downvoteCount(0).submitterId(UUID.randomUUID()).build();
+				.downvoteCount(0).submitterId(communitySubmitterId).build();
 		communityEntry.setId(UUID.randomUUID());
 		communityEntry.setCreatedAt(testEntry.getCreatedAt().plusSeconds(3600));
 
@@ -171,9 +176,14 @@ class FoodEntryServiceTest {
 				.setUsername("testuser").build();
 		when(userServiceStub.getUserDetails(any(UserDetailsRequest.class))).thenReturn(submitterDetails);
 
-		/* Community entries on the same day (excludes the target entry itself) */
-		when(foodEntryRepo.findByEatery_IdAndCreatedAtBetween(eq(eateryId), any(Instant.class), any(Instant.class)))
-				.thenReturn(List.of(communityEntry));
+		/* Community entries: same food + eatery on the same day */
+		when(foodEntryRepo.findByFood_IdAndEatery_IdAndCreatedAtBetween(eq(foodId), eq(eateryId), any(Instant.class),
+				any(Instant.class))).thenReturn(List.of(communityEntry));
+
+		/* Batch-fetch community submitter usernames */
+		UserDetailsBatchResponse batchRes = UserDetailsBatchResponse.newBuilder().addItems(UserDetailsBatchResponseItem
+				.newBuilder().setUserId(communitySubmitterId.toString()).setUsername("communityuser").build()).build();
+		when(userServiceStub.getUserDetailsBatch(any(UserDetailsBatchRequest.class))).thenReturn(batchRes);
 
 		/* DatePrices uses its own query with eager votes */
 		when(foodEntryRepo.findHistoricalEntriesWithVotes(foodId, eateryId, startDate))
@@ -181,7 +191,7 @@ class FoodEntryServiceTest {
 		when(confidenceAlgo.computeFinalConfidence(olderEntry)).thenReturn(30.0);
 		when(confidenceAlgo.computeFinalConfidence(testEntry)).thenReturn(80.0);
 
-		/* Photo URLs for community entry and toDetailed */
+		/* Photo URL for toDetailed (consensus entry) */
 		when(minioService.getPresignedUrl("chicken-key", Duration.ofMinutes(30)))
 				.thenReturn("https://presigned.url/photo");
 
@@ -198,6 +208,13 @@ class FoodEntryServiceTest {
 		assertEquals("testuser", result.submitterUsername());
 		assertFalse(result.datePrices().isEmpty());
 		assertEquals(1, result.communityEntries().size());
+
+		/* Community entry: correct username and null photo (same food → redundant) */
+		FoodEntryPreviewDTO communityPreview = result.communityEntries().getFirst();
+		assertEquals("communityuser", communityPreview.submitterUsername());
+		assertNull(communityPreview.photoPresignedUrl());
+		assertEquals(communitySubmitterId, communityPreview.submitterId());
+		assertEquals(420, communityPreview.sgCents());
 
 		/* Consensus entry details */
 		assertNotNull(result.consensusEntry());

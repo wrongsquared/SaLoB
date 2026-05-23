@@ -14,6 +14,9 @@ import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.storage.minio.MinioStorageService;
+import com.salob.proto.user.UserDetailsBatchRequest;
+import com.salob.proto.user.UserDetailsBatchResponse;
+import com.salob.proto.user.UserDetailsBatchResponseItem;
 import com.salob.proto.user.UserDetailsRequest;
 import com.salob.proto.user.UserDetailsResponse;
 import com.salob.proto.user.UserServiceGrpc;
@@ -23,11 +26,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -51,42 +53,58 @@ public class FoodEntryService {
 	private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
 
 	/**
-	 * Given a 'foodEntryId', find all the other food entries of the same "food"
-	 * from the same "eatery", and then aggregate their price points.
+	 * Returns historical pricing data for a food entry: the consensus price, a
+	 * bucketed time-series of historical prices (datePrices), other entries
+	 * submitted on the same day for the same food at the same eatery
+	 * (communityEntries), and full details of the consensus entry.
+	 *
+	 * Endpoint: GET /api/food-entries/historical-data/{foodEntryId}?startDate=...
+	 * Called by the frontend chart page to render: - Price-over-time chart (from
+	 * datePrices) - "Others who reported" community section (from communityEntries)
+	 * - Consensus entry details card (from consensusEntry)
+	 *
+	 * Community entry submitters are resolved via a single batch gRPC call to avoid
+	 * N+1 round-trips to the user-service.
 	 */
 	public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate) {
-		// Get the actual "Food Entry" object from the UUID
 		FoodEntry targetEntry = foodEntryRepo.findById(foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-		// Get the submitter's username for the target entry (from the user-service)
+		// Community entries: other price reports for the SAME (food, eatery) on the
+		// same day
+		LocalDate entryDate = targetEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+		Instant dayStart = entryDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+		Instant dayEnd = entryDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+		List<FoodEntry> communityEntries = foodEntryRepo
+				.findByFood_IdAndEatery_IdAndCreatedAtBetween(targetEntry.getFood().getId(),
+						targetEntry.getEatery().getId(), dayStart, dayEnd)
+				.stream().filter(e -> !e.getId().equals(foodEntryId)).toList();
+
+		// Batch-fetch usernames for all community entry submitters (avoids N+1 gRPC
+		// calls)
+		Map<UUID, String> communityUsernames = fetchUsernamesBatch(
+				communityEntries.stream().map(FoodEntry::getSubmitterId).distinct().toList());
+
+		List<FoodEntryPreviewDTO> otherEntriesOnSameDay = communityEntries.stream()
+				.map(e -> new FoodEntryPreviewDTO(e.getId(), e.getFood().getLabel(), e.getSgCents(), e.getUpvoteCount(),
+						e.getDownvoteCount(), null, // photo is redundant — all entries share the same food photo
+						e.getSubmitterId(), communityUsernames.get(e.getSubmitterId()), e.getCreatedAt()))
+				.toList();
+
+		List<DatePrice> datePrices = computeDatePrices(targetEntry.getFood().getId(), targetEntry.getEatery().getId(),
+				startDate);
+
 		var reqUserDetails = UserDetailsRequest.newBuilder().setUserId(targetEntry.getSubmitterId().toString()).build();
 		UserDetailsResponse resUserDetails = userServiceStub.getUserDetails(reqUserDetails);
 		String submitterUsername = resUserDetails.getUsername();
 
-		// Find other entries from the same eatery on the same day (for "community
-		// entries" section)
-		// Convert into "FoodEntryPreviewDTO" for the frontend
-		LocalDate entryDate = targetEntry.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate();
-		Instant dayStart = entryDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-		Instant dayEnd = entryDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-		List<FoodEntryPreviewDTO> otherEntriesOnSameDay = foodEntryRepo
-				.findByEatery_IdAndCreatedAtBetween(targetEntry.getEatery().getId(), dayStart, dayEnd).stream()
-				.filter(e -> !e.getId().equals(foodEntryId)) // Exclude the target entry itself
-				.map(e -> new FoodEntryPreviewDTO(e.getId(), e.getFood().getLabel(), e.getSgCents(), e.getUpvoteCount(),
-						e.getDownvoteCount(),
-						minioService.getPresignedUrl(e.getFood().getPhotoObjKey(), Duration.ofMinutes(30)),
-						e.getSubmitterId(), submitterUsername, e.getCreatedAt()))
-				.toList();
-
-		// Computing historical price points for the chart
-		List<DatePrice> datePrices = computeDatePrices(targetEntry.getFood().getId(), targetEntry.getEatery().getId(),
-				startDate);
-
 		return FoodEntryHistoricalDTO.builder().foodName(targetEntry.getFood().getLabel())
 				.sgCentsConsensusPrice(targetEntry.getSgCents()).eateryId(targetEntry.getEatery().getId())
 				.eateryAddress(targetEntry.getEatery().getAddress()).submitterUsername(submitterUsername)
-				.datePrices(datePrices).communityEntries(otherEntriesOnSameDay).consensusEntry(toDetailed(targetEntry))
+				.datePrices(datePrices) // For the "historical data graph"
+				.communityEntries(otherEntriesOnSameDay) // For the "community entries" (duh) section
+				.consensusEntry(toDetailed(targetEntry)) // The one that will be shown on the "eatery panel" on the
+															// right
 				.build();
 	}
 
@@ -198,13 +216,29 @@ public class FoodEntryService {
 		return result;
 	}
 
+	/**
+	 * Buckets historical food entries (same food + eatery) into time intervals and
+	 * picks the highest-confidence entry per bucket as the representative price.
+	 *
+	 * Granularity adapts to the actual data span (min createdAt → max createdAt):
+	 * ≤30 days → daily buckets ≤180 days → weekly buckets (Monday) >180 days →
+	 * monthly buckets (1st)
+	 *
+	 * Used by: getFoodEntryHistoricalData() to build the price-over-time chart. The
+	 * caller provides startDate for the DB query; the actual data span determines
+	 * the bucketing granularity (not startDate → now), so sparse old data is not
+	 * collapsed into one bucket when the user picks a wide range.
+	 */
 	private List<DatePrice> computeDatePrices(UUID foodId, UUID eateryId, Instant startDate) {
 		List<FoodEntry> entries = foodEntryRepo.findHistoricalEntriesWithVotes(foodId, eateryId, startDate);
 		if (entries.isEmpty()) {
 			return List.of();
 		}
 
-		long totalDays = Duration.between(startDate, Instant.now()).toDays();
+		long totalDays = Duration.between(entries.get(0).getCreatedAt(), entries.get(entries.size() - 1).getCreatedAt())
+				.toDays();
+		if (totalDays < 1)
+			totalDays = 1;
 		ZoneId zone = ZoneId.systemDefault();
 
 		Map<LocalDate, List<FoodEntry>> bucketed = new LinkedHashMap<>();
@@ -218,6 +252,8 @@ public class FoodEntryService {
 			bucketed.computeIfAbsent(bucketDate, k -> new ArrayList<>()).add(entry);
 		}
 
+		// For each bucket, pick the entry with the highest confidence as the
+		// representative price
 		List<DatePrice> result = new ArrayList<>();
 		for (Map.Entry<LocalDate, List<FoodEntry>> bucket : bucketed.entrySet()) {
 			FoodEntry best = null;
@@ -238,6 +274,34 @@ public class FoodEntryService {
 		return result;
 	}
 
+	/**
+	 * Batch-fetches usernames for a list of user IDs via a single gRPC call.
+	 *
+	 * Used by: getFoodEntryHistoricalData() to resolve submitter usernames for
+	 * community entries without N+1 round-trips to the user-service.
+	 */
+	private Map<UUID, String> fetchUsernamesBatch(List<UUID> userIds) {
+		if (userIds.isEmpty()) {
+			return Map.of();
+		}
+		UserDetailsBatchRequest req = UserDetailsBatchRequest.newBuilder()
+				.addAllUserIds(userIds.stream().map(UUID::toString).toList()).build();
+		UserDetailsBatchResponse res = userServiceStub.getUserDetailsBatch(req);
+		Map<UUID, String> map = new HashMap<>();
+		for (UserDetailsBatchResponseItem item : res.getItemsList()) {
+			map.put(UUID.fromString(item.getUserId()), item.getUsername());
+		}
+		return map;
+	}
+
+	/**
+	 * Converts a FoodEntry entity into a FoodEntryDetailedDTO with: - Presigned
+	 * photo URL (from MinIO) - Submitter profile info (from user-service via gRPC)
+	 * - Submitter's total entry count (from foodEntryRepo)
+	 *
+	 * Used by: getFoodEntryHistoricalData() (consensusEntry field),
+	 * getFoodEntryDetailed() (standalone detail endpoint).
+	 */
 	private FoodEntryDetailedDTO toDetailed(FoodEntry entry) {
 		UUID submitterId = entry.getSubmitterId();
 		long entriesSubmitted = submitterId == null ? 0L : foodEntryRepo.countBySubmitterId(submitterId);

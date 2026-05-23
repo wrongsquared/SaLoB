@@ -1,41 +1,31 @@
 package com.salob.food_service.api.food_entry;
 
-import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
-import com.salob.food_service.api.food_entry.dto.VoteRequest;
-import com.salob.food_service.common.Utils;
 import com.salob.food_service.api.food_entry.dto.FoodEntryDetailedDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryMapDTO;
-import com.salob.food_service.api._helpers.RateLimiter;
-import jakarta.servlet.http.HttpServletRequest;
+import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
+import com.salob.food_service.api.food_entry.dto.VoteRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @Validated
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/food-entries")
 public class FoodEntryController {
+
 	private final FoodEntryService foodEntryService;
-	private final RateLimiter rateLimiter;
 
 	@GetMapping("/historical-data/{foodEntryId}")
 	public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(@Valid @PathVariable UUID foodEntryId,
-			@Valid @RequestParam Instant startDate, HttpServletRequest request) {
-		String clientIP = Utils.getClientIp(request);
-		if (!rateLimiter.isRequestAllowed(clientIP)) {
-			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-		}
-
+			@Valid @RequestParam Instant startDate) {
 		// startDate cannot be in the future
 		if (startDate.isAfter(Instant.now())) {
 			return ResponseEntity.badRequest().build();
@@ -51,13 +41,7 @@ public class FoodEntryController {
 	}
 
 	@GetMapping("/{foodEntryId}/details")
-	public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(@Valid @PathVariable UUID foodEntryId,
-			HttpServletRequest request) {
-		String clientIP = Utils.getClientIp(request);
-		if (!rateLimiter.isRequestAllowed(clientIP)) {
-			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-		}
-
+	public ResponseEntity<FoodEntryDetailedDTO> getFoodEntryDetails(@Valid @PathVariable UUID foodEntryId) {
 		FoodEntryDetailedDTO details = foodEntryService.getFoodEntryDetailed(foodEntryId);
 		return ResponseEntity.ok(details);
 	}
@@ -83,13 +67,8 @@ public class FoodEntryController {
 	 */
 	@GetMapping("/within-bounds")
 	public ResponseEntity<List<FoodEntryMapDTO>> getFoodEntriesWithinBounds(@Valid @RequestParam double minLat,
-			@Valid @RequestParam double maxLat, @Valid @RequestParam double minLon, @Valid @RequestParam double maxLon,
-			HttpServletRequest request) {
-		String clientIp = Utils.getClientIp(request);
-		if (!rateLimiter.isRequestAllowed(clientIp)) {
-			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-		}
-
+			@Valid @RequestParam double maxLat, @Valid @RequestParam double minLon,
+			@Valid @RequestParam double maxLon) {
 		if (minLat >= maxLat || minLon >= maxLon) {
 			return ResponseEntity.badRequest().build();
 		}

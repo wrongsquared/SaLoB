@@ -3,7 +3,6 @@ package com.salob.food_service.common;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -20,7 +19,13 @@ public abstract class BaseEntity {
 	@Column(updatable = false, nullable = false)
 	private UUID id;
 
-	@CreationTimestamp
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
+
+	@PrePersist
+	public void prePersist() {
+		if (createdAt == null) {
+			createdAt = Instant.now();
+		}
+	}
 }

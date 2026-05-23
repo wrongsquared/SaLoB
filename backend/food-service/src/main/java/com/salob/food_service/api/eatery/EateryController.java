@@ -1,16 +1,12 @@
 package com.salob.food_service.api.eatery;
 
-import com.salob.food_service.api._helpers.RateLimiter;
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
-import com.salob.food_service.common.Utils;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -44,8 +40,7 @@ import org.springframework.web.bind.annotation.*;
  * {@link EateryService})</li>
  * <li>Geospatial queries use PostGIS {@code ST_Within} for efficient
  * bounding-box filtering</li>
- * <li>Rate limiting is applied per-client-IP to prevent abuse of the bounds
- * endpoint</li>
+ * <li>Rate limiting is handled at the API gateway layer</li>
  * </ul>
  *
  * <h3>Related controllers</h3>
@@ -63,7 +58,6 @@ import org.springframework.web.bind.annotation.*;
 public class EateryController {
 
 	private final EateryService eateryService;
-	private final RateLimiter rateLimiter;
 
 	/**
 	 * Fetch eateries within a bounding box for map marker rendering.
@@ -82,7 +76,7 @@ public class EateryController {
 	 * bucket returns cached data without hitting PostGIS</li>
 	 * <li>Response payload is minimal (~50 bytes per eatery) to keep map
 	 * interactions snappy</li>
-	 * <li>Rate-limited per client IP to prevent abuse during rapid panning</li>
+	 * <li>Rate limiting is applied at the API gateway</li>
 	 * </ul>
 	 *
 	 * <h3>Example</h3>
@@ -104,13 +98,8 @@ public class EateryController {
 	 */
 	@GetMapping("/within-bounds")
 	public ResponseEntity<List<EateryMapDTO>> getEateriesWithinBounds(@Valid @RequestParam double minLat,
-			@Valid @RequestParam double maxLat, @Valid @RequestParam double minLon, @Valid @RequestParam double maxLon,
-			HttpServletRequest request) {
-		String clientIp = Utils.getClientIp(request);
-		if (!rateLimiter.isRequestAllowed(clientIp)) {
-			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-		}
-
+			@Valid @RequestParam double maxLat, @Valid @RequestParam double minLon,
+			@Valid @RequestParam double maxLon) {
 		if (minLat >= maxLat || minLon >= maxLon) {
 			return ResponseEntity.badRequest().build();
 		}
@@ -147,12 +136,7 @@ public class EateryController {
 	 * @return detailed eatery information with food previews
 	 */
 	@GetMapping("/{eateryId}")
-	public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@Valid @PathVariable UUID eateryId,
-			HttpServletRequest request) {
-		String clientIP = Utils.getClientIp(request);
-		if (!rateLimiter.isRequestAllowed(clientIP)) {
-			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-		}
+	public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@Valid @PathVariable UUID eateryId) {
 		return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
 	}
 

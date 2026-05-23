@@ -87,6 +87,30 @@ public class UserGrpcHandler extends UserServiceGrpc.UserServiceImplBase {
 		}
 	}
 
+	@Override
+	public void getUserDetailsBatch(UserDetailsBatchRequest request,
+			StreamObserver<UserDetailsBatchResponse> responseObserver) {
+		try {
+			List<UUID> userIds = request.getUserIdsList().stream().map(UUID::fromString).toList();
+			List<User> users = userService.findAllById(userIds);
+
+			List<UserDetailsBatchResponseItem> items = users.stream().map(user -> {
+				String photoUrl = minioStorageService.getPresignedUrl(user.getAvatarObjKey(), Duration.ofMinutes(30));
+				long tenureDays = (Duration.between(user.getCreatedAt(), Instant.now())).toDays();
+				return UserDetailsBatchResponseItem.newBuilder().setUserId(user.getId().toString())
+						.setUsername(user.getUsername()).setPhotoUrl(photoUrl).setWtfScore(user.getWtfScore())
+						.setTenureDays((int) tenureDays).build();
+			}).toList();
+
+			UserDetailsBatchResponse res = UserDetailsBatchResponse.newBuilder().addAllItems(items).build();
+			responseObserver.onNext(res);
+			responseObserver.onCompleted();
+		} catch (Exception e) {
+			log.error("Error fetching batch user details: {}", e.getMessage());
+			responseObserver.onError(e);
+		}
+	}
+
 	// @PostConstruct
 	// public void init() {
 	// System.out.println("!!!!! GRPC BEAN ALIVE !!!!!");

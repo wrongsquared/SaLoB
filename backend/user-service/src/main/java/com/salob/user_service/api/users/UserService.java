@@ -45,4 +45,8 @@ public class UserService {
 		return userRepo.findAllById(userIds).stream().map(user -> new WtfScoreItem(user.getId(), user.getWtfScore()))
 				.toList();
 	}
+
+	public List<User> findAllById(List<UUID> userIds) {
+		return userRepo.findAllById(userIds);
+	}
 }

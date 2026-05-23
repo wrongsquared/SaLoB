@@ -22,7 +22,7 @@ export interface FoodPreview {
   sgCents: number
   upvotes: number
   downvotes: number
-  photoPresignedUrl: string
+  photoPresignedUrl: string | null
   submitterId: string
   submitterUsername: string
   createdAt: string

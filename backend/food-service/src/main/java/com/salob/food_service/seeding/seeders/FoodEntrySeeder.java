@@ -1,12 +1,14 @@
 package com.salob.food_service.seeding.seeders;
 
-import com.salob.food_service.api.food_entry.FoodEntryRepository;
 import com.salob.food_service.api._domain.Eatery;
 import com.salob.food_service.api._domain.Food;
 import com.salob.food_service.api._domain.FoodEntry;
+import com.salob.food_service.api.food_entry.FoodEntryRepository;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.AllArgsConstructor;
@@ -18,8 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 @Slf4j
 public class FoodEntrySeeder {
-	private static final int MIN_ENTRIES_PER_EATERY = 3;
-	private static final int MAX_ENTRIES_PER_EATERY = 30;
+
+	/*
+	 * Seeder strategy — each eatery gets multiple entries for a subset of foods so
+	 * the historical price chart (datePrices) has more than one data point per
+	 * (food, eatery) pair. Dates are uniform-random across the past year.
+	 */
+	private static final int MIN_FOODS_PER_EATERY = 2;
+	private static final int MAX_FOODS_PER_EATERY = 5;
+	private static final int MIN_ENTRIES_PER_FOOD = 3;
+	private static final int MAX_ENTRIES_PER_FOOD = 6;
 
 	private static final int MIN_PRICE_CENTS = 300;
 	private static final int MAX_PRICE_CENTS = 10000;
@@ -36,21 +46,32 @@ public class FoodEntrySeeder {
 		ThreadLocalRandom random = ThreadLocalRandom.current();
 		List<FoodEntry> entries = new ArrayList<>(eateries.size() * 3);
 		Instant now = Instant.now();
-		long daysInSeconds = 365L * 24 * 60 * 60;
 
-		int minEntriesPerEatery = Math.min(foods.size(), MIN_ENTRIES_PER_EATERY);
-		int maxEntriesPerEatery = Math.min(foods.size(), MAX_ENTRIES_PER_EATERY);
+		List<Food> shuffledFoods = new ArrayList<>(foods);
+		Collections.shuffle(shuffledFoods, new Random(random.nextLong()));
+
+		int maxFoods = Math.min(MAX_FOODS_PER_EATERY, shuffledFoods.size());
+		int minFoods = Math.min(MIN_FOODS_PER_EATERY, maxFoods);
+
 		for (Eatery eatery : eateries) {
-			int numEntriesForEatery = random.nextInt(minEntriesPerEatery, maxEntriesPerEatery);
+			int numFoods = random.nextInt(minFoods, maxFoods + 1);
 
-			for (int i = 0; i < numEntriesForEatery; i++) {
-				Food food = foods.get(random.nextInt(foods.size()));
-				int priceCents = random.nextInt(MIN_PRICE_CENTS, MAX_PRICE_CENTS + 1);
+			for (int fi = 0; fi < numFoods; fi++) {
+				Food food = shuffledFoods.get(fi);
 
-				FoodEntry entry = FoodEntry.builder().eatery(eatery).food(food).sgCents(priceCents)
-						.submitterId(userIDs.get(random.nextInt(userIDs.size()))).build();
-				entry.setCreatedAt(now.minusSeconds((long) (random.nextDouble() * daysInSeconds)));
-				entries.add(entry);
+				int entriesPerFood = random.nextInt(MIN_ENTRIES_PER_FOOD, MAX_ENTRIES_PER_FOOD + 1);
+
+				for (int i = 0; i < entriesPerFood; i++) {
+					int priceCents = random.nextInt(MIN_PRICE_CENTS, MAX_PRICE_CENTS + 1);
+
+					long offset = (long) (random.nextDouble() * 365L * 86400);
+					Instant createdAt = now.minusSeconds(offset);
+
+					FoodEntry entry = FoodEntry.builder().eatery(eatery).food(food).sgCents(priceCents)
+							.submitterId(userIDs.get(random.nextInt(userIDs.size()))).build();
+					entry.setCreatedAt(createdAt);
+					entries.add(entry);
+				}
 			}
 		}
 

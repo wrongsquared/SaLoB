@@ -19,11 +19,12 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
   jpa:
     hibernate:
       ddl-auto: update
-    flyway:
-      enabled: true
     threads:
       virtual:
         enabled: true
