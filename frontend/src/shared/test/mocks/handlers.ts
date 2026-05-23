@@ -196,6 +196,15 @@ export const handlers = [
     return HttpResponse.json({ jwt: "mock-jwt-token-for-testing" })
   }),
 
+  http.post("/api/auth/google", async ({ request }) => {
+    await delay(200)
+    const body = (await request.json()) as { idToken?: string }
+    if (!body.idToken) {
+      return HttpResponse.json({ error: "Missing idToken" }, { status: 401 })
+    }
+    return HttpResponse.json({ jwt: "mock-google-jwt-token-for-testing" })
+  }),
+
   http.post("/api/auth/register", async () => {
     await delay(200)
     return new HttpResponse(null, { status: 204 })

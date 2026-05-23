@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
+import { useAuthStore } from "@/stores/authStore";
 import type {
     EateryMapItem,
     FoodEntryMapItem,
@@ -11,11 +12,52 @@ import type {
     FoodHistoricalData,
     FoodCreationRequest,
     FoodEntrySubmissionRequest,
+    LoginRequest,
+    LoginResponse,
+    RegisterRequest,
+    User,
 } from "@/shared/types/api";
 
+// ── Query keys ─────────────────────────────────────────────
+// Use `QK.*` (uppercase) for invalidation (prefix match).
+// Use `qk.*` (lowercase) for query key construction (full key with params).
+
+function roundBounds(b: Bounds | null): Bounds | null {
+    if (!b) return null;
+    return {
+        minLat: Math.round(b.minLat * 100) / 100,
+        maxLat: Math.round(b.maxLat * 100) / 100,
+        minLon: Math.round(b.minLon * 100) / 100,
+        maxLon: Math.round(b.maxLon * 100) / 100,
+    };
+}
+
+export const QK = {
+    EATERIES_DETAIL: ["eateries", "detail"],
+    EATERIES_WITHIN_BOUNDS: ["eateries", "within-bounds"],
+    EATERIES_SEARCH: ["eateries", "search"],
+    FOODS_SEARCH: ["foods", "search"],
+    FOOD_ENTRIES_DETAIL: ["food-entries", "detail"],
+    FOOD_ENTRIES_WITHIN_BOUNDS: ["food-entries", "within-bounds"],
+    FOOD_ENTRIES_HISTORICAL: ["food-entries", "historical"],
+    AUTH_ME: ["auth", "me"],
+} as const;
+
+export const qk = {
+    eateryWithinBounds: (b: Bounds | null) => [...QK.EATERIES_WITHIN_BOUNDS, roundBounds(b)] as const,
+    eateryDetail: (id: string | null) => [...QK.EATERIES_DETAIL, id] as const,
+    eaterySearch: (q: string) => [...QK.EATERIES_SEARCH, q] as const,
+    eateryAllDetails: (b: Bounds | null) => ["eateries", "all-details", roundBounds(b)] as const,
+    foodSearch: (q: string) => [...QK.FOODS_SEARCH, q] as const,
+    foodEntryWithinBounds: (b: Bounds | null) => [...QK.FOOD_ENTRIES_WITHIN_BOUNDS, roundBounds(b)] as const,
+    foodEntryDetail: (id: string | null) => [...QK.FOOD_ENTRIES_DETAIL, id] as const,
+    foodEntryHistorical: (id: string | null) => [...QK.FOOD_ENTRIES_HISTORICAL, id] as const,
+};
+
+// ── Eateries ────────────────────────────────────────────────
 export function useEateriesWithinBounds(bounds: Bounds | null) {
     return useQuery({
-        queryKey: ["eateries", "within-bounds", bounds],
+        queryKey: qk.eateryWithinBounds(bounds),
         queryFn: async () => {
             if (!bounds) return [];
             const { data } = await apiClient.get<EateryMapItem[]>("/eateries/within-bounds", {
@@ -31,7 +73,7 @@ export function useEateriesWithinBounds(bounds: Bounds | null) {
 
 export function useEateryDetail(eateryId: string | null) {
     return useQuery({
-        queryKey: ["eateries", "detail", eateryId],
+        queryKey: qk.eateryDetail(eateryId),
         queryFn: async () => {
             const { data } = await apiClient.get<EateryDetail>(`/eateries/${eateryId}`);
             return data;
@@ -43,7 +85,7 @@ export function useEateryDetail(eateryId: string | null) {
 
 export function useEaterySearch(searchQuery: string) {
     return useQuery({
-        queryKey: ["eateries", "search", searchQuery],
+        queryKey: qk.eaterySearch(searchQuery),
         queryFn: async () => {
             if (!searchQuery.trim()) return [];
             const { data } = await apiClient.get<EaterySearchResult[]>("/eateries/search", {
@@ -56,9 +98,10 @@ export function useEaterySearch(searchQuery: string) {
     });
 }
 
+// ── Foods ───────────────────────────────────────────────────
 export function useFoodSearch(searchQuery: string) {
     return useQuery({
-        queryKey: ["foods", "search", searchQuery],
+        queryKey: qk.foodSearch(searchQuery),
         queryFn: async () => {
             if (!searchQuery.trim()) return [];
             const { data } = await apiClient.get<FoodSearchResult[]>("/foods/search", {
@@ -71,26 +114,10 @@ export function useFoodSearch(searchQuery: string) {
     });
 }
 
-export function useAllEateryDetails(bounds: Bounds | null) {
-    const { data: eateries } = useEateriesWithinBounds(bounds);
-
-    return useQuery({
-        queryKey: ["eateries", "all-details", bounds],
-        queryFn: async () => {
-            if (!eateries || eateries.length === 0) return [];
-            const results = await Promise.all(
-                eateries.map((e) => apiClient.get<EateryDetail>(`/eateries/${e.eateryId}`).then((res) => res.data)),
-            );
-            return results;
-        },
-        enabled: !!bounds && !!eateries && eateries.length > 0,
-        staleTime: 30_000,
-    });
-}
-
+// ── Food Entries ────────────────────────────────────────────
 export function useFoodEntryDetail(foodEntryId: string | null) {
     return useQuery({
-        queryKey: ["food-entries", "detail", foodEntryId],
+        queryKey: qk.foodEntryDetail(foodEntryId),
         queryFn: async () => {
             const { data } = await apiClient.get<FoodEntryDetail>(`/food-entries/${foodEntryId}/details`);
             return data;
@@ -102,7 +129,7 @@ export function useFoodEntryDetail(foodEntryId: string | null) {
 
 export function useFoodEntriesWithinBounds(bounds: Bounds | null) {
     return useQuery({
-        queryKey: ["food-entries", "within-bounds", bounds],
+        queryKey: qk.foodEntryWithinBounds(bounds),
         queryFn: async () => {
             if (!bounds) return [];
             const { data } = await apiClient.get<FoodEntryMapItem[]>("/food-entries/within-bounds", {
@@ -118,7 +145,7 @@ export function useFoodEntriesWithinBounds(bounds: Bounds | null) {
 
 export function useFoodHistoricalData(foodEntryId: string | null) {
     return useQuery({
-        queryKey: ["food-entries", "historical", foodEntryId],
+        queryKey: qk.foodEntryHistorical(foodEntryId),
         queryFn: async () => {
             const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
             const { data } = await apiClient.get<FoodHistoricalData>(`/food-entries/historical-data/${foodEntryId}`, {
@@ -131,6 +158,10 @@ export function useFoodHistoricalData(foodEntryId: string | null) {
     });
 }
 
+// ── Mutations ───────────────────────────────────────────────
+// Convention: mutationFn = pure API calls (may throw), onSuccess = side effects only.
+// Components handle error display via mutation.error or try/catch on mutateAsync.
+
 export function useSubmitFoodEntry() {
     const queryClient = useQueryClient();
 
@@ -139,8 +170,8 @@ export function useSubmitFoodEntry() {
             await apiClient.post("/food-entries/submit", data);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["eateries", "detail"] });
-            queryClient.invalidateQueries({ queryKey: ["eateries", "within-bounds"] });
+            queryClient.invalidateQueries({ queryKey: QK.EATERIES_DETAIL });
+            queryClient.invalidateQueries({ queryKey: QK.EATERIES_WITHIN_BOUNDS });
             queryClient.invalidateQueries({ queryKey: ["food-entries"] });
         },
     });
@@ -155,7 +186,63 @@ export function useCreateFood() {
             return result;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["foods", "search"] });
+            queryClient.invalidateQueries({ queryKey: QK.FOODS_SEARCH });
+        },
+    });
+}
+
+// ── Auth ────────────────────────────────────────────────────
+// Each mutation chains sequential API calls in mutationFn.
+// The token is saved immediately so the subsequent /users/me call
+// includes the Bearer header (via the axios request interceptor).
+// If any step throws, no partial state leaks — onSuccess is skipped.
+
+export function useLoginMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (req: LoginRequest) => {
+            const { data } = await apiClient.post<LoginResponse>("/auth/login", req);
+            useAuthStore.getState().login(data.jwt);
+            const { data: user } = await apiClient.get<User>("/users/me");
+            useAuthStore.getState().setUser(user);
+            return user;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK.AUTH_ME });
+        },
+    });
+}
+
+export function useGoogleLoginMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (idToken: string) => {
+            const { data } = await apiClient.post<LoginResponse>("/auth/google", { idToken });
+            useAuthStore.getState().login(data.jwt);
+            const { data: user } = await apiClient.get<User>("/users/me");
+            useAuthStore.getState().setUser(user);
+            return user;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK.AUTH_ME });
+        },
+    });
+}
+
+export function useRegisterMutation() {
+    return useMutation({
+        mutationFn: async (req: RegisterRequest) => {
+            await apiClient.post("/auth/register", req);
+            const { data } = await apiClient.post<LoginResponse>("/auth/login", {
+                usernameOrEmail: req.email,
+                password: req.password,
+            });
+            useAuthStore.getState().login(data.jwt);
+            const { data: user } = await apiClient.get<User>("/users/me");
+            useAuthStore.getState().setUser(user);
+            return user;
         },
     });
 }
@@ -165,15 +252,10 @@ export function useReportEateryClosed() {
 
     return useMutation({
         mutationFn: async (eateryId: string) => {
-            await apiClient.post(`/eateries/${eateryId}/report-closed`, null, {
-                headers: { "X-User-Id": "00000000-0000-0000-0000-000000000000" },
-            });
+            await apiClient.post(`/eateries/${eateryId}/report-closed`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["eateries", "detail"] });
-        },
-        onError: () => {
-            // Silently fail — user not authenticated yet
+            queryClient.invalidateQueries({ queryKey: QK.EATERIES_DETAIL });
         },
     });
 }

@@ -58,6 +58,8 @@ dependencies {
 	implementation 'net.devh:grpc-spring-boot-starter:3.1.0.RELEASE'
 	implementation 'com.salob:shared-proto:0.0.1-SNAPSHOT'
 	implementation 'io.minio:minio:9.0.0'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'

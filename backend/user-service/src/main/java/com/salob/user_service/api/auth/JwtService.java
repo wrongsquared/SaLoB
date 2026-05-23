@@ -6,11 +6,6 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.salob.user_service.api._domain.Role;
 import com.salob.user_service.api._domain.User;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
@@ -21,10 +16,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class JwtService {
+
 	@Value("${jwt.expiration-seconds}")
 	private long expirationSeconds;
 
@@ -33,7 +33,6 @@ public class JwtService {
 
 	public JwtService(@Value("${jwt.keystore-password}") String password, @Value("${jwt.key-alias}") String alias)
 			throws Exception {
-
 		// Load the Keystore from classpath
 		KeyStore keyStore = KeyStore.getInstance("PKCS12");
 		try (InputStream is = getClass().getClassLoader().getResourceAsStream("salob.p12")) {

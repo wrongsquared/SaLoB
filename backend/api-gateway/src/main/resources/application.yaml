@@ -1,6 +1,9 @@
 spring:
   application:
     name: api-gateway
+  threads:
+    virtual:
+      enabled: true
   config:
     import: "optional:file:.env[.properties]"
   data:
@@ -30,3 +33,11 @@ app:
   routing:
     food-service: ${FOOD_SERVICE_URI}
     user-service: ${USER_SERVICE_URI}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}

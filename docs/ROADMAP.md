@@ -31,17 +31,6 @@ Cluster numbers are barely readable — small text on a tiny circle.
 
 ---
 
-## Historical Data Charts — Confidence-Based Time Series
-**Description:** For each time interval going backwards from today, find the food entry with the best confidence score at that interval. Display as a Recharts line chart on the FoodEntryDetailPage.
-**Open question:** What are the time intervals (daily/weekly/monthly)? If no entries exist for an interval, should we interpolate, skip, or show last known price?
-**Dependencies:** New backend endpoint or query logic to aggregate confidence-weighted prices per interval
-**Key files:** `FoodEntryService.java`, `FoodEntryDetailPage/PriceChart.tsx`
-
-## Rate Limiting Consolidation
-**Description:** Move all rate limiting from individual endpoints to the API Gateway layer. Gateway already has IP-based Redis token-bucket. Add per-user rate limiting for authenticated endpoints (e.g., `/submit` should have stricter cap than map queries). Business-logic limits: max submissions per eatery per day per user.
-**Dependencies:** Gateway filter modification, env-var configurable limits for testing
-**Key files:** `api-gateway/src/main/java/.../RateLimitFilter.java` (new), remove `RateLimiter` from food-service endpoints
-
 ## OneMap Integration (Search Augmentation)
 **Description:** Augment eatery search with OneMap's POI database for Singapore-specific autocomplete. When a user searches for an eatery that doesn't exist in our DB, OneMap provides address, block number, and building name for lazy-insertion.
 **Dependencies:** OneMap API key (add to `.env`), new endpoint `POST /api/eateries` with address validation

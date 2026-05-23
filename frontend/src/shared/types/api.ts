@@ -95,3 +95,31 @@ export interface FoodEntrySubmissionRequest {
   foodId: string
   priceSgCents: number
 }
+
+// ─── Auth ───────────────────────────────────────────────────
+export interface User {
+  id: string
+  email: string
+  username: string
+  roles: string[]
+  avatarUrl: string | null
+}
+
+export interface LoginRequest {
+  usernameOrEmail: string
+  password: string
+}
+
+export interface LoginResponse {
+  jwt: string
+}
+
+export interface RegisterRequest {
+  email: string
+  username: string
+  password: string
+}
+
+export interface GoogleLoginRequest {
+  idToken: string
+}

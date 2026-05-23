@@ -23,12 +23,15 @@ class AuthControllerTest {
 	@Mock
 	private AuthService authService;
 
+	@Mock
+	private GoogleAuthService googleAuthService;
+
 	private MockMvc mockMvc;
 	private ObjectMapper objectMapper;
 
 	@BeforeEach
 	void setUp() {
-		AuthController controller = new AuthController(authService);
+		AuthController controller = new AuthController(authService, googleAuthService);
 		mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 		objectMapper = new ObjectMapper();
 	}

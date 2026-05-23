@@ -172,7 +172,9 @@ EateryClosureFlag ──┬── flaggerId
 - **Split screen:** Branding left (tagline: "Keep Tabs on the Price of Living"), form right
 - Email/password login (`POST /api/auth/login`)
 - Registration link
-- Future: Google OAuth button
+- Google OAuth (`POST /api/auth/google` — ID Token flow, no redirect)
+- New Google users auto-registered on first login
+- LOCAL + GOOGLE email collision: reject with "use password login" message
 
 ---
 

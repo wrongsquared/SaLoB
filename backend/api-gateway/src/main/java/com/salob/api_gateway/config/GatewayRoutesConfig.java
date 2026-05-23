@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class GatewayRoutesConfig {
+
 	@Value("${app.routing.user-service}")
 	private String userServiceUri;
 

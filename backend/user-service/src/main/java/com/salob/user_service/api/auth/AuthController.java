@@ -1,5 +1,6 @@
 package com.salob.user_service.api.auth;
 
+import com.salob.user_service.api.auth.dto.GoogleLoginRequest;
 import com.salob.user_service.api.auth.dto.LoginRequest;
 import com.salob.user_service.api.auth.dto.LoginResponse;
 import com.salob.user_service.api.auth.dto.RegisterRequest;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 	private final AuthService authService;
+	private final GoogleAuthService googleAuthService;
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
@@ -29,5 +31,11 @@ public class AuthController {
 	public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest req) {
 		authService.register(req);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/google")
+	public ResponseEntity<LoginResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest req) {
+		LoginResponse res = googleAuthService.loginWithGoogle(req);
+		return ResponseEntity.ok(res);
 	}
 }

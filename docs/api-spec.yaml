@@ -313,6 +313,28 @@ paths:
         "204":
           description: Registration successful
 
+  /auth/google:
+    post:
+      summary: Login or register with Google OAuth (ID Token flow)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginRequest"
+      responses:
+        "200":
+          description: Login successful (new user auto-registered)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid Google ID token
+        "409":
+          description: Email already registered with LOCAL auth
+
   # ─── Users ─────────────────────────────────────────────────
   /users/me:
     get:
@@ -463,11 +485,18 @@ components:
 
     RegisterRequest:
       type: object
-      required: [username, email, password]
+      required: [email, username, password]
       properties:
-        username: { type: string }
         email: { type: string, format: email }
+        username: { type: string }
         password: { type: string }
+
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken: { type: string }
+        description: Google ID token from the frontend OAuth ID Token flow
 
     MeResponse:
       type: object

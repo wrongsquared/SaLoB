@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit
 ./gradlew bootRun

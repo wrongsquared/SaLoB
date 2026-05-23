@@ -59,6 +59,15 @@ grpc:
 server:
   port: ${APP_PORT}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 # Logging configuration - enable DEBUG for cache issues
 #logging:
 #  level:

@@ -48,3 +48,5 @@ jwt:
   key-alias: ${JWT_KEY_ALIAS}
   keystore-password: ${JWT_KEYSTORE_PASSWORD}
   expiration-seconds: ${JWT_EXPIRATION_SECONDS}
+google:
+  client-id: ${GOOGLE_CLIENT_ID}

@@ -1,5 +1,7 @@
 package com.salob.api_gateway.config;
 
+import java.util.Arrays;
+import java.util.Collections;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -9,12 +11,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.Collections;
-
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
+
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		var corsConfig = new CorsConfiguration();
@@ -31,14 +31,9 @@ public class SecurityConfig {
 	@Bean
 	public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
 		return http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-				.csrf(ServerHttpSecurity.CsrfSpec::disable).authorizeExchange(exchange -> exchange
-						.pathMatchers("/api/auth/**", "/.well-known/jwks.json").permitAll().anyExchange().permitAll() // In
-																														// the
-																														// future,
-																														// change
-																														// to
-																														// "authenticated"
-				).oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
+				.csrf(ServerHttpSecurity.CsrfSpec::disable)
+				.authorizeExchange(exchange -> exchange.anyExchange().permitAll())
+				.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
 				})).build();
 	}
 }
