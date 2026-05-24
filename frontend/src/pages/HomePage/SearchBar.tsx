@@ -42,14 +42,6 @@ export default function SearchBar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  useEffect(() => {
-    if (input && (results?.local.length || results?.onemap.length)) {
-      setOpen(true)
-    } else {
-      setOpen(false)
-    }
-  }, [results, input])
-
   const handleSelectLocal = (id: string) => {
     selectEatery(id)
     setInput('')
