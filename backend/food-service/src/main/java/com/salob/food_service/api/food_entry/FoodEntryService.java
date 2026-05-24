@@ -12,8 +12,11 @@ import com.salob.food_service.api.food_entry.dto.FoodEntryHistoricalDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryMapDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.common.ConfidenceAlgorithm;
+import com.salob.food_service.common.rabbitmq.WtfEventPublisher;
 import com.salob.food_service.storage.minio.MinioStorageService;
+import com.salob.proto.events.VoteType;
 import com.salob.proto.user.UserDetailsBatchRequest;
 import com.salob.proto.user.UserDetailsBatchResponse;
 import com.salob.proto.user.UserDetailsBatchResponseItem;
@@ -30,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -46,8 +50,8 @@ public class FoodEntryService {
 
 	private final ConfidenceAlgorithm confidenceAlgo;
 	private final MinioStorageService minioService;
-	private final com.salob.food_service.common.rabbitmq.WtfEventPublisher wtfEventPublisher;
-	private final com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository foodEntryVoteRepo;
+	private final WtfEventPublisher wtfEventPublisher;
+	private final FoodEntryVoteRepository foodEntryVoteRepo;
 
 	@GrpcClient("user-service")
 	private UserServiceGrpc.UserServiceBlockingStub userServiceStub;
@@ -115,7 +119,7 @@ public class FoodEntryService {
 				.datePrices(datePrices) // For the "historical data graph"
 				.communityEntries(otherEntriesOnSameDay) // For the "community entries" (duh) section
 				.consensusEntry(toDetailed(targetEntry)) // The one that will be shown on the "eatery panel" on the
-															// right
+				// right
 				.build();
 	}
 
@@ -145,34 +149,45 @@ public class FoodEntryService {
 		FoodEntry entry = foodEntryRepo.findById(foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-		// Self-vote check: cannot vote on your own entry
 		if (entry.getSubmitterId().equals(voterId)) {
 			throw new RuntimeException("Cannot vote on your own entry");
 		}
 
-		boolean existing = foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId);
+		Optional<FoodEntryVote> existingVote = foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId);
 
-		if (existing) {
-			// Delete the old vote (triggers count decrement)
-			foodEntryVoteRepo.deleteByVoterIdAndFoodEntryId(voterId, foodEntryId);
+		if (existingVote.isPresent()) {
+			FoodEntryVote voteEntity = existingVote.get();
 
-			if (isUpvote != null) {
-				// Toggle: re-insert with new value (triggers count increment)
-				FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote)
-						.build();
-				foodEntryVoteRepo.save(vote);
-				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
-			} else {
-				// Retract: vote removed, publish event
-				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), false);
+			if (isUpvote == null) {
+				// Retract: delete the vote — DB trigger decrements the old type's counter
+				VoteType removedType = voteEntity.isUpvote() ? VoteType.UPVOTE_REMOVED : VoteType.DOWNVOTE_REMOVED;
+				foodEntryVoteRepo.deleteById(voteEntity.getId());
+				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), removedType);
+				return;
 			}
-		} else if (isUpvote != null) {
-			// New vote
-			FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
-			foodEntryVoteRepo.save(vote);
-			wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
+
+			if (voteEntity.isUpvote() == isUpvote) {
+				// Same vote again → idempotent no-op
+				return;
+			}
+
+			// Toggle: delete old, reinsert new — DB trigger handles count deltas
+			VoteType toggleType = isUpvote ? VoteType.DOWNVOTE_TO_UPVOTE : VoteType.UPVOTE_TO_DOWNVOTE;
+			foodEntryVoteRepo.deleteById(voteEntity.getId());
+			foodEntryVoteRepo
+					.save(FoodEntryVote.builder().foodEntry(entry).voterId(voterId).isUpvote(isUpvote).build());
+			wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), toggleType);
+			return;
 		}
-		// else: no existing vote and isUpvote is null → no-op
+
+		// No existing vote
+		if (isUpvote == null) {
+			return;
+		}
+
+		VoteType voteType = isUpvote ? VoteType.UPVOTE : VoteType.DOWNVOTE;
+		foodEntryVoteRepo.save(FoodEntryVote.builder().foodEntry(entry).voterId(voterId).isUpvote(isUpvote).build());
+		wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), voteType);
 	}
 
 	/**

@@ -7,7 +7,7 @@ package com.salob.proto.common;
  * Convention:
  *   Exchange: salob.events (topic)
  *   Routing keys: {domain}.{action} — e.g., "wtf.vote.cast", "wtf.entry.created"
- *   Queues: {service}.{domain}.{purpose} — e.g., "user-service.wtf.recalc"
+ *   Queues: {service}.{domain}.{action} — e.g., "user-service.wtf.vote-cast"
  */
 public final class RabbitMQConstants {
 
@@ -19,7 +19,9 @@ public final class RabbitMQConstants {
     public static final String RK_WTF_FLAG_RAISED = "wtf.flag.raised";
 
     // Queues
-    public static final String QUEUE_WTF_RECALC = "user-service.wtf.recalc";
+    public static final String QUEUE_WTF_ENTRY_CREATED = "user-service.wtf.entry-created";
+    public static final String QUEUE_WTF_VOTE_CAST     = "user-service.wtf.vote-cast";
+    public static final String QUEUE_WTF_FLAG_RAISED   = "user-service.wtf.flag-raised";
 
     private RabbitMQConstants() {}
 }

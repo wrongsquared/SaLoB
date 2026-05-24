@@ -19,6 +19,7 @@ import com.salob.food_service.storage.minio.MinioStorageService;
 import com.salob.proto.user.UserDetailsBatchRequest;
 import com.salob.proto.user.UserDetailsBatchResponse;
 import com.salob.proto.user.UserDetailsBatchResponseItem;
+import com.salob.proto.events.VoteType;
 import com.salob.proto.user.UserDetailsRequest;
 import com.salob.proto.user.UserDetailsResponse;
 import com.salob.proto.user.UserServiceGrpc;
@@ -198,7 +199,7 @@ class FoodEntryServiceTest {
 		/* toDetailed calls countBySubmitterId */
 		when(foodEntryRepo.countBySubmitterId(submitterId)).thenReturn(5L);
 
-		FoodEntryHistoricalDTO result = foodEntryService.getFoodEntryHistoricalData(foodEntryId, startDate);
+		FoodEntryHistoricalDTO result = foodEntryService.getFoodEntryHistoricalData(foodEntryId, startDate, null);
 
 		assertNotNull(result);
 		assertEquals("Chicken Rice", result.foodName());
@@ -321,83 +322,141 @@ class FoodEntryServiceTest {
 	// =========================================================================
 	// SECTION 4: castVote
 	//
-	// Tests the voting logic: self-vote rejection, UK constraint,
-	// correct counter increment, and event publishing.
+	// Tests voting logic: self-vote rejection, fresh votes (up/down), retract,
+	// toggle, idempotent no-op, and null-isUpvote-no-op.
+	// Counters are handled by the DB trigger, so we only verify
+	// FoodEntryVoteRepo save/delete calls and WTF event publishing.
 	// =========================================================================
 
 	@Test
 	void selfVoteThrowsException() {
 		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-
-		// submitterId == voterId → self-vote
 		assertThrows(RuntimeException.class, () -> foodEntryService.castVote(submitterId, foodEntryId, true));
 	}
 
 	@Test
-	void duplicateVoteThrowsException() {
+	void freshUpvote_savesVoteAndPublishesUpvoteEvent() {
 		UUID voterId = UUID.randomUUID();
 		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(true);
-
-		assertThrows(RuntimeException.class, () -> foodEntryService.castVote(voterId, foodEntryId, true));
-	}
-
-	@Test
-	void upvoteIncrementsCounter() {
-		UUID voterId = UUID.randomUUID();
-		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(false);
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.empty());
 
 		foodEntryService.castVote(voterId, foodEntryId, true);
 
-		// Verify FoodEntry was saved with incremented upvoteCount
-		ArgumentCaptor<FoodEntry> savedEntry = ArgumentCaptor.forClass(FoodEntry.class);
-		verify(foodEntryRepo, atLeastOnce()).save(savedEntry.capture());
-		FoodEntry captured = savedEntry.getAllValues().getLast();
-		assertEquals(11, captured.getUpvoteCount()); // was 10
-		assertEquals(2, captured.getDownvoteCount()); // unchanged
-	}
-
-	@Test
-	void downvoteIncrementsCounter() {
-		UUID voterId = UUID.randomUUID();
-		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(false);
-
-		foodEntryService.castVote(voterId, foodEntryId, false);
-
-		ArgumentCaptor<FoodEntry> savedEntry = ArgumentCaptor.forClass(FoodEntry.class);
-		verify(foodEntryRepo, atLeastOnce()).save(savedEntry.capture());
-		FoodEntry captured = savedEntry.getAllValues().getLast();
-		assertEquals(3, captured.getDownvoteCount()); // was 2
-		assertEquals(10, captured.getUpvoteCount()); // unchanged
-	}
-
-	@Test
-	void votePublishesWtfEvent() {
-		UUID voterId = UUID.randomUUID();
-		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(false);
-
-		foodEntryService.castVote(voterId, foodEntryId, true);
-
-		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, true);
-	}
-
-	@Test
-	void voteSavesFoodEntryVote() {
-		UUID voterId = UUID.randomUUID();
-		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
-		when(foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(false);
-
-		foodEntryService.castVote(voterId, foodEntryId, false);
-
-		// Verify a FoodEntryVote was saved with correct fields
 		ArgumentCaptor<FoodEntryVote> voteCaptor = ArgumentCaptor.forClass(FoodEntryVote.class);
 		verify(foodEntryVoteRepo).save(voteCaptor.capture());
-		FoodEntryVote savedVote = voteCaptor.getValue();
-		assertEquals(voterId, savedVote.getVoterId());
-		assertFalse(savedVote.isUpvote());
-		assertEquals(testEntry, savedVote.getFoodEntry());
+		assertEquals(voterId, voteCaptor.getValue().getVoterId());
+		assertTrue(voteCaptor.getValue().isUpvote());
+
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.UPVOTE);
+	}
+
+	@Test
+	void freshDownvote_savesVoteAndPublishesDownvoteEvent() {
+		UUID voterId = UUID.randomUUID();
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.empty());
+
+		foodEntryService.castVote(voterId, foodEntryId, false);
+
+		ArgumentCaptor<FoodEntryVote> voteCaptor = ArgumentCaptor.forClass(FoodEntryVote.class);
+		verify(foodEntryVoteRepo).save(voteCaptor.capture());
+		assertFalse(voteCaptor.getValue().isUpvote());
+
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.DOWNVOTE);
+	}
+
+	@Test
+	void retractExistingUpvote_deletesVoteAndPublishesUpvoteRemoved() {
+		UUID voterId = UUID.randomUUID();
+		FoodEntryVote existingVote = FoodEntryVote.builder().voterId(voterId).foodEntry(testEntry).isUpvote(true)
+				.build();
+		existingVote.setId(UUID.randomUUID());
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.of(existingVote));
+
+		foodEntryService.castVote(voterId, foodEntryId, null);
+
+		verify(foodEntryVoteRepo).deleteById(existingVote.getId());
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.UPVOTE_REMOVED);
+	}
+
+	@Test
+	void retractExistingDownvote_deletesVoteAndPublishesDownvoteRemoved() {
+		UUID voterId = UUID.randomUUID();
+		FoodEntryVote existingVote = FoodEntryVote.builder().voterId(voterId).foodEntry(testEntry).isUpvote(false)
+				.build();
+		existingVote.setId(UUID.randomUUID());
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.of(existingVote));
+
+		foodEntryService.castVote(voterId, foodEntryId, null);
+
+		verify(foodEntryVoteRepo).deleteById(existingVote.getId());
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.DOWNVOTE_REMOVED);
+	}
+
+	@Test
+	void sameVoteAgain_doesNothing() {
+		UUID voterId = UUID.randomUUID();
+		FoodEntryVote existingVote = FoodEntryVote.builder().voterId(voterId).foodEntry(testEntry).isUpvote(true)
+				.build();
+		existingVote.setId(UUID.randomUUID());
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.of(existingVote));
+
+		foodEntryService.castVote(voterId, foodEntryId, true);
+
+		verify(foodEntryVoteRepo, never()).save(any());
+		verify(foodEntryVoteRepo, never()).deleteById(any());
+		verify(wtfEventPublisher, never()).publishVoteCast(any(), any(), any());
+	}
+
+	@Test
+	void toggleUpvoteToDownvote_swapsVoteAndPublishesToggleEvent() {
+		UUID voterId = UUID.randomUUID();
+		FoodEntryVote existingVote = FoodEntryVote.builder().voterId(voterId).foodEntry(testEntry).isUpvote(true)
+				.build();
+		existingVote.setId(UUID.randomUUID());
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.of(existingVote));
+
+		foodEntryService.castVote(voterId, foodEntryId, false);
+
+		verify(foodEntryVoteRepo).deleteById(existingVote.getId());
+		ArgumentCaptor<FoodEntryVote> newVoteCaptor = ArgumentCaptor.forClass(FoodEntryVote.class);
+		verify(foodEntryVoteRepo).save(newVoteCaptor.capture());
+		assertFalse(newVoteCaptor.getValue().isUpvote());
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.UPVOTE_TO_DOWNVOTE);
+	}
+
+	@Test
+	void toggleDownvoteToUpvote_swapsVoteAndPublishesToggleEvent() {
+		UUID voterId = UUID.randomUUID();
+		FoodEntryVote existingVote = FoodEntryVote.builder().voterId(voterId).foodEntry(testEntry).isUpvote(false)
+				.build();
+		existingVote.setId(UUID.randomUUID());
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.of(existingVote));
+
+		foodEntryService.castVote(voterId, foodEntryId, true);
+
+		verify(foodEntryVoteRepo).deleteById(existingVote.getId());
+		ArgumentCaptor<FoodEntryVote> newVoteCaptor = ArgumentCaptor.forClass(FoodEntryVote.class);
+		verify(foodEntryVoteRepo).save(newVoteCaptor.capture());
+		assertTrue(newVoteCaptor.getValue().isUpvote());
+		verify(wtfEventPublisher).publishVoteCast(voterId, submitterId, VoteType.DOWNVOTE_TO_UPVOTE);
+	}
+
+	@Test
+	void nullIsUpvoteWithNoExistingVote_doesNothing() {
+		UUID voterId = UUID.randomUUID();
+		when(foodEntryRepo.findById(foodEntryId)).thenReturn(Optional.of(testEntry));
+		when(foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId)).thenReturn(Optional.empty());
+
+		foodEntryService.castVote(voterId, foodEntryId, null);
+
+		verify(foodEntryVoteRepo, never()).save(any());
+		verify(foodEntryVoteRepo, never()).deleteById(any());
+		verify(wtfEventPublisher, never()).publishVoteCast(any(), any(), any());
 	}
 }

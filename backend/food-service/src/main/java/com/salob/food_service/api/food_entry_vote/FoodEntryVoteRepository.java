@@ -1,14 +1,13 @@
 package com.salob.food_service.api.food_entry_vote;
 
 import com.salob.food_service.api._domain.FoodEntryVote;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 public interface FoodEntryVoteRepository extends JpaRepository<FoodEntryVote, UUID> {
@@ -16,6 +15,7 @@ public interface FoodEntryVoteRepository extends JpaRepository<FoodEntryVote, UU
 
 	Optional<FoodEntryVote> findByVoterIdAndFoodEntryId(UUID voterId, UUID foodEntryId);
 
+	void deleteById(UUID id);
 	void deleteByVoterIdAndFoodEntryId(UUID voterId, UUID foodEntryId);
 
 	@Query("SELECT v FROM FoodEntryVote v WHERE v.foodEntry.id IN :foodEntryIds AND v.voterId = :voterId")

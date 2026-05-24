@@ -8,6 +8,9 @@ import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery_type.EateryTypeRepository;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api.onemap.OneMapClient;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +86,15 @@ class EateryServiceTest {
 	@Mock
 	private EateryClosureFlagRepository closureFlagRepo;
 
+	@Mock
+	private EateryTypeRepository eateryTypeRepo;
+
+	@Mock
+	private OneMapClient oneMapClient;
+
+	@Mock
+	private FoodEntryVoteRepository foodEntryVoteRepo;
+
 	/*
 	 * The object under test. We do NOT use @InjectMocks here because we want to be
 	 * EXPLICIT about how dependencies are wired.
@@ -112,7 +124,8 @@ class EateryServiceTest {
 		 *
 		 * No Spring context needed — just a plain new + constructor call.
 		 */
-		eateryService = new EateryService(eateryRepo, closureFlagRepo, confidenceAlgorithm, minioStorageService);
+		eateryService = new EateryService(eateryRepo, closureFlagRepo, eateryTypeRepo, confidenceAlgorithm,
+				minioStorageService, oneMapClient, foodEntryVoteRepo);
 
 		eateryId = UUID.randomUUID();
 
@@ -266,7 +279,7 @@ class EateryServiceTest {
 		when(minioStorageService.getPresignedUrl(anyString(), any(Duration.class)))
 				.thenReturn("https://presigned.url/photo");
 
-		EateryDetailedDTO result = eateryService.getEateryDetailed(eateryId);
+		EateryDetailedDTO result = eateryService.getEateryDetailed(eateryId, null);
 
 		assertNotNull(result);
 		assertEquals(eateryId, result.eateryId());
@@ -289,7 +302,7 @@ class EateryServiceTest {
 		when(minioStorageService.getPresignedUrl(testEatery.getPhotoObjKey(), Duration.ofMinutes(30)))
 				.thenReturn("https://presigned.url/photo");
 
-		EateryDetailedDTO result = eateryService.getEateryDetailed(eateryId);
+		EateryDetailedDTO result = eateryService.getEateryDetailed(eateryId, null);
 
 		assertNotNull(result);
 		assertTrue(result.foodPreviews().isEmpty());

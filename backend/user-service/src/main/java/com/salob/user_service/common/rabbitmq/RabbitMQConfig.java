@@ -36,13 +36,36 @@ public class RabbitMQConfig {
 	}
 
 	@Bean
-	public Queue wtfRecalcQueue() {
-		return new Queue(RabbitMQConstants.QUEUE_WTF_RECALC, true, false, false,
-				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.dead"));
+	public Queue wtfEntryCreatedQueue() {
+		return new Queue(RabbitMQConstants.QUEUE_WTF_ENTRY_CREATED, true, false, false,
+				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.entry.created.dead"));
 	}
 
 	@Bean
-	public Binding wtfRecalcBinding(TopicExchange eventsExchange, Queue wtfRecalcQueue) {
-		return BindingBuilder.bind(wtfRecalcQueue).to(eventsExchange).with("wtf.#");
+	public Queue wtfVoteCastQueue() {
+		return new Queue(RabbitMQConstants.QUEUE_WTF_VOTE_CAST, true, false, false,
+				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.vote.cast.dead"));
+	}
+
+	@Bean
+	public Queue wtfFlagRaisedQueue() {
+		return new Queue(RabbitMQConstants.QUEUE_WTF_FLAG_RAISED, true, false, false,
+				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.flag.raised.dead"));
+	}
+
+	@Bean
+	public Binding wtfEntryCreatedBinding(TopicExchange eventsExchange, Queue wtfEntryCreatedQueue) {
+		return BindingBuilder.bind(wtfEntryCreatedQueue).to(eventsExchange)
+				.with(RabbitMQConstants.RK_WTF_ENTRY_CREATED);
+	}
+
+	@Bean
+	public Binding wtfVoteCastBinding(TopicExchange eventsExchange, Queue wtfVoteCastQueue) {
+		return BindingBuilder.bind(wtfVoteCastQueue).to(eventsExchange).with(RabbitMQConstants.RK_WTF_VOTE_CAST);
+	}
+
+	@Bean
+	public Binding wtfFlagRaisedBinding(TopicExchange eventsExchange, Queue wtfFlagRaisedQueue) {
+		return BindingBuilder.bind(wtfFlagRaisedQueue).to(eventsExchange).with(RabbitMQConstants.RK_WTF_FLAG_RAISED);
 	}
 }

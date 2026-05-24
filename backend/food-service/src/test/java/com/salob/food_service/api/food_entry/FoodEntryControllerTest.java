@@ -45,7 +45,7 @@ class FoodEntryControllerTest {
 		FoodEntryHistoricalDTO dto = FoodEntryHistoricalDTO.builder().foodName("Chicken Rice")
 				.sgCentsConsensusPrice(400).eateryId(UUID.randomUUID()).eateryAddress("1 Test Street")
 				.datePrices(List.of()).communityEntries(List.of()).consensusEntry(null).build();
-		when(foodEntryService.getFoodEntryHistoricalData(eq(entryId), any(Instant.class))).thenReturn(dto);
+		when(foodEntryService.getFoodEntryHistoricalData(eq(entryId), any(Instant.class), isNull())).thenReturn(dto);
 
 		mockMvc.perform(get("/api/food-entries/historical-data/{foodEntryId}", entryId)
 				.param("startDate", "2025-01-01T00:00:00Z").accept(MediaType.APPLICATION_JSON))

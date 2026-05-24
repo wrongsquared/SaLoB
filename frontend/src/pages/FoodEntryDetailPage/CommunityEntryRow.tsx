@@ -78,13 +78,13 @@ export default function CommunityEntryRow({ entry, isSelected }: CommunityEntryR
           onClick={(e) => handleVote(e, true)}
           disabled={isOwnEntry}
           title={isOwnEntry ? "You cannot vote on your own entry" : entry.currentUserVote === true ? "Remove upvote" : "Upvote"}
-          className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+          className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
             entry.currentUserVote === true
-              ? "bg-green-100 text-green-700"
-              : "text-secondary-400 hover:text-green-600"
-          }`}
+              ? "bg-green-100 text-green-700 hover:bg-green-200"
+              : "text-secondary-400 hover:scale-110 hover:bg-green-50 hover:text-green-600"
+          } active:scale-90`}
         >
-          <ThumbsUp size={12} />
+          <ThumbsUp size={14} />
         </button>
         <span className={`text-xs font-semibold ${net >= 0 ? "text-green-600" : "text-red-500"}`}>
           {net >= 0 ? "+" : ""}
@@ -95,13 +95,13 @@ export default function CommunityEntryRow({ entry, isSelected }: CommunityEntryR
           onClick={(e) => handleVote(e, false)}
           disabled={isOwnEntry}
           title={isOwnEntry ? "You cannot vote on your own entry" : entry.currentUserVote === false ? "Remove downvote" : "Downvote"}
-          className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+          className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
             entry.currentUserVote === false
-              ? "bg-red-100 text-red-700"
-              : "text-secondary-400 hover:text-red-500"
-          }`}
+              ? "bg-red-100 text-red-700 hover:bg-red-200"
+              : "text-secondary-400 hover:scale-110 hover:bg-red-50 hover:text-red-500"
+          } active:scale-90`}
         >
-          <ThumbsDown size={12} />
+          <ThumbsDown size={14} />
         </button>
       </div>
     </div>

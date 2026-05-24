@@ -92,7 +92,7 @@ class EateryControllerTest {
 		var dto = new com.salob.food_service.api.eatery.dto.EateryDetailedDTO(id, "Test Hawker", "1 Test Street",
 				"Hawker Stall", "https://photo.url", List.of());
 
-		when(eateryService.getEateryDetailed(id)).thenReturn(dto);
+		when(eateryService.getEateryDetailed(id, null)).thenReturn(dto);
 
 		mockMvc.perform(get("/api/eateries/{eateryId}", id).accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Test Hawker"))

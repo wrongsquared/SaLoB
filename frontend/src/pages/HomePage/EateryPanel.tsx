@@ -22,79 +22,85 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
   const currentUserId = useAuthStore((s) => s.user?.id)
   const isOwnEntry = currentUserId === entry.submitterId
 
-  const handleVote = (isUpvote: boolean) => {
+  const handleVote = (e: React.MouseEvent, isUpvote: boolean) => {
+    e.stopPropagation()
     if (isOwnEntry) return
     const newVote = entry.currentUserVote === isUpvote ? null : isUpvote
     voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote })
   }
 
   return (
-    <div className="flex w-full items-center gap-3 rounded-xl border border-secondary-100 bg-white p-3 text-left transition-colors hover:border-primary-200 hover:bg-primary-50/50">
-      <button
-        type="button"
-        onClick={() => navigate(`/food-entry/${entry.foodEntryId}`)}
-        className="flex min-w-0 flex-1 items-center gap-3"
-      >
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary-100">
-          {entry.photoPresignedUrl ? (
-            <img
-              src={entry.photoPresignedUrl}
-              alt={entry.name}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                ;(e.target as HTMLImageElement).style.display = 'none'
-              }}
-            />
-          ) : (
-            <span className="text-lg">{entry.name.charAt(0)}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-secondary-900">
-            {entry.name}
-          </p>
-          <p className="text-sm font-bold text-accent-600">
-            {centsToSgd(entry.sgCents)}
-          </p>
-        </div>
-      </button>
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex items-center gap-0.5">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => navigate(`/food-entry/${entry.foodEntryId}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate(`/food-entry/${entry.foodEntryId}`);
+        }
+      }}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-secondary-100 bg-white p-3 text-left transition-colors hover:border-primary-200 hover:bg-primary-50/50"
+    >
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary-100">
+        {entry.photoPresignedUrl ? (
+          <img
+            src={entry.photoPresignedUrl}
+            alt={entry.name}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              ;(e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        ) : (
+          <span className="text-lg">{entry.name.charAt(0)}</span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-secondary-900">
+          {entry.name}
+        </p>
+        <p className="text-sm font-bold text-accent-600">
+          {centsToSgd(entry.sgCents)}
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-1.5 text-xs">
           <button
             type="button"
-            onClick={() => handleVote(true)}
+            onClick={(e) => handleVote(e, true)}
             disabled={isOwnEntry}
             title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === true ? 'Remove upvote' : 'Upvote'}
-            className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+            className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
               entry.currentUserVote === true
-                ? 'bg-green-100 text-green-700'
-                : 'text-secondary-400 hover:text-green-600'
-            }`}
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'text-secondary-400 hover:scale-110 hover:bg-green-50 hover:text-green-600'
+            } active:scale-90`}
           >
             <ThumbsUp size={14} />
           </button>
-          <span className="min-w-[1.5ch] text-center text-xs font-semibold text-secondary-600">
-            {entry.upvotes}
-          </span>
-        </div>
-        <div className="flex items-center gap-0.5">
+          <span className="text-green-600">{entry.upvotes}</span>
           <button
             type="button"
-            onClick={() => handleVote(false)}
+            onClick={(e) => handleVote(e, false)}
             disabled={isOwnEntry}
             title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === false ? 'Remove downvote' : 'Downvote'}
-            className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+            className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
               entry.currentUserVote === false
-                ? 'bg-red-100 text-red-700'
-                : 'text-secondary-400 hover:text-red-500'
-            }`}
+                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                : 'text-secondary-400 hover:scale-110 hover:bg-red-50 hover:text-red-500'
+            } active:scale-90`}
           >
             <ThumbsDown size={14} />
           </button>
-          <span className="min-w-[1.5ch] text-center text-xs font-semibold text-secondary-600">
-            {entry.downvotes}
-          </span>
+          <span className="text-red-500">{entry.downvotes}</span>
         </div>
+        <span
+          className={`text-xs font-semibold ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}
+        >
+          NET {net >= 0 ? '+' : ''}
+          {net}
+        </span>
       </div>
     </div>
   )
