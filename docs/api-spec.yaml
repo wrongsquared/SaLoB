@@ -447,6 +447,10 @@ components:
         submitterId: { type: string, format: uuid }
         submitterUsername: { type: string }
         createdAt: { type: string, format: date-time }
+        currentUserVote:
+          type: boolean
+          nullable: true
+          description: null if not voted, true for upvote, false for downvote
 
     FoodSearchResult:
       type: object
@@ -487,17 +491,24 @@ components:
         eateryId: { type: string, format: uuid }
         eateryAddress: { type: string }
         submitterUsername: { type: string }
-        availableDates:
+        datePrices:
           type: array
           items:
-            type: string
-            format: date
-        benchmarkDateEntries:
+            $ref: "#/components/schemas/DatePriceItem"
+        communityEntries:
           type: array
           items:
             $ref: "#/components/schemas/FoodPreview"
         consensusEntry:
           $ref: "#/components/schemas/FoodEntryDetail"
+
+    DatePriceItem:
+      type: object
+      properties:
+        date: { type: string, format: date-time }
+        sgCents: { type: integer, nullable: true }
+        confidence: { type: number, format: double, nullable: true }
+        entryCount: { type: integer, nullable: true }
 
     FoodCreationRequest:
       type: object
@@ -517,11 +528,11 @@ components:
 
     VoteRequest:
       type: object
-      required: [isUpvote]
       properties:
         isUpvote:
           type: boolean
-          description: true for upvote, false for downvote
+          nullable: true
+          description: true for upvote, false for downvote, null to retract
 
     OneMapEateryItem:
       type: object

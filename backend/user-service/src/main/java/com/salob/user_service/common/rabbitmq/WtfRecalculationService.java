@@ -1,28 +1,25 @@
 package com.salob.user_service.common.rabbitmq;
 
-import com.salob.proto.events.WtfEvent;
+import com.salob.proto.events.FoodEntryFlaggedEvent;
+import com.salob.proto.events.FoodEntrySubmittedEvent;
+import com.salob.proto.events.VoteEvent;
+import com.salob.proto.events.VoteType;
 import com.salob.user_service.api._domain.User;
 import com.salob.user_service.api.users.UserRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.CacheEvict;
 
-/**
- * Recalculates a user's WTF score based on their denormalized stats.
- *
- * Called by {@link WtfEventConsumer} when a WTF-related event arrives. Uses
- * atomic SQL increments for counters, then recomputes the score.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WtfRecalculationService {
 
-	// WTF formula parameters (tunable)
 	static final int TENURE_DAYS_MAX = 365;
 	static final int VOTE_SLOPE_DIVIDER = 10;
 	static final int VOLUME_SUBMISSIONS_MAX = 20;
@@ -37,58 +34,71 @@ public class WtfRecalculationService {
 
 	private final UserRepository userRepo;
 
-	/**
-	 * Apply a WTF event: update the target user's counters and recalculate their
-	 * WTF, then update the actor's lastActivityAt (may be same or different user).
-	 *
-	 * Rule for lastActivityAt: the ACTOR performed the action (voted, submitted,
-	 * flagged), so their lastActivityAt gets updated. The target user only gets
-	 * their lastActivityAt updated when they are also the actor (i.e.,
-	 * ENTRY_SUBMITTED where actor == target).
-	 */
 	@Transactional
-	@CacheEvict(value = "user_wtf", key = "#event.targetUserId()")
-	public void applyEvent(WtfEvent event) {
-		// Step 1: Update target user's counters and recalculate WTF
-		User targetUser = userRepo.findById(event.targetUserId())
-				.orElseThrow(() -> new RuntimeException("Target user not found: " + event.targetUserId()));
+	@CacheEvict(value = "user_wtf", key = "#event.submitterIdOfEntryVotedOn()")
+	public void applyVote(VoteEvent event) {
+		UUID targetId = UUID.fromString(event.submitterIdOfEntryVotedOn());
+		User targetUser = userRepo.findById(targetId)
+				.orElseThrow(() -> new RuntimeException("Target user not found: " + targetId));
 
-		switch (event.type()) {
-			case "ENTRY_SUBMITTED" -> targetUser.setTotalSubmissions(targetUser.getTotalSubmissions() + 1);
-			case "VOTE_CAST" -> {
-				if (Boolean.TRUE.equals(event.isUpvote())) {
-					targetUser.setUpvotesReceived(targetUser.getUpvotesReceived() + 1);
-				} else {
-					targetUser.setDownvotesReceived(targetUser.getDownvotesReceived() + 1);
-				}
+		switch (event.voteType()) {
+			case UPVOTE -> targetUser.setUpvotesReceived(targetUser.getUpvotesReceived() + 1);
+			case DOWNVOTE -> targetUser.setDownvotesReceived(targetUser.getDownvotesReceived() + 1);
+			case UPVOTE_REMOVED -> targetUser.setUpvotesReceived(targetUser.getUpvotesReceived() - 1);
+			case DOWNVOTE_REMOVED -> targetUser.setDownvotesReceived(targetUser.getDownvotesReceived() - 1);
+			case UPVOTE_TO_DOWNVOTE -> {
+				targetUser.setUpvotesReceived(targetUser.getUpvotesReceived() - 1);
+				targetUser.setDownvotesReceived(targetUser.getDownvotesReceived() + 1);
 			}
-			case "FLAG_RAISED" -> targetUser.setAnomaliesFlagged(targetUser.getAnomaliesFlagged() + 1);
-			default -> log.warn("Unknown WTF event type: {}", event.type());
-		}
-
-		// Update lastActivityAt for the target if they are also the actor
-		if (event.actorId() != null && event.actorId().equals(event.targetUserId())) {
-			targetUser.setLastActivityAt(Instant.now());
+			case DOWNVOTE_TO_UPVOTE -> {
+				targetUser.setDownvotesReceived(targetUser.getDownvotesReceived() - 1);
+				targetUser.setUpvotesReceived(targetUser.getUpvotesReceived() + 1);
+			}
 		}
 
 		targetUser.setWtfScore(computeWtfScore(targetUser));
 		userRepo.save(targetUser);
-		log.info("WTF recalculated for user {}: {} (type={})", targetUser.getId(), targetUser.getWtfScore(),
-				event.type());
+		log.info("WTF recalculated for user {}: {} (voteType={})", targetUser.getId(), targetUser.getWtfScore(),
+				event.voteType());
 
-		// Step 2: If the actor is a different user, update their lastActivityAt
-		if (event.actorId() != null && !event.actorId().equals(event.targetUserId())) {
-			userRepo.findById(event.actorId()).ifPresent(actor -> {
-				actor.setLastActivityAt(Instant.now());
-				userRepo.save(actor);
-			});
-		}
+		userRepo.findById(UUID.fromString(event.voterId())).ifPresent(actor -> {
+			actor.setLastActivityAt(Instant.now());
+			userRepo.save(actor);
+		});
 	}
 
-	/**
-	 * TODO: Maybe cache the WTF score?? Compute the WTF score for a user based on
-	 * their current stats.
-	 */
+	@Transactional
+	@CacheEvict(value = "user_wtf", key = "#event.submitterId()")
+	public void applyEntrySubmitted(FoodEntrySubmittedEvent event) {
+		UUID submitterId = UUID.fromString(event.submitterId());
+		User user = userRepo.findById(submitterId)
+				.orElseThrow(() -> new RuntimeException("User not found: " + submitterId));
+
+		user.setTotalSubmissions(user.getTotalSubmissions() + 1);
+		user.setLastActivityAt(Instant.now());
+		user.setWtfScore(computeWtfScore(user));
+		userRepo.save(user);
+		log.info("WTF recalculated for user {}: {} (entry submitted)", user.getId(), user.getWtfScore());
+	}
+
+	@Transactional
+	@CacheEvict(value = "user_wtf", key = "#event.flaggedEntrySubmitterId()")
+	public void applyFlagRaised(FoodEntryFlaggedEvent event) {
+		UUID targetId = UUID.fromString(event.flaggedEntrySubmitterId());
+		User targetUser = userRepo.findById(targetId)
+				.orElseThrow(() -> new RuntimeException("Target user not found: " + targetId));
+
+		targetUser.setAnomaliesFlagged(targetUser.getAnomaliesFlagged() + 1);
+		targetUser.setWtfScore(computeWtfScore(targetUser));
+		userRepo.save(targetUser);
+		log.info("WTF recalculated for user {}: {} (flag raised)", targetUser.getId(), targetUser.getWtfScore());
+
+		userRepo.findById(UUID.fromString(event.flaggerId())).ifPresent(actor -> {
+			actor.setLastActivityAt(Instant.now());
+			userRepo.save(actor);
+		});
+	}
+
 	public double computeWtfScore(User user) {
 		long daysSinceRegistration = ChronoUnit.DAYS.between(user.getCreatedAt(), Instant.now());
 		long daysSinceLastActivity = user.getLastActivityAt() != null

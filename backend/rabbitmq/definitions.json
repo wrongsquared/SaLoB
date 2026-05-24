@@ -1,11 +1,5 @@
 {
-  "users": [
-    {
-      "name": "salob",
-      "password": "rabbitmq_password",
-      "tags": "administrator"
-    }
-  ],
+  "users": [],
   "vhosts": [
     {
       "name": "salob"
@@ -33,17 +27,51 @@
   ],
   "queues": [
     {
-      "name": "user-service.wtf.recalc",
+      "name": "user-service.wtf.entry-created",
       "vhost": "salob",
       "durable": true,
       "auto_delete": false,
       "arguments": {
         "x-dead-letter-exchange": "salob.dlx",
-        "x-dead-letter-routing-key": "wtf.dead"
+        "x-dead-letter-routing-key": "wtf.entry.created.dead"
       }
     },
     {
-      "name": "user-service.wtf.recalc.dlq",
+      "name": "user-service.wtf.entry-created.dlq",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "user-service.wtf.vote-cast",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "salob.dlx",
+        "x-dead-letter-routing-key": "wtf.vote.cast.dead"
+      }
+    },
+    {
+      "name": "user-service.wtf.vote-cast.dlq",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "user-service.wtf.flag-raised",
+      "vhost": "salob",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "salob.dlx",
+        "x-dead-letter-routing-key": "wtf.flag.raised.dead"
+      }
+    },
+    {
+      "name": "user-service.wtf.flag-raised.dlq",
       "vhost": "salob",
       "durable": true,
       "auto_delete": false,
@@ -63,17 +91,49 @@
     {
       "source": "salob.events",
       "vhost": "salob",
-      "destination": "user-service.wtf.recalc",
+      "destination": "user-service.wtf.entry-created",
       "destination_type": "queue",
-      "routing_key": "wtf.#",
+      "routing_key": "wtf.entry.created",
+      "arguments": {}
+    },
+    {
+      "source": "salob.events",
+      "vhost": "salob",
+      "destination": "user-service.wtf.vote-cast",
+      "destination_type": "queue",
+      "routing_key": "wtf.vote.cast",
+      "arguments": {}
+    },
+    {
+      "source": "salob.events",
+      "vhost": "salob",
+      "destination": "user-service.wtf.flag-raised",
+      "destination_type": "queue",
+      "routing_key": "wtf.flag.raised",
       "arguments": {}
     },
     {
       "source": "salob.dlx",
       "vhost": "salob",
-      "destination": "user-service.wtf.recalc.dlq",
+      "destination": "user-service.wtf.entry-created.dlq",
       "destination_type": "queue",
-      "routing_key": "wtf.dead",
+      "routing_key": "wtf.entry.created.dead",
+      "arguments": {}
+    },
+    {
+      "source": "salob.dlx",
+      "vhost": "salob",
+      "destination": "user-service.wtf.vote-cast.dlq",
+      "destination_type": "queue",
+      "routing_key": "wtf.vote.cast.dead",
+      "arguments": {}
+    },
+    {
+      "source": "salob.dlx",
+      "vhost": "salob",
+      "destination": "user-service.wtf.flag-raised.dlq",
+      "destination_type": "queue",
+      "routing_key": "wtf.flag.raised.dead",
       "arguments": {}
     }
   ]

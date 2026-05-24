@@ -139,8 +139,9 @@ public class EateryController {
 	 * @return detailed eatery information with food previews
 	 */
 	@GetMapping("/{eateryId}")
-	public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@Valid @PathVariable UUID eateryId) {
-		return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId));
+	public ResponseEntity<EateryDetailedDTO> getEateryDetailed(@Valid @PathVariable UUID eateryId,
+			@RequestHeader(value = "X-User-Id", required = false) UUID userId) {
+		return ResponseEntity.ok(eateryService.getEateryDetailed(eateryId, userId));
 	}
 
 	/**

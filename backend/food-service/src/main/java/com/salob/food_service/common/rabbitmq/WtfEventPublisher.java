@@ -1,13 +1,15 @@
 package com.salob.food_service.common.rabbitmq;
 
 import com.salob.proto.common.RabbitMQConstants;
-import com.salob.proto.events.WtfEvent;
+import com.salob.proto.events.FoodEntryFlaggedEvent;
+import com.salob.proto.events.FoodEntrySubmittedEvent;
+import com.salob.proto.events.VoteEvent;
+import com.salob.proto.events.VoteType;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.UUID;
 
 @Slf4j
 @Component
@@ -17,22 +19,21 @@ public class WtfEventPublisher {
 	private final RabbitTemplate rabbitTemplate;
 
 	public void publishEntryCreated(UUID submitterId) {
-		publish(new WtfEvent("ENTRY_SUBMITTED", UUID.randomUUID(), submitterId, submitterId, null),
-				RabbitMQConstants.RK_WTF_ENTRY_CREATED);
+		var event = new FoodEntrySubmittedEvent(UUID.randomUUID().toString(), submitterId.toString());
+		log.info("Publishing FoodEntrySubmittedEvent: eventId={}", event.eventId());
+		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_ENTRY_CREATED, event);
 	}
 
-	public void publishVoteCast(UUID voterId, UUID entryOwnerId, boolean isUpvote) {
-		publish(new WtfEvent("VOTE_CAST", UUID.randomUUID(), voterId, entryOwnerId, isUpvote),
-				RabbitMQConstants.RK_WTF_VOTE_CAST);
+	public void publishVoteCast(UUID voterId, UUID entryOwnerId, VoteType voteType) {
+		var event = new VoteEvent(UUID.randomUUID().toString(), voterId.toString(), entryOwnerId.toString(), voteType);
+		log.info("Publishing VoteEvent: eventId={}, voteType={}", event.eventId(), event.voteType());
+		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_VOTE_CAST, event);
 	}
 
 	public void publishFlagRaised(UUID flaggerId, UUID entryOwnerId) {
-		publish(new WtfEvent("FLAG_RAISED", UUID.randomUUID(), flaggerId, entryOwnerId, null),
-				RabbitMQConstants.RK_WTF_FLAG_RAISED);
-	}
-
-	private void publish(WtfEvent event, String routingKey) {
-		log.info("Publishing WTF event: type={}, eventId={}, routingKey={}", event.type(), event.eventId(), routingKey);
-		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, routingKey, event);
+		var event = new FoodEntryFlaggedEvent(UUID.randomUUID().toString(), flaggerId.toString(),
+				entryOwnerId.toString());
+		log.info("Publishing FoodEntryFlaggedEvent: eventId={}", event.eventId());
+		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_FLAG_RAISED, event);
 	}
 }

@@ -26,6 +26,7 @@ export interface FoodPreview {
   submitterId: string
   submitterUsername: string
   createdAt: string
+  currentUserVote: boolean | null
 }
 
 export interface EateryDetail {
