@@ -3,6 +3,7 @@ import { apiClient } from "./client";
 import { useAuthStore } from "@/stores/authStore";
 import type {
     EateryMapItem,
+    EaterySearchCombinedResult,
     FoodEntryMapItem,
     Bounds,
     EateryDetail,
@@ -36,6 +37,7 @@ export const QK = {
     EATERIES_DETAIL: ["eateries", "detail"],
     EATERIES_WITHIN_BOUNDS: ["eateries", "within-bounds"],
     EATERIES_SEARCH: ["eateries", "search"],
+    EATERIES_SEARCH_COMBINED: ["eateries", "search", "combined"],
     FOODS_SEARCH: ["foods", "search"],
     FOOD_ENTRIES_DETAIL: ["food-entries", "detail"],
     FOOD_ENTRIES_WITHIN_BOUNDS: ["food-entries", "within-bounds"],
@@ -47,6 +49,7 @@ export const qk = {
     eateryWithinBounds: (b: Bounds | null) => [...QK.EATERIES_WITHIN_BOUNDS, roundBounds(b)] as const,
     eateryDetail: (id: string | null) => [...QK.EATERIES_DETAIL, id] as const,
     eaterySearch: (q: string) => [...QK.EATERIES_SEARCH, q] as const,
+    eaterySearchCombined: (q: string) => [...QK.EATERIES_SEARCH_COMBINED, q] as const,
     eateryAllDetails: (b: Bounds | null) => ["eateries", "all-details", roundBounds(b)] as const,
     foodSearch: (q: string) => [...QK.FOODS_SEARCH, q] as const,
     foodEntryWithinBounds: (b: Bounds | null) => [...QK.FOOD_ENTRIES_WITHIN_BOUNDS, roundBounds(b)] as const,
@@ -243,6 +246,39 @@ export function useRegisterMutation() {
             const { data: user } = await apiClient.get<User>("/users/me");
             useAuthStore.getState().setUser(user);
             return user;
+        },
+    });
+}
+
+export function useEaterySearchCombined(searchQuery: string) {
+    return useQuery({
+        queryKey: qk.eaterySearchCombined(searchQuery),
+        queryFn: async () => {
+            const { data } = await apiClient.get<EaterySearchCombinedResult>("/eateries/search/combined", {
+                params: { search: searchQuery },
+            });
+            return data;
+        },
+        enabled: searchQuery.trim().length > 0,
+        staleTime: 30_000,
+    });
+}
+
+export function useCreateEatery() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: {
+            name: string;
+            address: string;
+            typeId: string;
+        }) => {
+            const { data: result } = await apiClient.post<EaterySearchResult>("/eateries", data);
+            return result;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK.EATERIES_SEARCH });
+            queryClient.invalidateQueries({ queryKey: QK.EATERIES_SEARCH_COMBINED });
         },
     });
 }

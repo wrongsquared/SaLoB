@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
@@ -20,7 +21,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-background-50 min-h-full border-b-1 border-black">
       <div className="w-full flex items-center justify-between py-4 px-20">
         <div className="flex items-center gap-10">
-          <div className="text-xl font-extrabold text-primary-700">SaLoB</div>
+          <NavLink to="/" className="flex items-center gap-2"><div className="text-xl font-extrabold text-primary-700">SaLoB</div></NavLink>
           <nav className="flex items-center space-x-4">
             {navItems.map((item) => (
               <NavLink
@@ -38,6 +39,10 @@ export default function Navbar() {
         <div>
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
+                <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
               <span className="text-sm font-medium text-gray-700">{user.username}</span>
               <button
                 type="button"

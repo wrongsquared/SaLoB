@@ -210,6 +210,36 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 })
   }),
 
+  http.get("/api/eateries/search/combined", async ({ request }) => {
+    await delay(30)
+    const url = new URL(request.url)
+    const search = url.searchParams.get("search")?.toLowerCase() ?? ""
+    const local = EATERIES_MAP
+      .filter((e) => e.name.toLowerCase().includes(search))
+      .map((e) => ({ eateryId: e.eateryId, name: e.name, address: "1 Example St, Singapore" }))
+    const onemap = local.length === 0
+      ? [{ name: search.charAt(0).toUpperCase() + search.slice(1) + " (OneMap)", address: "Singapore", latitude: 1.30, longitude: 103.85 }]
+      : []
+    return HttpResponse.json({ local, onemap })
+  }),
+
+  http.get("/api/eatery-types", async () => {
+    await delay(20)
+    return HttpResponse.json([
+      { id: "e3d4e5f6-e29b-41d4-a716-446655449001", label: "Hawker Stall" },
+      { id: "e3d4e5f6-e29b-41d4-a716-446655449002", label: "Cafe" },
+      { id: "e3d4e5f6-e29b-41d4-a716-446655449003", label: "Hawker Centre" },
+    ])
+  }),
+
+  http.post("/api/eateries", async ({ request }) => {
+    await delay(80)
+    const body = (await request.json()) as { name: string; address: string; typeId: string }
+    const newId = crypto.randomUUID()
+    const newEatery = { eateryId: newId, name: body.name, address: body.address }
+    return HttpResponse.json(newEatery)
+  }),
+
   http.get("/api/users/me", async () => {
     await delay(50)
     return HttpResponse.json({

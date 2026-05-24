@@ -1,8 +1,11 @@
 package com.salob.food_service.api.eatery;
 
+import com.salob.food_service.api._domain.Eatery;
+import com.salob.food_service.api.eatery.dto.CreateEateryRequest;
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery.dto.EaterySearchResultDTO;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -167,6 +170,18 @@ public class EateryController {
 			return ResponseEntity.noContent().build();
 		}
 		return ResponseEntity.ok(results);
+	}
+
+	@GetMapping("/search/combined")
+	public ResponseEntity<EaterySearchResultDTO> searchCombined(@Valid @RequestParam String search) {
+		EaterySearchResultDTO results = eateryService.searchCombined(search);
+		return ResponseEntity.ok(results);
+	}
+
+	@PostMapping
+	public ResponseEntity<EateryPreviewDTO> createEatery(@Valid @RequestBody CreateEateryRequest req) {
+		Eatery eatery = eateryService.createEatery(req.name(), req.address(), req.typeId());
+		return ResponseEntity.ok(new EateryPreviewDTO(eatery.getId(), eatery.getName(), eatery.getAddress()));
 	}
 
 	/**

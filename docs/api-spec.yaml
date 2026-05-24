@@ -94,6 +94,58 @@ paths:
         "204":
           description: No matches found
 
+  /eateries/search/combined:
+    get:
+      summary: Search eateries (local DB + OneMap)
+      description: Returns local eateries and OneMap results. OneMap results have no eateryId — frontend sends a create request when user selects one.
+      tags: [Eateries]
+      parameters:
+        - name: search
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Combined search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EaterySearchCombinedResult"
+
+  /eatery-types:
+    get:
+      summary: List all eatery types
+      description: Returns the available eatery categories (Hawker Stall, Cafe, etc.).
+      tags: [Eateries]
+      responses:
+        "200":
+          description: Available eatery types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EateryType"
+
+  /eateries:
+    post:
+      summary: Create a new eatery from OneMap data
+      description: Creates an eatery in the local DB from OneMap search result data. Returns the created eatery with its generated ID.
+      tags: [Eateries]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEateryRequest"
+      responses:
+        "200":
+          description: Eatery created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EaterySearchResult"
+
   /eateries/{eateryId}/report-closed:
     post:
       summary: Report an eatery as permanently closed
@@ -470,6 +522,38 @@ components:
         isUpvote:
           type: boolean
           description: true for upvote, false for downvote
+
+    OneMapEateryItem:
+      type: object
+      properties:
+        name: { type: string }
+        address: { type: string }
+
+    EaterySearchCombinedResult:
+      type: object
+      properties:
+        local:
+          type: array
+          items:
+            $ref: "#/components/schemas/EaterySearchResult"
+        onemap:
+          type: array
+          items:
+            $ref: "#/components/schemas/OneMapEateryItem"
+
+    EateryType:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+
+    CreateEateryRequest:
+      type: object
+      required: [name, address, typeId]
+      properties:
+        name: { type: string }
+        address: { type: string }
+        typeId: { type: string, format: uuid }
 
     LoginRequest:
       type: object

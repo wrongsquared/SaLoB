@@ -1,3 +1,7 @@
+onemap:
+  api-url: ${ONEMAP_API_URL:https://www.onemap.gov.sg}
+  email: ${ONEMAP_EMAIL}
+  password: ${ONEMAP_PASSWORD}
 app:
   seed:
     enabled: true
@@ -24,7 +28,7 @@ spring:
     baseline-on-migrate: true
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     threads:
       virtual:
         enabled: true

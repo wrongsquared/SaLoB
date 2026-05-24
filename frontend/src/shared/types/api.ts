@@ -123,3 +123,16 @@ export interface RegisterRequest {
 export interface GoogleLoginRequest {
   idToken: string
 }
+
+// ─── OneMap ─────────────────────────────────────────────────
+export interface OneMapEateryItem {
+  name: string
+  address: string
+  latitude: number
+  longitude: number
+}
+
+export interface EaterySearchCombinedResult {
+  local: EaterySearchResult[]
+  onemap: OneMapEateryItem[]
+}

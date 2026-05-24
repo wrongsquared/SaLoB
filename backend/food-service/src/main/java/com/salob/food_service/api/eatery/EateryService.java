@@ -1,27 +1,39 @@
 package com.salob.food_service.api.eatery;
 
 import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery.dto.EaterySearchResultDTO;
+import com.salob.food_service.api.eatery.dto.OneMapEateryDTO;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api._domain.Eatery;
 import com.salob.food_service.api._domain.EateryClosureFlag;
+import com.salob.food_service.api._domain.EateryType;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.api.eatery.dto.EateryMapDTO;
+import com.salob.food_service.api.eatery_type.EateryTypeRepository;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import com.salob.food_service.api._domain.FoodEntry;
+import com.salob.food_service.api.onemap.OneMapClient;
+import com.salob.food_service.api.onemap.dto.OneMapSearchResult;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
@@ -44,8 +56,11 @@ import java.util.stream.Collectors;
 public class EateryService {
 	private final EateryRepository eateryRepo;
 	private final EateryClosureFlagRepository closureFlagRepo;
+	private final EateryTypeRepository eateryTypeRepo;
 	private final ConfidenceAlgorithm confidenceAlgorithm;
 	private final MinioStorageService minioStorageService;
+	private final OneMapClient oneMapClient;
+	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
 	public Eatery findById(UUID id) {
 		return eateryRepo.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
@@ -149,11 +164,44 @@ public class EateryService {
 				minioStorageService.getPresignedUrl(eatery.getPhotoObjKey(), Duration.ofMinutes(30)), foodPreviews);
 	}
 
-	// TODO: In the future, will reach for the OneMap API
 	@Cacheable(key = "#search.toLowerCase()", value = "eateries_search")
 	public List<EateryPreviewDTO> searchForEateries(String search) {
 		return eateryRepo.findBySearchCaseInsensitive(search).stream().map(this::mapRowToPreviewDTO)
 				.collect(Collectors.toCollection(ArrayList::new));
+	}
+
+	public EaterySearchResultDTO searchCombined(String search) {
+		List<EateryPreviewDTO> local = searchForEateries(search);
+
+		List<OneMapEateryDTO> onemap;
+		try {
+			var response = oneMapClient.search(search);
+			onemap = response.results() != null
+					? response.results().stream().map(this::mapOneMapResult).toList()
+					: List.of();
+		} catch (Exception e) {
+			log.warn("OneMap search failed for '{}': {}", search, e.getMessage());
+			onemap = List.of();
+		}
+
+		return new EaterySearchResultDTO(local, onemap);
+	}
+
+	@Transactional
+	public Eatery createEatery(String name, String address, UUID typeId) {
+		Optional<Eatery> existing = eateryRepo.findByName(name);
+		if (existing.isPresent()) {
+			return existing.get();
+		}
+
+		EateryType type = eateryTypeRepo.findById(typeId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid eatery type"));
+
+		double[] coords = oneMapClient.geocode(address);
+		Point location = geometryFactory.createPoint(new Coordinate(coords[1], coords[0]));
+
+		Eatery eatery = Eatery.builder().name(name).address(address).location(location).type(type).isOpen(true).build();
+		return eateryRepo.save(eatery);
 	}
 
 	/**
@@ -198,6 +246,22 @@ public class EateryService {
 
 	private EateryPreviewDTO mapRowToPreviewDTO(Object[] row) {
 		return new EateryPreviewDTO((UUID) row[0], (String) row[1], (String) row[2]);
+	}
+
+	private OneMapEateryDTO mapOneMapResult(OneMapSearchResult result) {
+		return new OneMapEateryDTO(deriveName(result), result.address());
+	}
+
+	private String deriveName(OneMapSearchResult result) {
+		if (result.building() != null && !result.building().isBlank()) {
+			return result.building();
+		}
+		String blk = result.blkNo() != null ? result.blkNo().trim() : "";
+		String road = result.roadName() != null ? result.roadName().trim() : "";
+		if (!blk.isBlank() && !road.isBlank()) {
+			return "Blk " + blk + " " + road;
+		}
+		return result.address();
 	}
 
 	/**

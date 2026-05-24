@@ -1,5 +1,30 @@
 # Roadmap
 
+## ✅ Done
+
+### OneMap Integration (Search Augmentation)
+Backend OneMap client + service + controller (search combined, dedup by name, geocode on create). Frontend autocomplete in StepEatery and homepage SearchBar. Flyway migrations, DB trigger, EateryTypeController, API spec.
+
+---
+
+## Bugs
+
+### mapStore crash — "Maximum update depth exceeded"
+The frontend occasionally crashes with a React error about repeated `setState` calls originating from `mapStore`. Likely a circular update loop — map events → store update → re-render → map events. Needs investigation and fix.
+
+---
+
+## Vote UI (Frontend)
+**Description:** Add upvote/downvote interaction to the food entry detail page AND the homepage eatery panel. Backend endpoint (`POST /api/food-entries/{id}/vote`) ✅ exists.
+**Scope:**
+- **EateryPanel (homepage)**: logged-in user sees their vote on each food entry, can toggle upvote/downvote/unvote.
+- **FoodEntryDetailPage / CommunityEntryRow**: same interaction on the community entries list.
+- **Backend gap**: `FoodEntryPreviewDTO` lacks `currentUserVote` — must be added and populated from the vote table.
+- **Logout**: `window.location.href = '/'` for full refresh to clear stale state.
+**Key files:** `EateryPanel.tsx`, `CommunityEntryRow.tsx`, `FoodEntryPreviewDTO.java`, `FoodEntryService.java`, `EateryService.java`, `EateryController.java`, `FoodEntryController.java`, `queries.ts`
+
+---
+
 ## Touch Ups
 
 ### Map Icon Visibility
@@ -19,22 +44,6 @@ Cluster numbers are barely readable — small text on a tiny circle.
 - Should clusters show a sum of icons (e.g. 3 small Store icons) instead of a numeric count?
 
 ---
-
-## Vote UI (Frontend)
-**Description:** Add upvote/downvote interaction to the food entry detail page. Backend endpoint (`POST /api/food-entries/{id}/vote`) and event pipeline are complete.
-**Points of contention:**
-- Auth dependency: vote endpoint requires `X-User-Id` header — is the auth/JWT flow wired on the frontend yet, or do we use the current hardcoded UUID placeholder?
-- Optimistic vs server-confirmed: backend has a UK constraint + self-vote check. If we update the count optimistically and the server rejects, we must revert. Is that acceptable UX, or do we wait for the server response?
-- Scope: only on the detail page, or also on map popups and community entry rows?
-- Refresh strategy: invalidate the detail query after voting (triggers full refetch) vs manual count increment/decrement on the cached data (snappy but fragile)?
-**Key files:** `FoodEntryDetailPage/index.tsx`, `CommunityEntryRow.tsx`, `queries.ts` (new mutation), `api-spec.yaml` (already updated ✅)
-
----
-
-## OneMap Integration (Search Augmentation)
-**Description:** Augment eatery search with OneMap's POI database for Singapore-specific autocomplete. When a user searches for an eatery that doesn't exist in our DB, OneMap provides address, block number, and building name for lazy-insertion.
-**Dependencies:** OneMap API key (add to `.env`), new endpoint `POST /api/eateries` with address validation
-**Key files:** `EateryService.java` (currently has TODO for OneMap), `EateryController.java`
 
 ## Eatery Closure Flow
 **Description:** Two-part feature — (1) "Report as Closed" button (frontend) → `POST /api/eateries/{id}/report-closed` (already exists ✅), (2) admin review flow that aggregates closure flags, auto-closes eatery after threshold, or flags for admin review.

@@ -1,6 +1,7 @@
 package com.salob.food_service.api.eatery;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.salob.food_service.api._domain.Eatery;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EateryRepository extends JpaRepository<Eatery, UUID> {
 	boolean existsByName(String name);
+
+	Optional<Eatery> findByName(String name);
 
 	@Query(value = """
 			SELECT e.id, e.name, e.address

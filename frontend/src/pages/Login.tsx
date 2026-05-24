@@ -48,7 +48,7 @@ const Login = () => {
     <div className="min-h-screen w-full overflow-hidden">
       <div className="flex min-h-screen w-full flex-col md:flex-row">
 
-        <div className="flex flex-1 flex-col justify-center gap-4 bg-primary-700 p-10 text-text-50 md:p-16">
+        <div className="flex flex-1 flex-col justify-center gap-4 bg-gradient-to-br from-primary-800 to-primary-600 p-10 text-text-50 md:p-16">
           <div className="text-4xl font-extrabold tracking-tight">SaLoB</div>
           <h1 className="text-3xl font-bold leading-tight md:text-4xl">
             Keep Tabs on the Price of Living

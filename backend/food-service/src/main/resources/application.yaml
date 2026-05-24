@@ -4,6 +4,10 @@ app:
     access-key: ${MINIO_ACCESS_KEY}
     secret-key: ${MINIO_SECRET_KEY}
     bucket: ${MINIO_BUCKET}
+onemap:
+  api-url: ${ONEMAP_API_URL:https://www.onemap.gov.sg}
+  email: ${ONEMAP_EMAIL}
+  password: ${ONEMAP_PASSWORD}
 spring:
   application:
     name: food-service
@@ -22,7 +26,7 @@ spring:
     baseline-on-migrate: true
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     threads:
       virtual:
         enabled: true

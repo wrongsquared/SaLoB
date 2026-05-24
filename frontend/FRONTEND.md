@@ -47,6 +47,17 @@
 - `npx playwright test --update-snapshots` to create/update baseline images when layout intentionally changes.
 - `getByRole('dialog')` throws strict-mode violations with multiple dialogs. Always scope: `getByRole('dialog', { name: 'Specific Name' })`.
 
+## OneMap Search Flow
+- StepEatery calls `GET /api/eateries/search/combined?search=...` which returns `{ local: [...], onemap: [...] }`.
+- OneMap results show a "New" badge. Clicking one calls `POST /api/eateries` with `{ name, address, typeId }`.
+- The frontend fetches eatery types via `GET /api/eatery-types` on mount and uses the first type as default.
+- The backend deduplicates by name before creating — if the same name already exists locally, it returns the existing eatery.
+
+## UI Components & Styling
+- shadCN components at `src/components/ui/`. Install via `npx shadcn@latest add <component>`.
+- Use semantic Tailwind colors: `primary`, `secondary`, `accent`, `destructive`, `muted` — never hardcode hex values.
+- Only components actually used should be installed (no bulk installs).
+
 ## Leaflet + React StrictMode
 - Leaflet's `load` event fires once. Under StrictMode double-mount, the second listener never fires. Use `useMap()` + `useEffect` to sync state on mount instead of `load`.
 - Navbar: `sticky top-0 z-50` to render above the map container. Without it, `absolute`/`fixed` map overlays cover the navbar.

@@ -148,15 +148,6 @@ public class FoodEntryService {
 		FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
 		foodEntryVoteRepo.save(vote);
 
-		// TODO: DB Trigger to listen for changes on foodEntryVote
-		// Atomically increment the count on the food entry
-		if (isUpvote) {
-			entry.setUpvoteCount(entry.getUpvoteCount() + 1);
-		} else {
-			entry.setDownvoteCount(entry.getDownvoteCount() + 1);
-		}
-		foodEntryRepo.save(entry);
-
 		// Publish event for WTF recalculation (affects entry owner)
 		wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
 	}
