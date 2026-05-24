@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/authStore";
+import { useVote } from "@/shared/api/queries";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { centsToSgd } from "@/shared/utils/format";
 import type { FoodPreview } from "@/shared/types/api";
@@ -10,7 +12,18 @@ interface CommunityEntryRowProps {
 
 export default function CommunityEntryRow({ entry, isSelected }: CommunityEntryRowProps) {
   const navigate = useNavigate();
+  const voteMutation = useVote();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isOwnEntry = currentUserId === entry.submitterId;
+
   const net = entry.upvotes - entry.downvotes;
+
+  const handleVote = (e: React.MouseEvent, isUpvote: boolean) => {
+    e.stopPropagation();
+    if (isOwnEntry) return;
+    const newVote = entry.currentUserVote === isUpvote ? null : isUpvote;
+    voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote });
+  };
 
   return (
     <div
@@ -60,12 +73,36 @@ export default function CommunityEntryRow({ entry, isSelected }: CommunityEntryR
       <p className="text-sm font-bold text-secondary-900">{centsToSgd(entry.sgCents)}</p>
 
       <div className="flex items-center gap-1.5 rounded-full border border-secondary-200 bg-secondary-50 px-2.5 py-1">
-        <ThumbsUp size={12} className="text-secondary-400" />
+        <button
+          type="button"
+          onClick={(e) => handleVote(e, true)}
+          disabled={isOwnEntry}
+          title={isOwnEntry ? "You cannot vote on your own entry" : entry.currentUserVote === true ? "Remove upvote" : "Upvote"}
+          className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+            entry.currentUserVote === true
+              ? "bg-green-100 text-green-700"
+              : "text-secondary-400 hover:text-green-600"
+          }`}
+        >
+          <ThumbsUp size={12} />
+        </button>
         <span className={`text-xs font-semibold ${net >= 0 ? "text-green-600" : "text-red-500"}`}>
           {net >= 0 ? "+" : ""}
           {net}
         </span>
-        <ThumbsDown size={12} className="text-secondary-400" />
+        <button
+          type="button"
+          onClick={(e) => handleVote(e, false)}
+          disabled={isOwnEntry}
+          title={isOwnEntry ? "You cannot vote on your own entry" : entry.currentUserVote === false ? "Remove downvote" : "Downvote"}
+          className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+            entry.currentUserVote === false
+              ? "bg-red-100 text-red-700"
+              : "text-secondary-400 hover:text-red-500"
+          }`}
+        >
+          <ThumbsDown size={12} />
+        </button>
       </div>
     </div>
   );

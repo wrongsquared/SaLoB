@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useMapStore } from '@/stores/mapStore'
-import { useEateryDetail, useReportEateryClosed } from '@/shared/api/queries'
+import { useAuthStore } from '@/stores/authStore'
+import { useEateryDetail, useReportEateryClosed, useVote } from '@/shared/api/queries'
 import { X, Flag, Clock, ThumbsUp, ThumbsDown, Star } from 'lucide-react'
 import { centsToSgd } from '@/shared/utils/format'
 import type { FoodPreview } from '@/shared/types/api'
@@ -17,54 +18,85 @@ function computeRating(foodPreviews: FoodPreview[]) {
 function FoodEntryCard({ entry }: { entry: FoodPreview }) {
   const navigate = useNavigate()
   const net = entry.upvotes - entry.downvotes
+  const voteMutation = useVote()
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  const isOwnEntry = currentUserId === entry.submitterId
+
+  const handleVote = (isUpvote: boolean) => {
+    if (isOwnEntry) return
+    const newVote = entry.currentUserVote === isUpvote ? null : isUpvote
+    voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote })
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => navigate(`/food-entry/${entry.foodEntryId}`)}
-      className="flex w-full items-center gap-3 rounded-xl border border-secondary-100 bg-white p-3 text-left transition-colors hover:border-primary-200 hover:bg-primary-50/50"
-    >
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary-100">
-        {entry.photoPresignedUrl ? (
-          <img
-            src={entry.photoPresignedUrl}
-            alt={entry.name}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = 'none'
-            }}
-          />
- ) : (
-          <span className="text-lg">{entry.name.charAt(0)}</span>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-secondary-900">
-          {entry.name}
-        </p>
-        <p className="text-sm font-bold text-accent-600">
-          {centsToSgd(entry.sgCents)}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-0.5">
-        <div className="flex items-center gap-1.5 text-xs">
-          <span className="flex items-center gap-0.5 text-green-600">
-            <ThumbsUp size={12} />
+    <div className="flex w-full items-center gap-3 rounded-xl border border-secondary-100 bg-white p-3 text-left transition-colors hover:border-primary-200 hover:bg-primary-50/50">
+      <button
+        type="button"
+        onClick={() => navigate(`/food-entry/${entry.foodEntryId}`)}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary-100">
+          {entry.photoPresignedUrl ? (
+            <img
+              src={entry.photoPresignedUrl}
+              alt={entry.name}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                ;(e.target as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          ) : (
+            <span className="text-lg">{entry.name.charAt(0)}</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-secondary-900">
+            {entry.name}
+          </p>
+          <p className="text-sm font-bold text-accent-600">
+            {centsToSgd(entry.sgCents)}
+          </p>
+        </div>
+      </button>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => handleVote(true)}
+            disabled={isOwnEntry}
+            title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === true ? 'Remove upvote' : 'Upvote'}
+            className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+              entry.currentUserVote === true
+                ? 'bg-green-100 text-green-700'
+                : 'text-secondary-400 hover:text-green-600'
+            }`}
+          >
+            <ThumbsUp size={14} />
+          </button>
+          <span className="min-w-[1.5ch] text-center text-xs font-semibold text-secondary-600">
             {entry.upvotes}
           </span>
-          <span className="flex items-center gap-0.5 text-red-500">
-            <ThumbsDown size={12} />
+        </div>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => handleVote(false)}
+            disabled={isOwnEntry}
+            title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === false ? 'Remove downvote' : 'Downvote'}
+            className={`rounded p-0.5 transition-colors disabled:cursor-not-allowed ${
+              entry.currentUserVote === false
+                ? 'bg-red-100 text-red-700'
+                : 'text-secondary-400 hover:text-red-500'
+            }`}
+          >
+            <ThumbsDown size={14} />
+          </button>
+          <span className="min-w-[1.5ch] text-center text-xs font-semibold text-secondary-600">
             {entry.downvotes}
           </span>
         </div>
-        <span
-          className={`text-xs font-semibold ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}
-        >
-          NET {net >= 0 ? '+' : ''}
-          {net}
-        </span>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -101,13 +133,11 @@ export default function EateryPanel() {
             <span className="text-4xl">🏪</span>
           </div>
         )}
-        {/* TOP RATED badge */}
         {rating >= 4.0 && (
           <span className="absolute left-3 top-3 rounded-md bg-accent-600 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
             TOP RATED
           </span>
         )}
-        {/* Close button */}
         <button
           type="button"
           onClick={() => {
@@ -201,14 +231,12 @@ export default function EateryPanel() {
 
         {!isLoading && !isError && eatery && (
           <>
-            {/* Proprietary Pricing Index */}
             <div className="px-4 pt-4 pb-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-secondary-400">
                 Proprietary Pricing Index
               </h3>
             </div>
 
-            {/* Food entries */}
             {eatery.foodPreviews.length > 0 ? (
               <div className="space-y-2 px-4 pb-4">
                 {eatery.foodPreviews.map((entry) => (
@@ -221,7 +249,6 @@ export default function EateryPanel() {
               </div>
             )}
 
-            {/* Intelligence Brief */}
             {eatery.foodPreviews.length > 0 && (
               <div className="mx-4 mb-4 rounded-xl border border-accent-100 bg-accent-50 p-4">
                 <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-700">

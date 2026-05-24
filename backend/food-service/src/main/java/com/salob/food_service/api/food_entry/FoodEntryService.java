@@ -66,7 +66,7 @@ public class FoodEntryService {
 	 * Community entry submitters are resolved via a single batch gRPC call to avoid
 	 * N+1 round-trips to the user-service.
 	 */
-	public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate) {
+	public FoodEntryHistoricalDTO getFoodEntryHistoricalData(UUID foodEntryId, Instant startDate, UUID userId) {
 		FoodEntry targetEntry = foodEntryRepo.findById(foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
@@ -85,10 +85,21 @@ public class FoodEntryService {
 		Map<UUID, String> communityUsernames = fetchUsernamesBatch(
 				communityEntries.stream().map(FoodEntry::getSubmitterId).distinct().toList());
 
+		// Batch-fetch current user's votes for community entries
+		Map<UUID, Boolean> userVotes = new HashMap<>();
+		if (userId != null) {
+			List<UUID> entryIds = communityEntries.stream().map(FoodEntry::getId).toList();
+			if (!entryIds.isEmpty()) {
+				foodEntryVoteRepo.findByVoterIdAndFoodEntryIdIn(userId, entryIds)
+						.forEach(v -> userVotes.put(v.getFoodEntry().getId(), v.isUpvote()));
+			}
+		}
+
 		List<FoodEntryPreviewDTO> otherEntriesOnSameDay = communityEntries.stream()
 				.map(e -> new FoodEntryPreviewDTO(e.getId(), e.getFood().getLabel(), e.getSgCents(), e.getUpvoteCount(),
 						e.getDownvoteCount(), null, // photo is redundant — all entries share the same food photo
-						e.getSubmitterId(), communityUsernames.get(e.getSubmitterId()), e.getCreatedAt()))
+						e.getSubmitterId(), communityUsernames.get(e.getSubmitterId()), e.getCreatedAt(),
+						userVotes.get(e.getId())))
 				.toList();
 
 		List<DatePrice> datePrices = computeDatePrices(targetEntry.getFood().getId(), targetEntry.getEatery().getId(),
@@ -130,7 +141,7 @@ public class FoodEntryService {
 		wtfEventPublisher.publishEntryCreated(submitterId);
 	}
 
-	public void castVote(UUID voterId, UUID foodEntryId, boolean isUpvote) {
+	public void castVote(UUID voterId, UUID foodEntryId, Boolean isUpvote) {
 		FoodEntry entry = foodEntryRepo.findById(foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
@@ -139,17 +150,29 @@ public class FoodEntryService {
 			throw new RuntimeException("Cannot vote on your own entry");
 		}
 
-		// UK constraint check: one vote per (voter, entry)
-		if (foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId)) {
-			throw new RuntimeException("Already voted on this entry");
+		boolean existing = foodEntryVoteRepo.existsByVoterIdAndFoodEntryId(voterId, foodEntryId);
+
+		if (existing) {
+			// Delete the old vote (triggers count decrement)
+			foodEntryVoteRepo.deleteByVoterIdAndFoodEntryId(voterId, foodEntryId);
+
+			if (isUpvote != null) {
+				// Toggle: re-insert with new value (triggers count increment)
+				FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote)
+						.build();
+				foodEntryVoteRepo.save(vote);
+				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
+			} else {
+				// Retract: vote removed, publish event
+				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), false);
+			}
+		} else if (isUpvote != null) {
+			// New vote
+			FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
+			foodEntryVoteRepo.save(vote);
+			wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
 		}
-
-		// Save the vote
-		FoodEntryVote vote = FoodEntryVote.builder().voterId(voterId).foodEntry(entry).isUpvote(isUpvote).build();
-		foodEntryVoteRepo.save(vote);
-
-		// Publish event for WTF recalculation (affects entry owner)
-		wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), isUpvote);
+		// else: no existing vote and isUpvote is null → no-op
 	}
 
 	/**

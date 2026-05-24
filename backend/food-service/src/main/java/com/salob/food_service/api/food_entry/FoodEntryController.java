@@ -25,7 +25,7 @@ public class FoodEntryController {
 
 	@GetMapping("/historical-data/{foodEntryId}")
 	public ResponseEntity<FoodEntryHistoricalDTO> getFoodEntryHistoricalData(@Valid @PathVariable UUID foodEntryId,
-			@Valid @RequestParam Instant startDate) {
+			@Valid @RequestParam Instant startDate, @RequestHeader(value = "X-User-Id", required = false) UUID userId) {
 		// startDate cannot be in the future
 		if (startDate.isAfter(Instant.now())) {
 			return ResponseEntity.badRequest().build();
@@ -36,7 +36,7 @@ public class FoodEntryController {
 		Instant clampedStartDate = startDate.isBefore(oneYearAgo) ? oneYearAgo : startDate;
 
 		FoodEntryHistoricalDTO foodEntryDetailed = foodEntryService.getFoodEntryHistoricalData(foodEntryId,
-				clampedStartDate);
+				clampedStartDate, userId);
 		return ResponseEntity.ok(foodEntryDetailed);
 	}
 

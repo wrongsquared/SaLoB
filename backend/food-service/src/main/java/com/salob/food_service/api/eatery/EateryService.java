@@ -9,6 +9,7 @@ import com.salob.food_service.api._domain.EateryClosureFlag;
 import com.salob.food_service.api._domain.EateryType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
 import com.salob.food_service.api.eatery.dto.EateryMapDTO;
 import com.salob.food_service.api.eatery_type.EateryTypeRepository;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.api._exceptions.EateryNotFoundException;
 import com.salob.food_service.api._domain.FoodEntry;
 import com.salob.food_service.api.onemap.OneMapClient;
@@ -60,6 +62,7 @@ public class EateryService {
 	private final ConfidenceAlgorithm confidenceAlgorithm;
 	private final MinioStorageService minioStorageService;
 	private final OneMapClient oneMapClient;
+	private final FoodEntryVoteRepository foodEntryVoteRepo;
 	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
 	public Eatery findById(UUID id) {
@@ -137,11 +140,19 @@ public class EateryService {
 	 * entries for "chicken rice", but you want to show the one with the highest
 	 * confidence
 	 */
-	public EateryDetailedDTO getEateryDetailed(UUID eateryId) {
+	public EateryDetailedDTO getEateryDetailed(UUID eateryId, UUID userId) {
 		Eatery eatery = findById(eateryId);
 
-		// For each food served by the eatery, find the "best" food entry (the one with
-		// the highest confidence score).
+		// Fetch user's votes for this eatery's entries before building previews
+		Map<UUID, Boolean> userVotes = new HashMap<>();
+		if (userId != null) {
+			List<UUID> allEntryIds = eatery.getFoodEntries().stream().map(FoodEntry::getId).toList();
+			if (!allEntryIds.isEmpty()) {
+				foodEntryVoteRepo.findByVoterIdAndFoodEntryIdIn(userId, allEntryIds)
+						.forEach(v -> userVotes.put(v.getFoodEntry().getId(), v.isUpvote()));
+			}
+		}
+
 		Map<String, FoodEntryPreviewDTO> bestByFoodName = new LinkedHashMap<>();
 		Map<String, Double> bestConfidenceByFoodName = new LinkedHashMap<>();
 		for (FoodEntry foodEntry : eatery.getFoodEntries()) {
@@ -155,7 +166,8 @@ public class EateryService {
 								foodEntry.getUpvoteCount(), foodEntry.getDownvoteCount(),
 								minioStorageService.getPresignedUrl(foodEntry.getFood().getPhotoObjKey(),
 										Duration.ofMinutes(30)),
-								foodEntry.getSubmitterId(), null, foodEntry.getCreatedAt()));
+								foodEntry.getSubmitterId(), null, foodEntry.getCreatedAt(),
+								userVotes.get(foodEntry.getId())));
 			}
 		}
 

@@ -45,16 +45,20 @@ export const QK = {
     AUTH_ME: ["auth", "me"],
 } as const;
 
+function userSuffix(): string | null {
+    return useAuthStore.getState().user?.id ?? null
+}
+
 export const qk = {
     eateryWithinBounds: (b: Bounds | null) => [...QK.EATERIES_WITHIN_BOUNDS, roundBounds(b)] as const,
-    eateryDetail: (id: string | null) => [...QK.EATERIES_DETAIL, id] as const,
+    eateryDetail: (id: string | null) => [...QK.EATERIES_DETAIL, id, userSuffix()] as const,
     eaterySearch: (q: string) => [...QK.EATERIES_SEARCH, q] as const,
     eaterySearchCombined: (q: string) => [...QK.EATERIES_SEARCH_COMBINED, q] as const,
     eateryAllDetails: (b: Bounds | null) => ["eateries", "all-details", roundBounds(b)] as const,
     foodSearch: (q: string) => [...QK.FOODS_SEARCH, q] as const,
     foodEntryWithinBounds: (b: Bounds | null) => [...QK.FOOD_ENTRIES_WITHIN_BOUNDS, roundBounds(b)] as const,
     foodEntryDetail: (id: string | null) => [...QK.FOOD_ENTRIES_DETAIL, id] as const,
-    foodEntryHistorical: (id: string | null) => [...QK.FOOD_ENTRIES_HISTORICAL, id] as const,
+    foodEntryHistorical: (id: string | null) => [...QK.FOOD_ENTRIES_HISTORICAL, id, userSuffix()] as const,
 };
 
 // ── Eateries ────────────────────────────────────────────────
@@ -281,6 +285,26 @@ export function useCreateEatery() {
             queryClient.invalidateQueries({ queryKey: QK.EATERIES_SEARCH_COMBINED });
         },
     });
+}
+
+export function useVote() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      foodEntryId,
+      isUpvote,
+    }: {
+      foodEntryId: string
+      isUpvote: boolean | null
+    }) => {
+      await apiClient.post(`/food-entries/${foodEntryId}/vote`, { isUpvote })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QK.EATERIES_DETAIL })
+      queryClient.invalidateQueries({ queryKey: QK.FOOD_ENTRIES_HISTORICAL })
+    },
+  })
 }
 
 export function useReportEateryClosed() {

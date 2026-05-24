@@ -27,7 +27,15 @@ const FOOD_DB = [
 ]
 
 const reportedEateries = new Set<string>()
+const userVotes = new Map<string, boolean | null>() // foodEntryId → currentUserVote (for MOCK_USER_ID)
 let nextFoodId = 6
+
+function addCurrentUserVote(previews: typeof FOOD_PREVIEWS) {
+  return previews.map((p) => ({
+    ...p,
+    currentUserVote: userVotes.get(p.foodEntryId) ?? null,
+  }))
+}
 
 export const handlers = [
   http.get("/api/eateries/within-bounds", async ({ request }) => {
@@ -67,7 +75,7 @@ export const handlers = [
       address: "1 Example St, Singapore",
       typeLabel: eatery.typeLabel,
       photoUrl: `/mock/eatery-${eatery.eateryId}.jpg`,
-      foodPreviews: FOOD_PREVIEWS.slice(0, 3),
+      foodPreviews: addCurrentUserVote(FOOD_PREVIEWS.slice(0, 3)),
     })
   }),
 
@@ -100,7 +108,7 @@ export const handlers = [
         { date: "2026-04-28", sgCents: 460, confidence: 62.3, entryCount: 2 },
         { date: "2026-05-01", sgCents: entry.sgCents, confidence: 80.0, entryCount: 1 },
       ],
-      communityEntries: [entry],
+      communityEntries: [entry].map((e) => ({ ...e, currentUserVote: userVotes.get(e.foodEntryId) ?? null })),
       consensusEntry: {
         foodEntryId: entry.foodEntryId,
         foodPhotoPresignedUrl: entry.photoPresignedUrl,
@@ -249,5 +257,17 @@ export const handlers = [
       roles: ["CONTRIBUTOR"],
       avatarUrl: "/mock/avatar.jpg",
     })
+  }),
+
+  http.post("/api/food-entries/:foodEntryId/vote", async ({ params, request }) => {
+    await delay(30)
+    const foodEntryId = params.foodEntryId as string
+    const body = (await request.json()) as { isUpvote: boolean | null }
+    if (body.isUpvote === null) {
+      userVotes.delete(foodEntryId)
+    } else {
+      userVotes.set(foodEntryId, body.isUpvote)
+    }
+    return new HttpResponse(null, { status: 200 })
   }),
 ]
