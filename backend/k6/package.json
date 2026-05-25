@@ -28,5 +28,8 @@
     "load-test:staged": "TEST_MODE=staged npm run load-test",
     "load-test:rps": "TEST_MODE=rps npm run load-test",
     "bundle": "webpack"
+  },
+  "dependencies": {
+    "http-status-codes": "^2.3.0"
   }
 }

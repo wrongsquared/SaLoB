@@ -1,4 +1,6 @@
 import { generateRandomCoordBounds, getRandomWeightedItem, randomFromArray, randFloat, CoordBounds } from "./utils";
+import { EATERY_SEARCH_TERMS, FOOD_SEARCH_TERMS, USER_EMAILS, USER_PASSWORD } from "./constants";
+import { StatusCodes } from "http-status-codes";
 import type { RefinedResponse } from "k6/http";
 import { check, sleep } from "k6";
 import http from "k6/http";
@@ -9,85 +11,192 @@ type EateryMapItem = {
     eateryId: string;
 };
 
-type FoodEntryMapItem = {
-    foodEntryId: string;
-};
-
 type FoodPreview = {
     foodEntryId: string;
 };
 
-enum MODE {
+type UserSession = {
+    email: string;
+    jwt: string;
+};
+
+enum Mode {
     EATERY,
     FOOD,
 }
 
-enum StateName {
-    INITIAL = "initial",
-    PANNING = "panning",
-    SEARCH = "search",
-    VIEW_EATERY_DETAIL = "view_eatery_detail",
-    VIEW_HISTORICAL_DATA = "view_historical_data",
-    PAUSE = "pause",
-    EXIT = "exit",
-}
-//======================================================================================================
-class SharedContext {
-    public startedBrowsingAt: number;
-    public lastEateryIds: string[];
-    public lastFoodEntryIds: string[];
-    public prevState: StateName = StateName.INITIAL;
+const USE_SHARED_LOGIN = __ENV.SHARED_LOGIN === "true";
+const SHARED_LOGIN_EMAIL = __ENV.SHARED_LOGIN_EMAIL ?? USER_EMAILS[0];
 
-    constructor() {
-        this.startedBrowsingAt = Date.now();
-        this.lastEateryIds = [];
-        this.lastFoodEntryIds = [];
+const pickLoginEmail = (): string => {
+    if (USE_SHARED_LOGIN) {
+        return SHARED_LOGIN_EMAIL;
+    }
+    return randomFromArray(USER_EMAILS) ?? SHARED_LOGIN_EMAIL;
+};
+
+const pickRandomMode = (): Mode => (Math.random() < 0.5 ? Mode.EATERY : Mode.FOOD);
+
+const pickVoteValue = (): boolean | null => {
+    const roll = Math.random();
+    if (roll < 0.45) {
+        return true;
+    }
+    if (roll < 0.9) {
+        return false;
+    }
+    return null;
+};
+//======================================================================================================
+abstract class State {
+    _transitionTo: State | null = null;
+
+    abstract onEnter(): void;
+    abstract onRun(): void;
+
+    transitionTo(): State | null {
+        return this._transitionTo;
+    }
+}
+
+abstract class SessionState extends State {
+    protected readonly session: UserSession;
+
+    constructor(session: UserSession) {
+        super();
+        this.session = session;
+    }
+}
+
+class InitialState extends State {
+    override onEnter(): void {}
+    override onRun(): void {
+        this._transitionTo = new LoginState();
+    }
+}
+
+class LoginState extends State {
+    override onEnter(): void {
+        const email = pickLoginEmail();
+        const payload = JSON.stringify({ usernameOrEmail: email, password: USER_PASSWORD });
+        const res = http.post(`${API_BASE_URL}/api/auth/login`, payload, {
+            headers: { "Content-Type": "application/json" },
+            tags: { name: "/api/auth/login" },
+        });
+
+        const ok = check(res, { "auth login 200": (r) => r.status === StatusCodes.OK });
+        if (!ok) {
+            this._transitionTo = new LoginState();
+            sleep(1);
+            return;
+        }
+
+        const data = res.json() as { jwt?: string };
+        if (!data.jwt) {
+            this._transitionTo = new LoginState();
+            sleep(1);
+            return;
+        }
+
+        const session: UserSession = { email, jwt: data.jwt };
+        this._transitionTo =
+            pickRandomMode() === Mode.EATERY ? new EateryPanningState(session) : new FoodPanningState(session);
     }
 
-    updateEateryIdsFromResponse(res: RefinedResponse<"text">): void {
-        if (res.status !== 200) {
+    override onRun(): void {}
+}
+
+class ExitState extends State {
+    override onEnter(): void {}
+    override onRun(): void {}
+}
+//======================================================================================================
+class PauseState extends SessionState {
+    static readonly PAUSE_DURATION_SECONDS = { min: 1.0, max: 3.0 };
+
+    override onEnter(): void {
+        this._transitionTo =
+            pickRandomMode() === Mode.EATERY
+                ? new EateryPanningState(this.session)
+                : new FoodPanningState(this.session);
+
+        const desiredPauseDurationSeconds = randFloat(
+            PauseState.PAUSE_DURATION_SECONDS.min,
+            PauseState.PAUSE_DURATION_SECONDS.max,
+        );
+        sleep(desiredPauseDurationSeconds);
+    }
+    override onRun(): void {}
+}
+
+class EateryPanningState extends SessionState {
+    static readonly TAG_EATERY_QUERY = "/api/eateries/within-bounds";
+    static readonly QUERY_DEBOUNCE_TIME_SECONDS = 0.3;
+    static readonly PANNING_DURATION_SECONDS = { min: 3.0, max: 15.0 };
+
+    private startedPanningAt = 0;
+    private desiredPanDurationSeconds = 0;
+    private lastEateryIds: string[] = [];
+
+    override onEnter(): void {
+        this.startedPanningAt = Date.now();
+        this.desiredPanDurationSeconds = randFloat(
+            EateryPanningState.PANNING_DURATION_SECONDS.min,
+            EateryPanningState.PANNING_DURATION_SECONDS.max,
+        );
+    }
+
+    override onRun(): void {
+        const timeElapsedSeconds = (Date.now() - this.startedPanningAt) / 1000;
+        if (timeElapsedSeconds >= this.desiredPanDurationSeconds) {
+            const choices: { item: State; weight: number }[] = [
+                { item: new PauseState(this.session), weight: 0.3 },
+                { item: new EaterySearchState(this.session), weight: 0.4 },
+                { item: new FoodPanningState(this.session), weight: 0.1 },
+            ];
+
+            const eateryId = randomFromArray(this.lastEateryIds);
+            if (eateryId) {
+                choices.push({
+                    item: new ViewEateryDetailState(this.session, eateryId, this.lastEateryIds),
+                    weight: 0.2,
+                });
+            }
+
+            const nextState = getRandomWeightedItem(choices);
+            this._transitionTo = nextState ?? new PauseState(this.session);
             return;
         }
-        const data = res.json() as unknown;
-        if (!Array.isArray(data)) {
-            return;
-        }
-        const ids = data.filter((item) => this.isEateryMapItem(item)).map((item) => item.eateryId);
+
+        const bounds = generateRandomCoordBounds();
+        const refreshRes = this.fetchEateriesWithinBounds(bounds);
+        check(refreshRes, { "eateries | within-bounds 200": (r) => r.status === StatusCodes.OK });
+
+        const ids = this.extractEateryIds(refreshRes);
         if (ids.length > 0) {
             this.lastEateryIds = ids;
         }
+
+        sleep(EateryPanningState.QUERY_DEBOUNCE_TIME_SECONDS);
     }
 
-    updateFoodEntryIdsFromMapResponse(res: RefinedResponse<"text">): void {
-        if (res.status !== 200) {
-            return;
+    private fetchEateriesWithinBounds(bounds: CoordBounds): RefinedResponse<"text"> {
+        const url =
+            `${API_BASE_URL}/api/eateries/within-bounds?` +
+            `minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLon=${bounds.minLon}&maxLon=${bounds.maxLon}`;
+
+        return http.get(url, { tags: { name: EateryPanningState.TAG_EATERY_QUERY } }) as RefinedResponse<"text">;
+    }
+
+    private extractEateryIds(res: RefinedResponse<"text">): string[] {
+        if (res.status !== StatusCodes.OK) {
+            return [];
         }
         const data = res.json() as unknown;
         if (!Array.isArray(data)) {
-            return;
+            return [];
         }
-        const ids = data.filter((item) => this.isFoodEntryMapItem(item)).map((item) => item.foodEntryId);
-        if (ids.length > 0) {
-            this.lastFoodEntryIds = ids;
-        }
-    }
-
-    updateFoodEntryIdsFromEateryDetail(res: RefinedResponse<"text">): void {
-        if (res.status !== 200) {
-            return;
-        }
-        const data = res.json() as unknown;
-        if (typeof data !== "object" || data === null) {
-            return;
-        }
-        const candidate = data as { foodPreviews?: unknown };
-        if (!Array.isArray(candidate.foodPreviews)) {
-            return;
-        }
-        const ids = candidate.foodPreviews.filter((item) => this.isFoodPreview(item)).map((item) => item.foodEntryId);
-        if (ids.length > 0) {
-            this.lastFoodEntryIds = ids;
-        }
+        return data.filter((item) => this.isEateryMapItem(item)).map((item) => item.eateryId);
     }
 
     private isEateryMapItem(value: unknown): value is EateryMapItem {
@@ -97,13 +206,208 @@ class SharedContext {
         const candidate = value as { eateryId?: unknown };
         return typeof candidate.eateryId === "string";
     }
+}
 
-    private isFoodEntryMapItem(value: unknown): value is FoodEntryMapItem {
-        if (typeof value !== "object" || value === null) {
-            return false;
+class FoodPanningState extends SessionState {
+    static readonly TAG_FOOD_QUERY = "/api/food-entries/within-bounds";
+    static readonly QUERY_DEBOUNCE_TIME_SECONDS = 0.3;
+    static readonly PANNING_DURATION_SECONDS = { min: 3.0, max: 15.0 };
+
+    private startedPanningAt = 0;
+    private desiredPanDurationSeconds = 0;
+
+    override onEnter(): void {
+        this.startedPanningAt = Date.now();
+        this.desiredPanDurationSeconds = randFloat(
+            FoodPanningState.PANNING_DURATION_SECONDS.min,
+            FoodPanningState.PANNING_DURATION_SECONDS.max,
+        );
+    }
+
+    override onRun(): void {
+        const timeElapsedSeconds = (Date.now() - this.startedPanningAt) / 1000;
+        if (timeElapsedSeconds >= this.desiredPanDurationSeconds) {
+            const nextState = getRandomWeightedItem<State>([
+                { item: new PauseState(this.session), weight: 0.45 },
+                { item: new FoodSearchState(this.session), weight: 0.35 },
+                { item: new EateryPanningState(this.session), weight: 0.2 },
+            ]);
+            this._transitionTo = nextState ?? new PauseState(this.session);
+            return;
         }
-        const candidate = value as { foodEntryId?: unknown };
-        return typeof candidate.foodEntryId === "string";
+
+        const bounds = generateRandomCoordBounds();
+        const refreshRes = this.fetchFoodEntriesWithinBounds(bounds);
+        check(refreshRes, { "food-entries | within-bounds 200": (r) => r.status === StatusCodes.OK });
+
+        sleep(FoodPanningState.QUERY_DEBOUNCE_TIME_SECONDS);
+    }
+
+    private fetchFoodEntriesWithinBounds(bounds: CoordBounds): RefinedResponse<"text"> {
+        const url =
+            `${API_BASE_URL}/api/food-entries/within-bounds?` +
+            `minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLon=${bounds.minLon}&maxLon=${bounds.maxLon}`;
+
+        return http.get(url, { tags: { name: FoodPanningState.TAG_FOOD_QUERY } }) as RefinedResponse<"text">;
+    }
+}
+
+class EaterySearchState extends SessionState {
+    static readonly SEARCH_KEYSTROKE_DELAY_SECONDS = 0.1;
+
+    private searchTerm = "Maxwell Food Centre";
+
+    override onEnter(): void {
+        this.searchTerm = randomFromArray(EATERY_SEARCH_TERMS) ?? "Maxwell Food Centre";
+    }
+
+    override onRun(): void {
+        for (let i = 1; i <= this.searchTerm.length; i += 1) {
+            const query = this.searchTerm.slice(0, i);
+            const searchRes = this.fetchSearch(query);
+            check(searchRes, {
+                "search eateries 200/204": (r) => r.status === StatusCodes.OK || r.status === StatusCodes.NO_CONTENT,
+            });
+            sleep(EaterySearchState.SEARCH_KEYSTROKE_DELAY_SECONDS);
+        }
+        this._transitionTo = new PauseState(this.session);
+    }
+
+    private fetchSearch(query: string): RefinedResponse<"text"> {
+        const url = `${API_BASE_URL}/api/eateries/search?search=${encodeURIComponent(query)}`;
+        return http.get(url, { tags: { name: "/api/eateries/search" } }) as RefinedResponse<"text">;
+    }
+}
+
+class FoodSearchState extends SessionState {
+    static readonly SEARCH_KEYSTROKE_DELAY_SECONDS = 0.1;
+
+    private searchTerm = "Chicken Rice";
+
+    override onEnter(): void {
+        this.searchTerm = randomFromArray(FOOD_SEARCH_TERMS) ?? "Chicken Rice";
+    }
+
+    override onRun(): void {
+        for (let i = 1; i <= this.searchTerm.length; i += 1) {
+            const query = this.searchTerm.slice(0, i);
+            const searchRes = this.fetchSearch(query);
+            check(searchRes, {
+                "search foods 200/204": (r) => r.status === StatusCodes.OK || r.status === StatusCodes.NO_CONTENT,
+            });
+            sleep(FoodSearchState.SEARCH_KEYSTROKE_DELAY_SECONDS);
+        }
+        this._transitionTo = new PauseState(this.session);
+    }
+
+    private fetchSearch(query: string): RefinedResponse<"text"> {
+        const url = `${API_BASE_URL}/api/foods/search?search=${encodeURIComponent(query)}`;
+        return http.get(url, { tags: { name: "/api/foods/search" } }) as RefinedResponse<"text">;
+    }
+}
+
+class ViewEateryDetailState extends SessionState {
+    static readonly TAG_EATERY_DETAIL = "/api/eateries/:eateryId";
+    static readonly DETAIL_VIEW_SECONDS = { min: 5.0, max: 12.0 };
+    static readonly DETAIL_TO_HISTORICAL_WEIGHT = 0.2;
+    static readonly DETAIL_TO_VOTE_WEIGHT = 0; // TODO
+
+    private readonly eateryId: string;
+    private readonly availableEateryIds: string[];
+
+    constructor(session: UserSession, eateryId: string, availableEateryIds: string[]) {
+        super(session);
+        this.eateryId = eateryId;
+        this.availableEateryIds = availableEateryIds;
+    }
+
+    override onEnter(): void {
+        if (!this.eateryId) {
+            this._transitionTo = this.buildFallbackState();
+            sleep(1);
+            return;
+        }
+
+        const detailRes = this.fetchEateryDetail(this.eateryId);
+        const ok = check(detailRes, { "view eatery panel 200": (r) => r.status === StatusCodes.OK });
+        if (!ok) {
+            this._transitionTo = this.buildFallbackState();
+            sleep(1);
+            return;
+        }
+
+        const foodEntryIds = this.extractFoodEntryIds(detailRes);
+        this._transitionTo = this.buildNextState(foodEntryIds);
+        sleep(randFloat(ViewEateryDetailState.DETAIL_VIEW_SECONDS.min, ViewEateryDetailState.DETAIL_VIEW_SECONDS.max));
+    }
+
+    override onRun(): void {}
+
+    private buildNextState(foodEntryIds: string[]): State {
+        const choices: { item: State; weight: number }[] = [
+            { item: new EateryPanningState(this.session), weight: 0.55 },
+        ];
+
+        const anotherEateryId = this.pickAnotherEateryId();
+        if (anotherEateryId) {
+            choices.push({
+                item: new ViewEateryDetailState(this.session, anotherEateryId, this.availableEateryIds),
+                weight: 0.2,
+            });
+        }
+
+        const historicalId = randomFromArray(foodEntryIds);
+        if (historicalId) {
+            choices.push({
+                item: new ViewHistoricalDataState(this.session, historicalId, foodEntryIds),
+                weight: ViewEateryDetailState.DETAIL_TO_HISTORICAL_WEIGHT,
+            });
+            choices.push({
+                item: new VoteState(this.session, historicalId, new PauseState(this.session)),
+                weight: ViewEateryDetailState.DETAIL_TO_VOTE_WEIGHT,
+            });
+        }
+
+        return getRandomWeightedItem(choices) ?? new EateryPanningState(this.session);
+    }
+
+    private buildFallbackState(): State {
+        const nextState = getRandomWeightedItem<State>([
+            { item: new EateryPanningState(this.session), weight: 0.4 },
+            { item: new FoodPanningState(this.session), weight: 0.2 },
+            { item: new PauseState(this.session), weight: 0.2 },
+            { item: new EaterySearchState(this.session), weight: 0.1 },
+            { item: new FoodSearchState(this.session), weight: 0.1 },
+        ]);
+        return nextState ?? new PauseState(this.session);
+    }
+
+    private pickAnotherEateryId(): string | null {
+        if (this.availableEateryIds.length <= 1) {
+            return null;
+        }
+        const candidates = this.availableEateryIds.filter((id) => id !== this.eateryId);
+        return randomFromArray(candidates);
+    }
+
+    private fetchEateryDetail(eateryId: string): RefinedResponse<"text"> {
+        const url = `${API_BASE_URL}/api/eateries/${eateryId}`;
+        return http.get(url, { tags: { name: ViewEateryDetailState.TAG_EATERY_DETAIL } }) as RefinedResponse<"text">;
+    }
+
+    private extractFoodEntryIds(res: RefinedResponse<"text">): string[] {
+        if (res.status !== StatusCodes.OK) {
+            return [];
+        }
+        const data = res.json() as unknown;
+        if (typeof data !== "object" || data === null) {
+            return [];
+        }
+        const candidate = data as { foodPreviews?: unknown };
+        if (!Array.isArray(candidate.foodPreviews)) {
+            return [];
+        }
+        return candidate.foodPreviews.filter((item) => this.isFoodPreview(item)).map((item) => item.foodEntryId);
     }
 
     private isFoodPreview(value: unknown): value is FoodPreview {
@@ -115,254 +419,38 @@ class SharedContext {
     }
 }
 
-abstract class State {
-    _ctx: SharedContext;
-    _transitionTo: State | null = null;
-
-    constructor(ctx: SharedContext) {
-        this._ctx = ctx;
-    }
-    abstract onEnter(): void;
-    abstract onRun(): void;
-    abstract getName(): StateName;
-    transitionTo(): State | null {
-        return this._transitionTo;
-    }
-}
-
-class InitialState extends State {
-    constructor(ctx: SharedContext) {
-        super(ctx);
-    }
-    override onEnter(): void {}
-    override onRun(): void {
-        this._transitionTo = new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD);
-    }
-    override getName(): StateName {
-        return StateName.INITIAL;
-    }
-}
-
-class ExitState extends State {
-    constructor(ctx: SharedContext) {
-        super(ctx);
-    }
-    override onEnter(): void {}
-    override onRun(): void {}
-    override getName(): StateName {
-        return StateName.EXIT;
-    }
-}
-//======================================================================================================
-class PauseState extends State {
-    static readonly PAUSE_DURATION_SECONDS = { min: 1.0, max: 3.0 };
-
-    constructor(ctx: SharedContext) {
-        super(ctx);
-    }
-    override onEnter(): void {
-        this._transitionTo = new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD);
-
-        const desiredPauseDurationSeconds = randFloat(
-            PauseState.PAUSE_DURATION_SECONDS.min,
-            PauseState.PAUSE_DURATION_SECONDS.max,
-        );
-        sleep(desiredPauseDurationSeconds);
-    }
-    override onRun(): void {}
-    override getName(): StateName {
-        return StateName.PAUSE;
-    }
-}
-
-class PanningState extends State {
-    static readonly TAG_EATERY_QUERY = "/api/eateries/within-bounds";
-    static readonly TAG_FOOD_QUERY = "/api/food-entries/within-bounds";
-
-    // In the frontend, while the user is panning, we debounce the query to avoid sending too many requests.
-    static readonly QUERY_DEBOUNCE_TIME_SECONDS = 0.3;
-    static readonly PANNING_DURATION_SECONDS = { min: 3.0, max: 15.0 };
-
-    _startedPanningAt: number = 0;
-    _desiredPanDurationSeconds: number = 0;
-    _panMode: MODE = MODE.EATERY;
-
-    constructor(ctx: SharedContext, panMode: MODE) {
-        super(ctx);
-        this._panMode = panMode;
-    }
-    override onEnter(): void {
-        this._startedPanningAt = Date.now();
-        this._desiredPanDurationSeconds = randFloat(
-            PanningState.PANNING_DURATION_SECONDS.min,
-            PanningState.PANNING_DURATION_SECONDS.max,
-        );
-    }
-    override onRun(): void {
-        const timeElapsedSeconds = (Date.now() - this._startedPanningAt) / 1000;
-        if (timeElapsedSeconds >= this._desiredPanDurationSeconds) {
-            const nextState = getRandomWeightedItem<State>([
-                { item: new PauseState(this._ctx), weight: 0.3 },
-                { item: new SearchState(this._ctx), weight: 0.4 },
-                { item: new ViewEateryDetailState(this._ctx), weight: 0.3 },
-            ]);
-            this._transitionTo = nextState ?? new PauseState(this._ctx);
-            return;
-        }
-
-        const bounds = generateRandomCoordBounds();
-        if (this._panMode == MODE.EATERY) {
-            const refreshRes = this.fetchEateriesWithinBounds(bounds);
-            check(refreshRes, { "eateries | within-bounds 200": (r) => r.status === 200 });
-            this._ctx.updateEateryIdsFromResponse(refreshRes);
-        } else {
-            const refreshRes = this.fetchFoodEntriesWithinBounds(bounds);
-            check(refreshRes, { "food-entries | within-bounds 200": (r) => r.status === 200 });
-            this._ctx.updateFoodEntryIdsFromMapResponse(refreshRes);
-        }
-        sleep(PanningState.QUERY_DEBOUNCE_TIME_SECONDS);
-    }
-    override getName(): StateName {
-        return StateName.PANNING;
-    }
-
-    fetchEateriesWithinBounds(bounds: CoordBounds): RefinedResponse<"text"> {
-        const url =
-            `${API_BASE_URL}/api/eateries/within-bounds?` +
-            `minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLon=${bounds.minLon}&maxLon=${bounds.maxLon}`;
-
-        return http.get(url, { tags: { name: PanningState.TAG_EATERY_QUERY } }) as RefinedResponse<"text">;
-    }
-
-    fetchFoodEntriesWithinBounds(bounds: CoordBounds): RefinedResponse<"text"> {
-        const url =
-            `${API_BASE_URL}/api/food-entries/within-bounds?` +
-            `minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLon=${bounds.minLon}&maxLon=${bounds.maxLon}`;
-
-        return http.get(url, { tags: { name: PanningState.TAG_FOOD_QUERY } }) as RefinedResponse<"text">;
-    }
-}
-
-class SearchState extends State {
-    static readonly SEARCH_KEYSTROKE_DELAY_SECONDS = 0.1;
-    static readonly SEARCH_TERMS = ["chicken", "nasi", "laksa", "prata", "mee", "kopi", "teh", "satay", "roti", "rice"];
-
-    _searchTerm: string = "rice";
-    _searchMode: MODE = MODE.EATERY;
-
-    constructor(ctx: SharedContext) {
-        super(ctx);
-    }
-    override onEnter(): void {
-        this._searchTerm = randomFromArray(SearchState.SEARCH_TERMS) ?? "rice";
-        this._searchMode = Math.random() < 0.5 ? MODE.EATERY : MODE.FOOD;
-    }
-    override onRun(): void {
-        for (let i = 1; i <= this._searchTerm.length; i += 1) {
-            const query = this._searchTerm.slice(0, i);
-            const searchRes = this.fetchSearch(query, this._searchMode);
-            check(searchRes, { "search 2XX": (r) => r.status >= 200 && r.status < 300 });
-            sleep(SearchState.SEARCH_KEYSTROKE_DELAY_SECONDS);
-        }
-        this._transitionTo = new PauseState(this._ctx);
-    }
-    override getName(): StateName {
-        return StateName.SEARCH;
-    }
-
-    private fetchSearch(query: string, searchMode: MODE): RefinedResponse<"text"> {
-        const endpoint = searchMode == MODE.EATERY ? "eateries" : "foods";
-        const url = `${API_BASE_URL}/api/${endpoint}/search?search=${encodeURIComponent(query)}`;
-        const tagName = searchMode == MODE.EATERY ? "/api/eateries/search" : "/api/foods/search";
-        return http.get(url, { tags: { name: tagName } }) as RefinedResponse<"text">;
-    }
-}
-
-class ViewEateryDetailState extends State {
-    static readonly TAG_EATERY_DETAIL = "/api/eateries/:eateryId";
-    static readonly DETAIL_VIEW_SECONDS = { min: 5.0, max: 12.0 };
-    static readonly DETAIL_TO_HISTORICAL_PROB = 0.35;
-
-    constructor(ctx: SharedContext) {
-        super(ctx);
-    }
-    override onEnter(): void {
-        const eateryId = randomFromArray(this._ctx.lastEateryIds);
-        if (!eateryId) {
-            const nextState = getRandomWeightedItem<State>([
-                {
-                    item: new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD),
-                    weight: 0.6,
-                },
-                { item: new SearchState(this._ctx), weight: 0.4 },
-            ]);
-            this._transitionTo = nextState;
-            sleep(2);
-            return;
-        }
-
-        const detailRes = this.fetchEateryDetail(eateryId);
-        check(detailRes, { "view eatery panel 200": (r) => r.status === 200 });
-        this._ctx.updateFoodEntryIdsFromEateryDetail(detailRes);
-
-        const nextState = getRandomWeightedItem<State>([
-            {
-                item: new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD),
-                weight: 0.33333,
-            },
-            { item: new ViewEateryDetailState(this._ctx), weight: 0.33333 },
-            { item: new ViewHistoricalDataState(this._ctx), weight: 0.33333 },
-        ]);
-        this._transitionTo = nextState;
-        sleep(randFloat(ViewEateryDetailState.DETAIL_VIEW_SECONDS.min, ViewEateryDetailState.DETAIL_VIEW_SECONDS.max));
-    }
-    override onRun(): void {}
-    override getName(): StateName {
-        return StateName.VIEW_EATERY_DETAIL;
-    }
-
-    private fetchEateryDetail(eateryId: string): RefinedResponse<"text"> {
-        const url = `${API_BASE_URL}/api/eateries/${eateryId}`;
-        return http.get(url, { tags: { name: ViewEateryDetailState.TAG_EATERY_DETAIL } }) as RefinedResponse<"text">;
-    }
-}
-
-class ViewHistoricalDataState extends State {
+class ViewHistoricalDataState extends SessionState {
     static readonly TAG_HISTORICAL_DATA = "/api/food-entries/historical-data/:foodEntryId";
     static readonly HISTORICAL_VIEW_SECONDS = { min: 5.0, max: 12.0 };
     static readonly HISTORICAL_START_DAYS_AGO = 30;
     static readonly HISTORICAL_REPEAT_PROB = 0.35;
+    static readonly HISTORICAL_TO_VOTE_WEIGHT = 0.0; // TODO
 
-    constructor(ctx: SharedContext) {
-        super(ctx);
+    private readonly foodEntryId: string;
+    private readonly availableFoodEntryIds: string[];
+
+    constructor(session: UserSession, foodEntryId: string, availableFoodEntryIds: string[]) {
+        super(session);
+        this.foodEntryId = foodEntryId;
+        this.availableFoodEntryIds = availableFoodEntryIds;
     }
+
     override onEnter(): void {
-        const foodEntryId = randomFromArray(this._ctx.lastFoodEntryIds);
-        if (!foodEntryId) {
-            const nextState = getRandomWeightedItem<State>([
-                {
-                    item: new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD),
-                    weight: 0.6,
-                },
-                { item: new SearchState(this._ctx), weight: 0.4 },
-            ]);
-            this._transitionTo = nextState;
-            sleep(1.5);
+        if (!this.foodEntryId) {
+            this._transitionTo = this.buildFallbackState();
+            sleep(1);
             return;
         }
 
-        const historicalRes = this.fetchHistoricalFoodEntry(foodEntryId);
-        check(historicalRes, { "view historical data 200": (r) => r.status === 200 });
+        const historicalRes = this.fetchHistoricalFoodEntry(this.foodEntryId);
+        const ok = check(historicalRes, { "view historical data 200": (r) => r.status === StatusCodes.OK });
+        if (!ok) {
+            this._transitionTo = this.buildFallbackState();
+            sleep(1);
+            return;
+        }
 
-        const nextState = getRandomWeightedItem<State>([
-            {
-                item: new PanningState(this._ctx, randFloat(0, 1) < 0.5 ? MODE.EATERY : MODE.FOOD),
-                weight: 0.33333,
-            },
-            { item: new ViewEateryDetailState(this._ctx), weight: 0.33333 },
-            { item: new ViewHistoricalDataState(this._ctx), weight: 0.33333 },
-        ]);
-        this._transitionTo = nextState;
+        this._transitionTo = this.buildNextState();
         sleep(
             randFloat(
                 ViewHistoricalDataState.HISTORICAL_VIEW_SECONDS.min,
@@ -370,9 +458,54 @@ class ViewHistoricalDataState extends State {
             ),
         );
     }
+
     override onRun(): void {}
-    override getName(): StateName {
-        return StateName.VIEW_HISTORICAL_DATA;
+
+    private buildNextState(): State {
+        const choices: { item: State; weight: number }[] = [];
+
+        const shouldRepeat =
+            this.availableFoodEntryIds.length > 1 && Math.random() < ViewHistoricalDataState.HISTORICAL_REPEAT_PROB;
+        if (shouldRepeat) {
+            const nextId = this.pickAnotherFoodEntryId();
+            if (nextId) {
+                return new ViewHistoricalDataState(this.session, nextId, this.availableFoodEntryIds);
+            }
+        }
+
+        choices.push({
+            item:
+                pickRandomMode() === Mode.EATERY
+                    ? new EateryPanningState(this.session)
+                    : new FoodPanningState(this.session),
+            weight: 0.8,
+        });
+
+        choices.push({
+            item: new VoteState(this.session, this.foodEntryId, new PauseState(this.session)),
+            weight: ViewHistoricalDataState.HISTORICAL_TO_VOTE_WEIGHT,
+        });
+
+        return getRandomWeightedItem(choices) ?? new PauseState(this.session);
+    }
+
+    private buildFallbackState(): State {
+        const nextState = getRandomWeightedItem<State>([
+            { item: new EateryPanningState(this.session), weight: 0.4 },
+            { item: new FoodPanningState(this.session), weight: 0.2 },
+            { item: new PauseState(this.session), weight: 0.2 },
+            { item: new EaterySearchState(this.session), weight: 0.1 },
+            { item: new FoodSearchState(this.session), weight: 0.1 },
+        ]);
+        return nextState ?? new PauseState(this.session);
+    }
+
+    private pickAnotherFoodEntryId(): string | null {
+        if (this.availableFoodEntryIds.length <= 1) {
+            return null;
+        }
+        const candidates = this.availableFoodEntryIds.filter((id) => id !== this.foodEntryId);
+        return randomFromArray(candidates);
     }
 
     private fetchHistoricalFoodEntry(foodEntryId: string): RefinedResponse<"text"> {
@@ -382,13 +515,42 @@ class ViewHistoricalDataState extends State {
         const url = `${API_BASE_URL}/api/food-entries/historical-data/${foodEntryId}?startDate=${startDate}`;
         return http.get(url, {
             tags: { name: ViewHistoricalDataState.TAG_HISTORICAL_DATA },
+            headers: { Authorization: `Bearer ${this.session.jwt}` },
         }) as RefinedResponse<"text">;
     }
 }
+
+class VoteState extends SessionState {
+    static readonly TAG_VOTE = "/api/food-entries/:foodEntryId/vote";
+
+    private readonly foodEntryId: string;
+    private readonly nextState: State;
+
+    constructor(session: UserSession, foodEntryId: string, nextState: State) {
+        super(session);
+        this.foodEntryId = foodEntryId;
+        this.nextState = nextState;
+    }
+
+    override onEnter(): void {
+        const payload = JSON.stringify({ isUpvote: pickVoteValue() });
+        const res = http.post(`${API_BASE_URL}/api/food-entries/${this.foodEntryId}/vote`, payload, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${this.session.jwt}`,
+            },
+            tags: { name: VoteState.TAG_VOTE },
+        });
+
+        check(res, { "vote 200": (r) => r.status === StatusCodes.OK });
+        this._transitionTo = this.nextState;
+    }
+
+    override onRun(): void {}
+}
 //======================================================================================================
 const doRandomActivity = (): void => {
-    const ctx = new SharedContext();
-    let state: State = new InitialState(ctx);
+    let state: State = new InitialState();
 
     state.onEnter();
     while (!(state instanceof ExitState)) {
@@ -396,7 +558,6 @@ const doRandomActivity = (): void => {
 
         const nextState = state.transitionTo();
         if (nextState != null && nextState !== state) {
-            ctx.prevState = state.getName();
             state = nextState;
             state.onEnter();
         }

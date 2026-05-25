@@ -4,8 +4,8 @@ const TEST_MODE = __ENV.TEST_MODE ?? "quick";
 
 const quickScenario = {
     executor: "constant-vus",
-    vus: 10,
-    duration: "40s",
+    vus: 1,
+    duration: "15s",
     gracefulStop: "5s",
 };
 
@@ -14,8 +14,8 @@ const rpsScenario = {
     startRate: 0,
     timeUnit: "1s",
     stages: [
-        { target: 800, duration: "40s" },
-        { target: 1000, duration: "30s" },
+        { target: 800, duration: "50s" },
+        { target: 1000, duration: "40s" },
         { target: 1000, duration: "5m" },
         { target: 0, duration: "50s" },
     ],
@@ -26,11 +26,11 @@ const stagedScenario = {
     executor: "ramping-vus",
     startVUs: 0,
     stages: [
-        { target: 500, duration: "40s" },
-        { target: 500, duration: "1.5m" },
-        { target: 0, duration: "30s" },
+        { target: 1000, duration: "1m" },
+        { target: 1200, duration: "8m" },
+        { target: 0, duration: "40s" },
     ],
-    gracefulStop: "5s",
+    gracefulStop: "30s",
 };
 
 const selectedScenario = (() => {

@@ -7,14 +7,16 @@ export type CoordBounds = {
 };
 
 export const generateRandomCoordBounds = (): CoordBounds => {
-    const LAT_RANGE = 3.0;
-    const LON_RANGE = 5.0;
+    const MIN_LAT = 1.26;
+    const MAX_LAT = 1.45;
+    const MIN_LON = 103.7;
+    const MAX_LON = 104.0;
 
-    const minLat = 1.27 + Math.random() * LAT_RANGE;
-    const maxLat = minLat + Math.random() * LAT_RANGE;
+    const minLat = MIN_LAT + Math.random() * (MAX_LAT - MIN_LAT);
+    const maxLat = minLat + Math.random() * (MAX_LAT - minLat);
 
-    const minLon = 103.8 + Math.random() * LON_RANGE;
-    const maxLon = minLon + Math.random() * LON_RANGE;
+    const minLon = MIN_LON + Math.random() * (MAX_LON - MIN_LON);
+    const maxLon = minLon + Math.random() * (MAX_LON - minLon);
 
     return { minLat, maxLat, minLon, maxLon };
 };
