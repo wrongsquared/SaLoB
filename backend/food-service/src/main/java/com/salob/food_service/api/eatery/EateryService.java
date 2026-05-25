@@ -1,13 +1,23 @@
 package com.salob.food_service.api.eatery;
 
-import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
-import com.salob.food_service.api.eatery.dto.EaterySearchResultDTO;
-import com.salob.food_service.api.eatery.dto.OneMapEateryDTO;
-import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.api._domain.Eatery;
 import com.salob.food_service.api._domain.EateryClosureFlag;
 import com.salob.food_service.api._domain.EateryType;
-
+import com.salob.food_service.api._domain.FoodEntry;
+import com.salob.food_service.api._exceptions.EateryNotFoundException;
+import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
+import com.salob.food_service.api.eatery.dto.EateryMapDTO;
+import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
+import com.salob.food_service.api.eatery.dto.EaterySearchResultDTO;
+import com.salob.food_service.api.eatery.dto.OneMapEateryDTO;
+import com.salob.food_service.api.eatery_type.EateryTypeRepository;
+import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
+import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api.onemap.OneMapClient;
+import com.salob.food_service.api.onemap.dto.OneMapSearchResult;
+import com.salob.food_service.common.ConfidenceAlgorithm;
+import com.salob.food_service.storage.minio.MinioStorageService;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,17 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
-import com.salob.food_service.api.eatery.dto.EateryDetailedDTO;
-import com.salob.food_service.api.eatery.dto.EateryMapDTO;
-import com.salob.food_service.api.eatery_type.EateryTypeRepository;
-import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
-import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
-import com.salob.food_service.api._exceptions.EateryNotFoundException;
-import com.salob.food_service.api._domain.FoodEntry;
-import com.salob.food_service.api.onemap.OneMapClient;
-import com.salob.food_service.api.onemap.dto.OneMapSearchResult;
-import com.salob.food_service.storage.minio.MinioStorageService;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -37,9 +37,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.time.Duration;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for eatery business logic.
@@ -56,6 +53,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EateryService {
+
 	private final EateryRepository eateryRepo;
 	private final EateryClosureFlagRepository closureFlagRepo;
 	private final EateryTypeRepository eateryTypeRepo;
@@ -100,14 +98,15 @@ public class EateryService {
 	@Cacheable(value = "eateries_bbox", keyGenerator = "bboxKeyGenerator")
 	public List<EateryMapDTO> findEateriesWithinBounds(double minLat, double maxLat, double minLon, double maxLon) {
 		// This log only appears on CACHE MISS (method actually executes)
-		log.info("=== CACHE MISS ===");
-		log.info("Querying database for bbox=[{}, {}, {}, {}]", minLat, maxLat, minLon, maxLon);
+		// log.info("=== CACHE MISS ===");
+		// log.info("Querying database for bbox=[{}, {}, {}, {}]", minLat, maxLat,
+		// minLon, maxLon);
 
 		try {
 			// Query database for eateries within bounds
-			log.debug("Executing PostGIS query...");
+			// log.debug("Executing PostGIS query...");
 			List<Object[]> rows = eateryRepo.findWithinBoundingBox(minLat, maxLat, minLon, maxLon);
-			log.debug("Query returned {} rows", rows.size());
+			// log.debug("Query returned {} rows", rows.size());
 
 			// IMPORTANT: Use ArrayList (mutable), NOT .toList()
 			// (ImmutableCollections$ListN)
@@ -117,14 +116,13 @@ public class EateryService {
 				result.add(mapRowToDto(row));
 			}
 
-			log.info("Found {} eateries, about to cache result", result.size());
-			log.debug("Result type: {}, Result class: {}", result.getClass().getName(),
-					result.getClass().getSimpleName());
+			// log.info("Found {} eateries, about to cache result", result.size());
+			// log.debug("Result type: {}, Result class: {}", result.getClass().getName(),
+			// result.getClass().getSimpleName());
 
 			// Note: @Cacheable will now try to serialize this result
 			// If serialization fails, an exception will be thrown after this method returns
 			return result;
-
 		} catch (Exception e) {
 			log.error("ERROR in findEateriesWithinBounds", e);
 			throw e;

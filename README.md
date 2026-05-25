@@ -1,4 +1,4 @@
-# SaLoB — Singapore Local Food Price Intelligence Platform
+# SaLoB — SG Crowdsourced Price Intelligence Platform
 
 A crowdsourced platform tracking historical food price developments in Singapore. Users submit what they paid at hawker centres and eateries; a trust-weighted confidence algorithm computes consensus prices; everyone can see how prices trend over time.
 
