@@ -155,7 +155,7 @@ public class EateryService {
 		Map<String, Double> bestConfidenceByFoodName = new LinkedHashMap<>();
 		for (FoodEntry foodEntry : eatery.getFoodEntries()) {
 			String foodName = foodEntry.getFood().getLabel();
-			double confidence = confidenceAlgorithm.computeFinalConfidence(foodEntry);
+			double confidence = confidenceAlgorithm.getFinalConfidence(foodEntry);
 			Double currentBest = bestConfidenceByFoodName.get(foodName);
 			if (currentBest == null || confidence > currentBest) {
 				bestConfidenceByFoodName.put(foodName, confidence);

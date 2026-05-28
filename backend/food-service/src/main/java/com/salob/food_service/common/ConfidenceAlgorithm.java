@@ -10,6 +10,7 @@ import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -46,6 +47,11 @@ public class ConfidenceAlgorithm {
 
 	@GrpcClient("user-service")
 	private UserServiceGrpc.UserServiceBlockingStub userService;
+
+	@Cacheable(key = "#foodEntry.id", value = "foodEntry.confidence")
+	public double getFinalConfidence(FoodEntry foodEntry) {
+		return computeFinalConfidence(foodEntry);
+	}
 
 	public double computeFinalConfidence(FoodEntry foodEntry) {
 		List<FoodEntryVote> votes = foodEntry.getVotes();

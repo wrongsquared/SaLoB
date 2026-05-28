@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: ai-service
+  threads:
+    virtual:
+      enabled: true
+  config:
+    import: "optional:file:.env[.properties]"
+  ai:
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY}
+server:
+  port: ${APP_PORT}
+grpc:
+  client:
+    food-service:
+      address: ${FOOD_SERVICE_GRPC_ADDRESS}
+      negotiation-type: plaintext

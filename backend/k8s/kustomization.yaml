@@ -1,6 +1,8 @@
 resources:
   - ./api-gateway/deployment.yaml
   - ./api-gateway/service.yaml
+  - ./ai-service/deployment.yaml
+  - ./ai-service/service.yaml
   - ./food-service/deployment.yaml
   - ./food-service/service.yaml
   - ./user-service/deployment.yaml
@@ -11,6 +13,9 @@ secretGenerator:
   - name: api-gateway-secrets
     envs:
       - ./api-gateway/.env
+  - name: ai-service-secrets
+    envs:
+      - ./ai-service/.env
   - name: food-service-secrets
     envs:
       - ./food-service/.env

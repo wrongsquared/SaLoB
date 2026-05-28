@@ -31,8 +31,9 @@ server:
   port: ${APP_PORT}
 app:
   routing:
-    food-service: ${FOOD_SERVICE_URI}
     user-service: ${USER_SERVICE_URI}
+    food-service: ${FOOD_SERVICE_URI}
+    ai-service: ${AI_SERVICE_URI}
 management:
   endpoints:
     web:

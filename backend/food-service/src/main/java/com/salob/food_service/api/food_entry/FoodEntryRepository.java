@@ -17,6 +17,16 @@ public interface FoodEntryRepository extends JpaRepository<FoodEntry, UUID> {
 			Instant end);
 
 	@Query("""
+				SELECT DISTINCT fe
+				FROM FoodEntry fe
+				WHERE LOWER(fe.food.label) LIKE CONCAT('%', LOWER(:foodName), '%')
+				AND LOWER(fe.eatery.name) LIKE CONCAT('%', LOWER(:eateryName), '%')
+				ORDER BY fe.createdAt DESC
+			""")
+	List<FoodEntry> findByFoodNameAndEateryNameFuzzy(@Param("foodName") String foodName,
+			@Param("eateryName") String eateryName);
+
+	@Query("""
 			SELECT DISTINCT fe FROM FoodEntry fe
 			LEFT JOIN FETCH fe.votes
 			WHERE fe.food.id = :foodId

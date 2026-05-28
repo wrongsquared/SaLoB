@@ -17,6 +17,9 @@ public class GatewayRoutesConfig {
 	@Value("${app.routing.food-service}")
 	private String foodServiceUri;
 
+	@Value("${app.routing.ai-service}")
+	private String aiServiceUri;
+
 	@Bean
 	public RouteLocator customRouteLocator(RouteLocatorBuilder builder, RedisRateLimiter redisRateLimiter,
 			KeyResolver ipKeyResolver) {
@@ -29,6 +32,10 @@ public class GatewayRoutesConfig {
 						.filters(f -> f.requestRateLimiter(
 								config -> config.setRateLimiter(redisRateLimiter).setKeyResolver(ipKeyResolver)))
 						.uri(foodServiceUri))
+				.route("ai-service-route",
+						r -> r.path("/api/chat/**").filters(f -> f.requestRateLimiter(
+								config -> config.setRateLimiter(redisRateLimiter).setKeyResolver(ipKeyResolver)))
+								.uri(aiServiceUri))
 				.build();
 	}
 }

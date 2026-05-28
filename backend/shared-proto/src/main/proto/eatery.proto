@@ -16,6 +16,7 @@ message EateryResponse {
   double lon = 4;
 }
 
+//--------------------------------
 service EateryService {
   rpc GetEatery(EateryRequest) returns (EateryResponse);
 }
