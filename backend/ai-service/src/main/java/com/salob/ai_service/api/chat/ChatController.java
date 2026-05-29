@@ -1,29 +1,28 @@
 package com.salob.ai_service.api.chat;
 
+import com.salob.ai_service.api.chat.dto.ChatStreamRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
 public class ChatController {
-    private final ChatClient chatClient;
+	private final ChatService chatService;
 
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamChat(@RequestParam String message) {
-        var userMsg = new UserMessage(message);
-        var prompt = new Prompt(userMsg);
-
-        return chatClient.prompt(prompt)
-                .stream()
-                .content()
-                .doOnError(e -> log.error("Stream error", e));
-    }
+	@PostMapping(
+			value = "/stream",
+			consumes = MediaType.APPLICATION_JSON_VALUE,
+			produces = MediaType.TEXT_EVENT_STREAM_VALUE
+	)
+	public Flux<ServerSentEvent<String>> streamChat(@Valid @RequestBody ChatStreamRequest request) {
+		return chatService.streamChat(request);
+	}
 }
