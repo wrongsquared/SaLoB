@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -59,7 +60,9 @@ public class ChatService {
     }
 
     private List<ChatMessageDto> getTruncatedHistory(List<ChatMessageDto> history, int maxTotalContextChars) {
-        List<ChatMessageDto> effectiveHistory = history == null ? List.of() : history;
+        List<ChatMessageDto> effectiveHistory = new ArrayList<>(history == null ? List.of() : history);
+        Collections.reverse(effectiveHistory); // When iterating, newest first
+
         List<ChatMessageDto> truncatedHistory = new ArrayList<>();
 
         int remainingContextChars = maxTotalContextChars;

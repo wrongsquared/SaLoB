@@ -17,6 +17,22 @@ message EateryResponse {
 }
 
 //--------------------------------
+message NearbyEateriesRequest {
+  string location = 1;
+}
+
+message NearbyEatery {
+  string id = 1;
+  string name = 2;
+  string address = 3;
+}
+
+message NearbyEateriesResponse {
+  repeated NearbyEatery eateries = 1;
+}
+
+//--------------------------------
 service EateryService {
   rpc GetEatery(EateryRequest) returns (EateryResponse);
+  rpc GetNearbyEateries(NearbyEateriesRequest) returns (NearbyEateriesResponse);
 }

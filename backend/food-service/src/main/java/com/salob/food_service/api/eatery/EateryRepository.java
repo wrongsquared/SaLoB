@@ -17,10 +17,28 @@ public interface EateryRepository extends JpaRepository<Eatery, UUID> {
 	Optional<Eatery> findByName(String name);
 
 	@Query(value = """
-			SELECT e.id, e.name, e.address
-			FROM eateries e
-			WHERE e.name ILIKE %:search% OR e.address ILIKE %:search%
-			LIMIT 20 -- Hardcoded limit
+					SELECT e.id, e.name, e.address
+					FROM eateries e
+					WHERE ST_DWithin(
+					  e.location,
+					  ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
+					  :radiusMeters
+					)
+					AND e.is_open = TRUE
+					ORDER BY ST_Distance(
+					  e.location,
+					  ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)
+					)
+					LIMIT :k
+			""", nativeQuery = true)
+	List<Object[]> findNearestKEateriesWithinRadius(@Param("lat") double lat, @Param("lon") double lon,
+			@Param("radiusMeters") double radiusMeters, @Param("k") int k);
+
+	@Query(value = """
+				SELECT e.id, e.name, e.address
+				FROM eateries e
+				WHERE e.name ILIKE %:search% OR e.address ILIKE %:search%
+				LIMIT 20 -- Hardcoded limit
 			""", nativeQuery = true)
 	List<Object[]> findBySearchCaseInsensitive(String search);
 

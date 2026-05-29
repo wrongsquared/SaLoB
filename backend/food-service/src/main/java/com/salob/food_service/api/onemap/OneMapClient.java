@@ -1,6 +1,7 @@
 package com.salob.food_service.api.onemap;
 
 import com.salob.food_service.api.onemap.dto.OneMapSearchResponse;
+import com.salob.food_service.api.onemap.dto.OneMapSearchResult;
 import com.salob.food_service.api.onemap.dto.OneMapTokenResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -42,13 +44,16 @@ public class OneMapClient {
 	}
 
 	public double[] geocode(String address) {
+		log.info("Received request to geocode address {}", address);
 		OneMapSearchResponse response = search(address);
+		log.info("Geocode response {}", response);
 		if (response.results() == null || response.results().isEmpty()) {
 			throw new RuntimeException("OneMap geocode failed: no results for '" + address + "'");
 		}
 		try {
-			double lat = Double.parseDouble(response.results().getFirst().latitude());
-			double lon = Double.parseDouble(response.results().getFirst().longitude());
+			OneMapSearchResult firstResult = response.results().getFirst();
+			double lat = Double.parseDouble(firstResult.latitude());
+			double lon = Double.parseDouble(firstResult.longitude());
 			return new double[]{lat, lon};
 		} catch (NumberFormatException e) {
 			throw new RuntimeException("OneMap geocode returned invalid coordinates for '" + address + "'", e);
@@ -64,12 +69,10 @@ public class OneMapClient {
 	private void refreshToken() {
 		String url = properties.getApiUrl() + "/api/auth/post/getToken";
 
-		String body = "email=" + URLEncoder.encode(properties.getEmail(), StandardCharsets.UTF_8) + "&password="
-				+ URLEncoder.encode(properties.getPassword(), StandardCharsets.UTF_8);
+		Map<String, String> payload = Map.of("email", properties.getEmail(), "password", properties.getPassword());
 
-		OneMapTokenResponse tokenResponse = restClient.post().uri(url)
-				.contentType(MediaType.APPLICATION_FORM_URLENCODED).body(body).retrieve()
-				.body(OneMapTokenResponse.class);
+		OneMapTokenResponse tokenResponse = restClient.post().uri(url).contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON).body(payload).retrieve().body(OneMapTokenResponse.class);
 
 		if (tokenResponse == null || tokenResponse.accessToken() == null) {
 			throw new RuntimeException("Failed to obtain OneMap API token");

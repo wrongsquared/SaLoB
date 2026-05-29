@@ -67,6 +67,15 @@ public class EateryService {
 		return eateryRepo.findById(id).orElseThrow(() -> new EateryNotFoundException(id));
 	}
 
+	public List<EateryPreviewDTO> findNearestKEateriesWithinRadius(double lat, double lon, double radiusMeters, int k) {
+		return eateryRepo.findNearestKEateriesWithinRadius(lat, lon, radiusMeters, k).stream().map(row -> {
+			UUID eateryId = (UUID) row[0];
+			String name = (String) row[1];
+			String address = (String) row[2];
+			return new EateryPreviewDTO(eateryId, name, address);
+		}).toList();
+	}
+
 	/**
 	 * Find eateries within a bounding box, with intelligent caching.
 	 *
@@ -113,7 +122,7 @@ public class EateryService {
 			// Jackson can deserialize ArrayList but NOT internal immutable list types
 			List<EateryMapDTO> result = new ArrayList<>();
 			for (Object[] row : rows) {
-				result.add(mapRowToDto(row));
+				result.add(convertRowToEateryMapDto(row));
 			}
 
 			// log.info("Found {} eateries, about to cache result", result.size());
@@ -176,7 +185,7 @@ public class EateryService {
 
 	@Cacheable(key = "#search.toLowerCase()", value = "eateries_search")
 	public List<EateryPreviewDTO> searchForEateries(String search) {
-		return eateryRepo.findBySearchCaseInsensitive(search).stream().map(this::mapRowToPreviewDTO)
+		return eateryRepo.findBySearchCaseInsensitive(search).stream().map(this::convertRowToPreviewDto)
 				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
@@ -187,7 +196,7 @@ public class EateryService {
 		try {
 			var response = oneMapClient.search(search);
 			onemap = response.results() != null
-					? response.results().stream().map(this::mapOneMapResult).toList()
+					? response.results().stream().map(this::convertOneMapResultToDto).toList()
 					: List.of();
 		} catch (Exception e) {
 			log.warn("OneMap search failed for '{}': {}", search, e.getMessage());
@@ -245,7 +254,7 @@ public class EateryService {
 	 *            typeLabel, isClosed])
 	 * @return strongly-typed DTO
 	 */
-	private EateryMapDTO mapRowToDto(Object[] row) {
+	private EateryMapDTO convertRowToEateryMapDto(Object[] row) {
 		return new EateryMapDTO((UUID) row[0], // eateryId
 				(String) row[1], // foodName
 				((Number) row[2]).doubleValue(), // latitude (ST_Y as Double)
@@ -254,11 +263,11 @@ public class EateryService {
 		);
 	}
 
-	private EateryPreviewDTO mapRowToPreviewDTO(Object[] row) {
+	private EateryPreviewDTO convertRowToPreviewDto(Object[] row) {
 		return new EateryPreviewDTO((UUID) row[0], (String) row[1], (String) row[2]);
 	}
 
-	private OneMapEateryDTO mapOneMapResult(OneMapSearchResult result) {
+	private OneMapEateryDTO convertOneMapResultToDto(OneMapSearchResult result) {
 		return new OneMapEateryDTO(deriveName(result), result.address());
 	}
 
@@ -273,33 +282,4 @@ public class EateryService {
 		}
 		return result.address();
 	}
-
-	/**
-	 * When fetching 'food entries' from an eatery, there will be multiple food
-	 * entries of the same 'food' Naturally, you'd only want to see the "best" entry
-	 * for each food (the one with the highest confidence score).
-	 *
-	 * It's very expensive operation, so this method would check the cache first
-	 */
-	// @Cacheable(key = "#eateryId", value = "eatery_consensus_entries")
-	// private FoodEntry getConsensusEntriesForEatery(UUID eateryId) {
-	// log.info("=== CACHE MISS for consensus entries ===");
-	// Eatery eatery = findById(eateryId);
-	// FoodEntry consensusEntry = null;
-	// double highestConfidence = -1.0;
-	// for (FoodEntry entry : eatery.getFoodEntries()) {
-	// double confidence = getFoodEntryConfidence(entry);
-	// if (confidence > highestConfidence) {
-	// highestConfidence = confidence;
-	// consensusEntry = entry;
-	// }
-	// }
-	// return consensusEntry;
-	// }
-	//
-	// @Cacheable(key = "#foodEntry.id", value = "food_entry_confidence")
-	// private double getFoodEntryConfidence(FoodEntry foodEntry) {
-	// log.info("=== CACHE MISS for food entry confidence ===");
-	// return confidenceAlgorithm.computeFinalConfidence(foodEntry);
-	// }
 }
