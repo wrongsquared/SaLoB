@@ -159,7 +159,7 @@ public class FoodEntryService {
 
 			if (rowsAffected > 0) {
 				VoteType voteType = isUpvote ? VoteType.UPVOTE : VoteType.DOWNVOTE;
-				wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), voteType);
+				wtfEventPublisher.publishVoteCast(voterId, foodEntryId, voteProj.foodEntrySubmitterId(), voteType);
 			}
 			return;
 		}
@@ -168,7 +168,8 @@ public class FoodEntryService {
 			int rowsAffected = foodEntryVoteRepo.deleteVote(voterId, foodEntryId);
 			if (rowsAffected > 0) {
 				VoteType eventToPublish = voteProj.isUpvote() ? VoteType.UPVOTE_REMOVED : VoteType.DOWNVOTE_REMOVED;
-				wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), eventToPublish);
+				wtfEventPublisher.publishVoteCast(voterId, foodEntryId, voteProj.foodEntrySubmitterId(),
+						eventToPublish);
 			}
 			return;
 		}
@@ -177,7 +178,7 @@ public class FoodEntryService {
 
 		if (rowsAffected > 0) {
 			VoteType eventToPublish = isUpvote ? VoteType.DOWNVOTE_TO_UPVOTE : VoteType.UPVOTE_TO_DOWNVOTE;
-			wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), eventToPublish);
+			wtfEventPublisher.publishVoteCast(voterId, foodEntryId, voteProj.foodEntrySubmitterId(), eventToPublish);
 		}
 	}
 

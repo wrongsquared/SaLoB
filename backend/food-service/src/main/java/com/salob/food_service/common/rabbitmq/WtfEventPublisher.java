@@ -19,20 +19,19 @@ public class WtfEventPublisher {
 	private final RabbitTemplate rabbitTemplate;
 
 	public void publishEntryCreated(UUID submitterId) {
-		var event = new FoodEntrySubmittedEvent(UUID.randomUUID().toString(), submitterId.toString());
+		var event = new FoodEntrySubmittedEvent(UUID.randomUUID(), submitterId);
 		log.info("Publishing FoodEntrySubmittedEvent: eventId={}", event.eventId());
 		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_ENTRY_CREATED, event);
 	}
 
-	public void publishVoteCast(UUID voterId, UUID entryOwnerId, VoteType voteType) {
-		var event = new VoteEvent(UUID.randomUUID().toString(), voterId.toString(), entryOwnerId.toString(), voteType);
+	public void publishVoteCast(UUID voterId, UUID entryId, UUID entryOwnerId, VoteType voteType) {
+		var event = new VoteEvent(UUID.randomUUID(), voterId, entryId, entryOwnerId, voteType);
 		log.info("Publishing VoteEvent: eventId={}, voteType={}", event.eventId(), event.voteType());
 		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_VOTE_CAST, event);
 	}
 
 	public void publishFlagRaised(UUID flaggerId, UUID entryOwnerId) {
-		var event = new FoodEntryFlaggedEvent(UUID.randomUUID().toString(), flaggerId.toString(),
-				entryOwnerId.toString());
+		var event = new FoodEntryFlaggedEvent(UUID.randomUUID(), flaggerId, entryOwnerId);
 		log.info("Publishing FoodEntryFlaggedEvent: eventId={}", event.eventId());
 		rabbitTemplate.convertAndSend(RabbitMQConstants.EVENTS_EXCHANGE, RabbitMQConstants.RK_WTF_FLAG_RAISED, event);
 	}

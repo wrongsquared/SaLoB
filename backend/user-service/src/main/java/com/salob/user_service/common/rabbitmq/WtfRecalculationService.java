@@ -37,7 +37,7 @@ public class WtfRecalculationService {
 	@Transactional
 	@CacheEvict(value = "user_wtf", key = "#event.submitterIdOfEntryVotedOn()")
 	public void applyVote(VoteEvent event) {
-		UUID targetId = UUID.fromString(event.submitterIdOfEntryVotedOn());
+		UUID targetId = event.submitterIdOfEntryVotedOn();
 		User targetUser = userRepo.findById(targetId)
 				.orElseThrow(() -> new RuntimeException("Target user not found: " + targetId));
 
@@ -61,7 +61,7 @@ public class WtfRecalculationService {
 		log.info("WTF recalculated for user {}: {} (voteType={})", targetUser.getId(), targetUser.getWtfScore(),
 				event.voteType());
 
-		userRepo.findById(UUID.fromString(event.voterId())).ifPresent(actor -> {
+		userRepo.findById(event.voterId()).ifPresent(actor -> {
 			actor.setLastActivityAt(Instant.now());
 			userRepo.save(actor);
 		});
@@ -70,7 +70,7 @@ public class WtfRecalculationService {
 	@Transactional
 	@CacheEvict(value = "user_wtf", key = "#event.submitterId()")
 	public void applyEntrySubmitted(FoodEntrySubmittedEvent event) {
-		UUID submitterId = UUID.fromString(event.submitterId());
+		UUID submitterId = event.submitterId();
 		User user = userRepo.findById(submitterId)
 				.orElseThrow(() -> new RuntimeException("User not found: " + submitterId));
 
@@ -84,7 +84,7 @@ public class WtfRecalculationService {
 	@Transactional
 	@CacheEvict(value = "user_wtf", key = "#event.flaggedEntrySubmitterId()")
 	public void applyFlagRaised(FoodEntryFlaggedEvent event) {
-		UUID targetId = UUID.fromString(event.flaggedEntrySubmitterId());
+		UUID targetId = event.flaggedEntrySubmitterId();
 		User targetUser = userRepo.findById(targetId)
 				.orElseThrow(() -> new RuntimeException("Target user not found: " + targetId));
 
@@ -93,7 +93,7 @@ public class WtfRecalculationService {
 		userRepo.save(targetUser);
 		log.info("WTF recalculated for user {}: {} (flag raised)", targetUser.getId(), targetUser.getWtfScore());
 
-		userRepo.findById(UUID.fromString(event.flaggerId())).ifPresent(actor -> {
+		userRepo.findById(event.flaggerId()).ifPresent(actor -> {
 			actor.setLastActivityAt(Instant.now());
 			userRepo.save(actor);
 		});
@@ -105,7 +105,16 @@ public class WtfRecalculationService {
 				? ChronoUnit.DAYS.between(user.getLastActivityAt(), Instant.now())
 				: daysSinceRegistration;
 
-		double tenureScore = Math.min((double) daysSinceRegistration / TENURE_DAYS_MAX, 1.0) * 100.0;
+		double rawScore = getRawScore(user, (double) daysSinceRegistration);
+
+		double activityMultiplier = 1.0
+				- (1.0 - ACTIVITY_MIN_MULTIPLIER) * Math.min((double) daysSinceLastActivity / ACTIVITY_DECAY_DAYS, 1.0);
+
+		return Math.clamp(rawScore * activityMultiplier, 0, 100);
+	}
+
+	private static double getRawScore(User user, double daysSinceRegistration) {
+		double tenureScore = Math.min(daysSinceRegistration / TENURE_DAYS_MAX, 1.0) * 100.0;
 
 		double voteScore = 50.0 + 50.0
 				* Math.tanh((double) (user.getUpvotesReceived() - user.getDownvotesReceived()) / VOTE_SLOPE_DIVIDER);
@@ -116,11 +125,6 @@ public class WtfRecalculationService {
 
 		double volumeScore = Math.min((double) user.getTotalSubmissions() / VOLUME_SUBMISSIONS_MAX, 1.0) * 100.0;
 
-		double rawScore = W_TENURE * tenureScore + W_VOTE * voteScore + W_FLAG * flagScore + W_VOLUME * volumeScore;
-
-		double activityMultiplier = 1.0
-				- (1.0 - ACTIVITY_MIN_MULTIPLIER) * Math.min((double) daysSinceLastActivity / ACTIVITY_DECAY_DAYS, 1.0);
-
-		return Math.max(0, Math.min(100, rawScore * activityMultiplier));
+		return W_TENURE * tenureScore + W_VOTE * voteScore + W_FLAG * flagScore + W_VOLUME * volumeScore;
 	}
 }

@@ -1,8 +1,11 @@
 package com.salob.proto.events;
 
+import java.util.UUID;
+
 public record VoteEvent(
-    String eventId,
-    String voterId,
-    String submitterIdOfEntryVotedOn,
+    UUID eventId,
+    UUID voterId,
+    UUID idOfEntryVotedOn,
+    UUID submitterIdOfEntryVotedOn,
     VoteType voteType
 ) {}

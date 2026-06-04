@@ -25,7 +25,7 @@ public class WtfEventConsumer {
 	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_VOTE_CAST)
 	@Transactional
 	public void handleVote(VoteEvent event) {
-		UUID eventId = UUID.fromString(event.eventId());
+		UUID eventId = event.eventId();
 		if (processedEventRepo.existsById(eventId)) {
 			log.info("Skipping duplicate VoteEvent: eventId={}", eventId);
 			return;
@@ -43,7 +43,7 @@ public class WtfEventConsumer {
 	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_ENTRY_CREATED)
 	@Transactional
 	public void handleEntrySubmitted(FoodEntrySubmittedEvent event) {
-		UUID eventId = UUID.fromString(event.eventId());
+		UUID eventId = event.eventId();
 		if (processedEventRepo.existsById(eventId)) {
 			log.info("Skipping duplicate FoodEntrySubmittedEvent: eventId={}", eventId);
 			return;
@@ -61,7 +61,7 @@ public class WtfEventConsumer {
 	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_FLAG_RAISED)
 	@Transactional
 	public void handleFlagRaised(FoodEntryFlaggedEvent event) {
-		UUID eventId = UUID.fromString(event.eventId());
+		UUID eventId = event.eventId();
 		if (processedEventRepo.existsById(eventId)) {
 			log.info("Skipping duplicate FoodEntryFlaggedEvent: eventId={}", eventId);
 			return;
