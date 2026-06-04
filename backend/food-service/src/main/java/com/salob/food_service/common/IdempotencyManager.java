@@ -17,13 +17,13 @@ public class IdempotencyManager {
 		return redisTemplate.hasKey(redisKey);
 	}
 
-	public boolean setKey(String idempotencyKey, Duration ttl) {
+	public void setKey(String idempotencyKey, Duration ttl) {
 		String redisKey = IDEMPOTENCY_KEY_PREFIX + idempotencyKey;
-		return redisTemplate.opsForValue().setIfAbsent(redisKey, "", ttl) == true;
+		redisTemplate.opsForValue().setIfAbsent(redisKey, "", ttl);
 	}
 
-	public boolean releaseKey(String idempotencyKey) {
+	public void releaseKey(String idempotencyKey) {
 		String redisKey = IDEMPOTENCY_KEY_PREFIX + idempotencyKey;
-		return redisTemplate.delete(redisKey);
+		redisTemplate.delete(redisKey);
 	}
 }
