@@ -12,7 +12,6 @@ import java.util.UUID;
 
 @Repository
 public interface FoodEntryRepository extends JpaRepository<FoodEntry, UUID> {
-	List<FoodEntry> findByFood_IdAndEatery_Id(UUID foodId, UUID eateryId);
 	List<FoodEntry> findByFood_IdAndEatery_IdAndCreatedAtBetween(UUID foodId, UUID eateryId, Instant start,
 			Instant end);
 

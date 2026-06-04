@@ -3,7 +3,6 @@ package com.salob.food_service.api.food_entry;
 import com.salob.food_service.api._domain.Eatery;
 import com.salob.food_service.api._domain.Food;
 import com.salob.food_service.api._domain.FoodEntry;
-import com.salob.food_service.api._domain.FoodEntryVote;
 import com.salob.food_service.api.eatery.EateryRepository;
 import com.salob.food_service.api.food.FoodRepository;
 import com.salob.food_service.api.food_entry.dto.DatePrice;
@@ -13,6 +12,7 @@ import com.salob.food_service.api.food_entry.dto.FoodEntryMapDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api.food_entry.dto.FoodEntrySubmissionRequest;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api.food_entry_vote.projections.FoodEntryVoteProjection;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.common.rabbitmq.WtfEventPublisher;
 import com.salob.food_service.storage.minio.MinioStorageService;
@@ -28,14 +28,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -145,49 +141,44 @@ public class FoodEntryService {
 		wtfEventPublisher.publishEntryCreated(submitterId);
 	}
 
+	@Transactional
 	public void castVote(UUID voterId, UUID foodEntryId, Boolean isUpvote) {
-		FoodEntry entry = foodEntryRepo.findById(foodEntryId)
+		FoodEntryVoteProjection voteProj = foodEntryVoteRepo.findExistingVoteProjection(voterId, foodEntryId)
 				.orElseThrow(() -> new RuntimeException("FoodEntry not found"));
 
-		if (entry.getSubmitterId().equals(voterId)) {
+		if (voteProj.foodEntrySubmitterId().equals(voterId)) {
 			throw new RuntimeException("Cannot vote on your own entry");
 		}
 
-		Optional<FoodEntryVote> existingVote = foodEntryVoteRepo.findByVoterIdAndFoodEntryId(voterId, foodEntryId);
-
-		if (existingVote.isPresent()) {
-			FoodEntryVote voteEntity = existingVote.get();
-
+		if (voteProj.isUpvote() == null) {
 			if (isUpvote == null) {
-				// Retract: delete the vote — DB trigger decrements the old type's counter
-				VoteType removedType = voteEntity.isUpvote() ? VoteType.UPVOTE_REMOVED : VoteType.DOWNVOTE_REMOVED;
-				foodEntryVoteRepo.deleteById(voteEntity.getId());
-				wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), removedType);
 				return;
 			}
 
-			if (voteEntity.isUpvote() == isUpvote) {
-				// Same vote again → idempotent no-op
-				return;
-			}
+			int rowsAffected = foodEntryVoteRepo.upsertVote(voterId, foodEntryId, isUpvote);
 
-			// Toggle: delete old, reinsert new — DB trigger handles count deltas
-			VoteType toggleType = isUpvote ? VoteType.DOWNVOTE_TO_UPVOTE : VoteType.UPVOTE_TO_DOWNVOTE;
-			foodEntryVoteRepo.deleteById(voteEntity.getId());
-			foodEntryVoteRepo
-					.save(FoodEntryVote.builder().foodEntry(entry).voterId(voterId).isUpvote(isUpvote).build());
-			wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), toggleType);
+			if (rowsAffected > 0) {
+				VoteType voteType = isUpvote ? VoteType.UPVOTE : VoteType.DOWNVOTE;
+				wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), voteType);
+			}
 			return;
 		}
 
-		// No existing vote
 		if (isUpvote == null) {
+			int rowsAffected = foodEntryVoteRepo.deleteVote(voterId, foodEntryId);
+			if (rowsAffected > 0) {
+				VoteType eventToPublish = voteProj.isUpvote() ? VoteType.UPVOTE_REMOVED : VoteType.DOWNVOTE_REMOVED;
+				wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), eventToPublish);
+			}
 			return;
 		}
 
-		VoteType voteType = isUpvote ? VoteType.UPVOTE : VoteType.DOWNVOTE;
-		foodEntryVoteRepo.save(FoodEntryVote.builder().foodEntry(entry).voterId(voterId).isUpvote(isUpvote).build());
-		wtfEventPublisher.publishVoteCast(voterId, entry.getSubmitterId(), voteType);
+		int rowsAffected = foodEntryVoteRepo.upsertVote(voterId, foodEntryId, isUpvote);
+
+		if (rowsAffected > 0) {
+			VoteType eventToPublish = isUpvote ? VoteType.DOWNVOTE_TO_UPVOTE : VoteType.UPVOTE_TO_DOWNVOTE;
+			wtfEventPublisher.publishVoteCast(voterId, voteProj.foodEntrySubmitterId(), eventToPublish);
+		}
 	}
 
 	/**

@@ -80,6 +80,9 @@ The frontend occasionally crashes with a React error about repeated `setState` c
 
 ---
 
+## Live Voting Updates (STOMP / WebSockets)
+Real-time vote fanout for food entries. Design notes live in `docs/live-voting-updates.md`.
+
 ## Touch Ups
 
 ### Map Icon Visibility

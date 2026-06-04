@@ -7,6 +7,7 @@ import time
 all_services = [
     {"name": "Food Service", "path": "./food-service"},
     {"name": "User Service", "path": "./user-service"},
+    {"name": "AI Service", "path": "./ai-service"},
     {"name": "API Gateway", "path": "./api-gateway"},  # Gateway last is best practice
 ]
 
