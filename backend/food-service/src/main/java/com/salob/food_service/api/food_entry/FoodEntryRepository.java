@@ -2,6 +2,7 @@ package com.salob.food_service.api.food_entry;
 
 import com.salob.food_service.api._domain.FoodEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -62,4 +63,20 @@ public interface FoodEntryRepository extends JpaRepository<FoodEntry, UUID> {
 			""", nativeQuery = true)
 	List<Object[]> findWithinBoundsWithEateryLocation(@Param("minLat") double minLat, @Param("maxLat") double maxLat,
 			@Param("minLon") double minLon, @Param("maxLon") double maxLon);
+
+	@Modifying
+	@Query(value = """
+				UPDATE food_entries
+				SET upvote_count = upvote_count + :delta
+				WHERE id = :foodEntryId
+			""", nativeQuery = true)
+	void modifyUpvoteCount(@Param("foodEntryId") UUID foodEntryId, int delta);
+
+	@Modifying
+	@Query(value = """
+				UPDATE food_entries
+				SET downvote_count = downvote_count + :delta
+				WHERE id = :foodEntryId
+			""", nativeQuery = true)
+	void modifyDownvoteCount(@Param("foodEntryId") UUID foodEntryId, int delta);
 }

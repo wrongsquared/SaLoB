@@ -22,7 +22,7 @@ public class WtfEventConsumer {
 	private final WtfRecalculationService recalculationService;
 	private final ProcessedEventRepository processedEventRepo;
 
-	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_VOTE_CAST)
+	@RabbitListener(queues = RabbitMQConstants.QUEUE_USER_WTF_VOTE_CAST)
 	@Transactional
 	public void handleVote(VoteEvent event) {
 		UUID eventId = event.eventId();
@@ -40,7 +40,7 @@ public class WtfEventConsumer {
 		}
 	}
 
-	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_ENTRY_CREATED)
+	@RabbitListener(queues = RabbitMQConstants.QUEUE_USER_WTF_ENTRY_CREATED)
 	@Transactional
 	public void handleEntrySubmitted(FoodEntrySubmittedEvent event) {
 		UUID eventId = event.eventId();
@@ -58,7 +58,7 @@ public class WtfEventConsumer {
 		}
 	}
 
-	@RabbitListener(queues = RabbitMQConstants.QUEUE_WTF_FLAG_RAISED)
+	@RabbitListener(queues = RabbitMQConstants.QUEUE_USER_WTF_FLAG_RAISED)
 	@Transactional
 	public void handleFlagRaised(FoodEntryFlaggedEvent event) {
 		UUID eventId = event.eventId();

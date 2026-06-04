@@ -37,19 +37,19 @@ public class RabbitMQConfig {
 
 	@Bean
 	public Queue wtfEntryCreatedQueue() {
-		return new Queue(RabbitMQConstants.QUEUE_WTF_ENTRY_CREATED, true, false, false,
+		return new Queue(RabbitMQConstants.QUEUE_USER_WTF_ENTRY_CREATED, true, false, false,
 				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.entry.created.dead"));
 	}
 
 	@Bean
 	public Queue wtfVoteCastQueue() {
-		return new Queue(RabbitMQConstants.QUEUE_WTF_VOTE_CAST, true, false, false,
+		return new Queue(RabbitMQConstants.QUEUE_USER_WTF_VOTE_CAST, true, false, false,
 				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.vote.cast.dead"));
 	}
 
 	@Bean
 	public Queue wtfFlagRaisedQueue() {
-		return new Queue(RabbitMQConstants.QUEUE_WTF_FLAG_RAISED, true, false, false,
+		return new Queue(RabbitMQConstants.QUEUE_USER_WTF_FLAG_RAISED, true, false, false,
 				Map.of("x-dead-letter-exchange", "salob.dlx", "x-dead-letter-routing-key", "wtf.flag.raised.dead"));
 	}
 

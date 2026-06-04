@@ -19,9 +19,10 @@ public final class RabbitMQConstants {
     public static final String RK_WTF_FLAG_RAISED = "wtf.flag.raised";
 
     // Queues
-    public static final String QUEUE_WTF_ENTRY_CREATED = "user-service.wtf.entry-created";
-    public static final String QUEUE_WTF_VOTE_CAST     = "user-service.wtf.vote-cast";
-    public static final String QUEUE_WTF_FLAG_RAISED   = "user-service.wtf.flag-raised";
+    public static final String QUEUE_USER_WTF_ENTRY_CREATED = "user-service.wtf.entry-created";
+    public static final String QUEUE_USER_WTF_VOTE_CAST     = "user-service.wtf.vote-cast";
+    public static final String QUEUE_USER_WTF_FLAG_RAISED   = "user-service.wtf.flag-raised";
+    public static final String QUEUE_FOOD_WTF_VOTE_CAST     = "food-service.wtf.vote-cast";
 
     private RabbitMQConstants() {}
 }
