@@ -1,6 +1,6 @@
 package com.salob.food_service.api.eatery_type;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import com.salob.food_service.api._domain.EateryType;
@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface EateryTypeRepository extends JpaRepository<EateryType, UUID> {
-	Optional<EateryType> findByLabel(String label);
-
+	<T> List<T> findBy(Class<T> type);
 	boolean existsByLabel(String label);
 }
