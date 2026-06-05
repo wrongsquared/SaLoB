@@ -38,16 +38,24 @@ function syncBounds(map: L.Map) {
 }
 
 function BoundsTracker() {
+
   const map = useMap();
+
+  const synbounds = (mapInstance: L.Map) => {
+    setTimeout(() => {syncBounds(mapInstance)},0);
+  };
 
   useEffect(() => {
     syncBounds(map);
   }, [map]);
-
-  useMapEvents({
-    move: () => {
-      syncBounds(map);
+  // Prevents excessive updates
+  useMapEvents({ 
+    dragend: (e) => {
+      synbounds(e.target);
     },
+    zoomend: (e) => {
+      synbounds(e.target);
+    }
   })
 
   return null
@@ -58,8 +66,10 @@ export default function MapSection() {
 
   return (
     <div className="absolute inset-0 isolate">
+      {/* Map */}
       <MapContainer center={[1.3521, 103.8198]} zoom={13} className="h-full w-full" zoomControl={false} keyboard={true} scrollWheelZoom={true} doubleClickZoom={false}>
-        <TileLayer
+        {/* Attribution */}
+        <TileLayer 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />

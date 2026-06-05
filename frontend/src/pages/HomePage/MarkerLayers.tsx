@@ -106,7 +106,9 @@ export function EateryModeMarkers() {
             click: () => selectEatery(e.eateryId),
           }}
         >
-          <Popup>{e.name}</Popup>
+          <Popup autoPan={false}>
+            {e.name}
+          </Popup>
         </Marker>
       ))}
     </MarkerClusterGroup>
