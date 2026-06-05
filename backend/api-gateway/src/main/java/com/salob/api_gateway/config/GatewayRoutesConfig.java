@@ -28,7 +28,8 @@ public class GatewayRoutesConfig {
 						.filters(f -> f.requestRateLimiter(
 								config -> config.setRateLimiter(redisRateLimiter).setKeyResolver(ipKeyResolver)))
 						.uri(userServiceUri))
-				.route("food-service-route", r -> r.path("/api/eateries/**", "/api/foods/**", "/api/food-entries/**")
+				.route("food-service-route", r -> r
+						.path("/api/eateries/**", "/api/eatery-types/**", "/api/foods/**", "/api/food-entries/**")
 						.filters(f -> f.requestRateLimiter(
 								config -> config.setRateLimiter(redisRateLimiter).setKeyResolver(ipKeyResolver)))
 						.uri(foodServiceUri))

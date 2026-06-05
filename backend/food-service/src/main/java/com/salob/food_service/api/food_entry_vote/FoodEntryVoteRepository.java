@@ -31,8 +31,8 @@ public interface FoodEntryVoteRepository extends JpaRepository<FoodEntryVote, UU
 
 	@Modifying
 	@Query(value = """
-				INSERT INTO food_entry_votes (voter_id, food_entry_id, is_upvote)
-				VALUES (:voterId, :foodEntryId, :isUpvote)
+				INSERT INTO food_entry_votes (voter_id, food_entry_id, is_upvote, created_at)
+				VALUES (:voterId, :foodEntryId, :isUpvote, NOW())
 				ON CONFLICT (voter_id, food_entry_id)
 				DO UPDATE SET is_upvote = EXCLUDED.is_upvote
 				WHERE food_entry_votes.is_upvote != EXCLUDED.is_upvote

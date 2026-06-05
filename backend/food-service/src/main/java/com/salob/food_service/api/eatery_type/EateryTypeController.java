@@ -1,6 +1,5 @@
 package com.salob.food_service.api.eatery_type;
 
-import com.salob.food_service.api._domain.EateryType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +15,7 @@ public class EateryTypeController {
 	private final EateryTypeRepository eateryTypeRepo;
 
 	@GetMapping
-	public ResponseEntity<List<EateryType>> listEateryTypes() {
-		return ResponseEntity.ok(eateryTypeRepo.findAll());
+	public ResponseEntity<List<EateryTypeProjection>> getAllEateryTypes() {
+		return ResponseEntity.ok(eateryTypeRepo.findBy(EateryTypeProjection.class));
 	}
 }
