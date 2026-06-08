@@ -7,6 +7,8 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.StatObjectArgs;
+
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +32,19 @@ public class MinioStorageService {
 					.stream(inputStream, size, (long) -1).contentType("image/jpeg").build());
 			return objectKey;
 		} catch (Exception e) {
-			log.warn("MinIO upload failed for {}: {}", objectKey, e.getMessage());
+			log.warn("MinIO image upload failed for {}: {}", objectKey, e.getMessage());
+			return null;
+		}
+	}
+
+	public String uploadBytes(byte[] data, String objectKey, String contentType) {
+		createBucketIfNotExists(properties.getBucket());
+		try (var inputStream = new ByteArrayInputStream(data)) {
+			minioClient.putObject(PutObjectArgs.builder().bucket(properties.getBucket()).object(objectKey)
+					.stream(inputStream, (long) data.length, (long) -1).contentType(contentType).build());
+			return objectKey;
+		} catch (Exception e) {
+			log.warn("MinIO byte upload failed for {}: {}", objectKey, e.getMessage());
 			return null;
 		}
 	}

@@ -1,6 +1,8 @@
+import { useCallback, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './client';
 import { useAuthStore } from '@/stores/authStore';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 import type {
   EateryMapItem,
   EaterySearchCombinedResult,
@@ -266,6 +268,81 @@ export function useEaterySearchCombined(searchQuery: string) {
     enabled: searchQuery.trim().length > 0,
     staleTime: 30_000,
   });
+}
+
+export type SearchFlattenedItem =
+  | { kind: 'local'; eateryId: string; name: string; address: string }
+  | { kind: 'onemap'; name: string; address: string; latitude: number; longitude: number };
+
+export function flattenCombinedResults(results: EaterySearchCombinedResult | undefined): SearchFlattenedItem[] {
+  if (!results) return [];
+  return [
+    ...results.local.map((r) => ({ kind: 'local' as const, ...r })),
+    ...results.onemap.map((r) => ({ kind: 'onemap' as const, ...r })),
+  ];
+}
+
+interface EateryTypeResponse {
+  id: string;
+  label: string;
+}
+
+export function useEateryTypes() {
+  return useQuery({
+    queryKey: ['eatery-types'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<EateryTypeResponse[]>('/eatery-types');
+      return data;
+    },
+    staleTime: 300_000,
+  });
+}
+
+export function useDefaultEateryTypeId() {
+  const { data: eateryTypes } = useEateryTypes();
+  return eateryTypes?.[0]?.id ?? null;
+}
+
+export function useEaterySelection() {
+  const createEatery = useCreateEatery();
+  const defaultTypeId = useDefaultEateryTypeId();
+  const [creatingName, setCreatingName] = useState<string | null>(null);
+
+  const selectItem = useCallback(
+    async (item: SearchFlattenedItem, onSelected: (eateryId: string) => void) => {
+      if (item.kind === 'local') {
+        onSelected(item.eateryId);
+        return true;
+      }
+
+      if (!defaultTypeId) return false;
+      setCreatingName(item.name);
+      try {
+        const eatery = await createEatery.mutateAsync({
+          name: item.name,
+          address: item.address,
+          typeId: defaultTypeId,
+        });
+        onSelected(eatery.eateryId);
+        return true;
+      } catch {
+        setCreatingName(null);
+        return false;
+      }
+    },
+    [createEatery, defaultTypeId],
+  );
+
+  return { creatingName, selectItem };
+}
+
+export function useEaterySearchInput() {
+  const [input, setInput] = useState('');
+  const debounced = useDebounce(input, 300);
+  const { data: results, isLoading } = useEaterySearchCombined(debounced);
+  const { creatingName, selectItem } = useEaterySelection();
+  const items = flattenCombinedResults(results);
+  return { input, setInput, items, isLoading, creatingName, selectItem };
 }
 
 export function useCreateEatery() {

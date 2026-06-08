@@ -2,7 +2,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { Plus } from 'lucide-react';
 import MapSection from './MapSection';
 import ModeToggle from './ModeToggle';
-import SearchBar from './SearchBar';
+import SearchBar from './SearchBar/SearchBar';
 import FoodTagPicker from './FoodTagPicker';
 import EateryPanel from './EateryPanel';
 import SubmissionWizard from './SubmissionWizard';

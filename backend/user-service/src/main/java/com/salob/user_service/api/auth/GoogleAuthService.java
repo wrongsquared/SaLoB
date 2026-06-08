@@ -3,9 +3,10 @@ package com.salob.user_service.api.auth;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.salob.user_service.api._domain.Role;
 import com.salob.user_service.api._domain.User;
-import com.salob.user_service.api.auth.AuthProvider;
 import com.salob.user_service.api.auth.dto.GoogleLoginRequest;
 import com.salob.user_service.api.auth.dto.LoginResponse;
 import com.salob.user_service.api.users.RoleRepository;
@@ -16,7 +17,6 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class GoogleAuthService {
 	private String clientId;
 
 	public LoginResponse loginWithGoogle(GoogleLoginRequest req) {
-		GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(null, null)
+		var verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
 				.setAudience(Collections.singletonList(clientId)).build();
 
 		GoogleIdToken idToken;
@@ -79,7 +79,7 @@ public class GoogleAuthService {
 		}
 
 		// New Google user — register
-		String username = generateUsername(name, email);
+		String username = email.split("@")[0];
 		Role contributorRole = roleRepo.findByLabel(UserRole.CONTRIBUTOR.name())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
 		Set<Role> roles = new HashSet<>();
@@ -92,17 +92,5 @@ public class GoogleAuthService {
 
 		return new LoginResponse(jwtService.createJwt(user)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Failed to create JWT")));
-	}
-
-	private String generateUsername(String name, String email) {
-		if (name != null && !name.isBlank()) {
-			String base = name.toLowerCase().replaceAll("[^a-z0-9]", "").substring(0, Math.min(name.length(), 20));
-			if (!base.isEmpty()) {
-				return base;
-			}
-		}
-		// Fallback: use local part of email
-		String localPart = email.split("@")[0].toLowerCase().replaceAll("[^a-z0-9]", "");
-		return localPart.isEmpty() ? "user_" + System.currentTimeMillis() : localPart;
 	}
 }

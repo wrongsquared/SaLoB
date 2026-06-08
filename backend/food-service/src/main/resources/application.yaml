@@ -72,6 +72,9 @@ management:
     tags:
       application: ${spring.application.name}
 
+google:
+  places-api-key: ${GOOGLE_PLACES_API_KEY}
+
 # Logging configuration - enable DEBUG for cache issues
 #logging:
 #  level:
