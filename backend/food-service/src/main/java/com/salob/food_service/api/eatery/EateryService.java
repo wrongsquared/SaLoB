@@ -13,9 +13,12 @@ import com.salob.food_service.api.eatery.dto.OneMapEateryDTO;
 import com.salob.food_service.api.eatery_type.EateryTypeRepository;
 import com.salob.food_service.api.food_entry.dto.FoodEntryPreviewDTO;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
+import com.salob.food_service.api.google.GooglePlacesClient;
 import com.salob.food_service.api.onemap.OneMapClient;
 import com.salob.food_service.api.onemap.dto.OneMapSearchResult;
 import com.salob.food_service.common.ConfidenceAlgorithm;
+import com.salob.food_service.common.Utils;
+import com.salob.food_service.seeding.SeedImageHelper;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -60,6 +63,7 @@ public class EateryService {
 	private final ConfidenceAlgorithm confidenceAlgorithm;
 	private final MinioStorageService minioStorageService;
 	private final OneMapClient oneMapClient;
+	private final GooglePlacesClient googlePlacesClient;
 	private final FoodEntryVoteRepository foodEntryVoteRepo;
 	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -189,6 +193,7 @@ public class EateryService {
 				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
+	@Cacheable(key = "#search.toLowerCase()", value = "eateries_search_combined")
 	public EaterySearchResultDTO searchCombined(String search) {
 		List<EateryPreviewDTO> local = searchForEateries(search);
 
@@ -219,7 +224,23 @@ public class EateryService {
 		double[] coords = oneMapClient.geocode(address);
 		Point location = geometryFactory.createPoint(new Coordinate(coords[1], coords[0]));
 
-		Eatery eatery = Eatery.builder().name(name).address(address).location(location).type(type).isOpen(true).build();
+		// Successfully geocoded, now try to fetch photo from Google Places API...
+		String photoObjKey = null;
+		String strippedAddress = Utils.stripPostalCode(address);
+
+		try {
+			byte[] photoBytes = googlePlacesClient.fetchPhotoBytes(strippedAddress);
+			if (photoBytes != null) {
+				photoObjKey = minioStorageService.uploadBytes(photoBytes,
+						SeedImageHelper.EATERY_PREFIX + "/" + Utils.prepareAddressForObjKey(strippedAddress) + ".jpg",
+						"image/jpeg");
+			}
+		} catch (Exception e) {
+			log.warn("Failed to fetch photo for address '{}' using Places API: {}", strippedAddress, e.getMessage());
+		}
+
+		Eatery eatery = Eatery.builder().name(name).address(address).location(location).type(type).isOpen(true)
+				.photoObjKey(photoObjKey).build();
 		return eateryRepo.save(eatery);
 	}
 

@@ -11,6 +11,7 @@ import com.salob.food_service.api.eatery.dto.EateryPreviewDTO;
 import com.salob.food_service.api.eatery_type.EateryTypeRepository;
 import com.salob.food_service.api.food_entry_vote.FoodEntryVoteRepository;
 import com.salob.food_service.api.onemap.OneMapClient;
+import com.salob.food_service.api.google.GooglePlacesClient;
 import com.salob.food_service.common.ConfidenceAlgorithm;
 import com.salob.food_service.storage.minio.MinioStorageService;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,6 +94,9 @@ class EateryServiceTest {
 	private OneMapClient oneMapClient;
 
 	@Mock
+	private GooglePlacesClient googlePlacesClient;
+
+	@Mock
 	private FoodEntryVoteRepository foodEntryVoteRepo;
 
 	/*
@@ -125,7 +129,7 @@ class EateryServiceTest {
 		 * No Spring context needed — just a plain new + constructor call.
 		 */
 		eateryService = new EateryService(eateryRepo, closureFlagRepo, eateryTypeRepo, confidenceAlgorithm,
-				minioStorageService, oneMapClient, foodEntryVoteRepo);
+				minioStorageService, oneMapClient, googlePlacesClient, foodEntryVoteRepo);
 
 		eateryId = UUID.randomUUID();
 
@@ -269,8 +273,8 @@ class EateryServiceTest {
 		testEatery.setFoodEntries(List.of(entry1, entry2));
 
 		when(eateryRepo.findById(eateryId)).thenReturn(Optional.of(testEatery));
-		when(confidenceAlgorithm.computeFinalConfidence(entry1)).thenReturn(75.0);
-		when(confidenceAlgorithm.computeFinalConfidence(entry2)).thenReturn(85.0);
+		when(confidenceAlgorithm.getFinalConfidence(entry1)).thenReturn(75.0);
+		when(confidenceAlgorithm.getFinalConfidence(entry2)).thenReturn(85.0);
 		/*
 		 * The method calls minioStorageService.getPresignedUrl for EACH entry's food
 		 * photo AND for the eatery's own photo. That's 3 calls in this case:
