@@ -40,8 +40,10 @@ public class MinioStorageService {
 	public String uploadBytes(byte[] data, String objectKey, String contentType) {
 		createBucketIfNotExists(properties.getBucket());
 		try (var inputStream = new ByteArrayInputStream(data)) {
+			log.info("Uploading byte array to MinIO with key {} and content type {}", objectKey, contentType);
 			minioClient.putObject(PutObjectArgs.builder().bucket(properties.getBucket()).object(objectKey)
 					.stream(inputStream, (long) data.length, (long) -1).contentType(contentType).build());
+			log.info("Successfully uploaded byte array to MinIO with key {}", objectKey);
 			return objectKey;
 		} catch (Exception e) {
 			log.warn("MinIO byte upload failed for {}: {}", objectKey, e.getMessage());
@@ -77,6 +79,7 @@ public class MinioStorageService {
 		try {
 			boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
 			if (!exists) {
+				log.info("Bucket {} does not exist. Creating lazily...", bucket);
 				minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
 			}
 		} catch (Exception e) {

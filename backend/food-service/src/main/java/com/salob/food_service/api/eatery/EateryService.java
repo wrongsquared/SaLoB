@@ -193,7 +193,7 @@ public class EateryService {
 				.collect(Collectors.toCollection(ArrayList::new));
 	}
 
-	@Cacheable(key = "#search.toLowerCase()", value = "eateries_search_combined")
+	// @Cacheable(key = "#search.toLowerCase()", value = "eateries_search_combined")
 	public EaterySearchResultDTO searchCombined(String search) {
 		List<EateryPreviewDTO> local = searchForEateries(search);
 
@@ -227,9 +227,8 @@ public class EateryService {
 		// Successfully geocoded, now try to fetch photo from Google Places API...
 		String photoObjKey = null;
 		String strippedAddress = Utils.stripPostalCode(address);
-
 		try {
-			byte[] photoBytes = googlePlacesClient.fetchPhotoBytes(strippedAddress);
+			byte[] photoBytes = googlePlacesClient.tryFindPhoto(name);
 			if (photoBytes != null) {
 				photoObjKey = minioStorageService.uploadBytes(photoBytes,
 						SeedImageHelper.EATERY_PREFIX + "/" + Utils.prepareAddressForObjKey(strippedAddress) + ".jpg",
