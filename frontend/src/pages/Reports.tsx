@@ -4,7 +4,7 @@ const Reports = () => {
       <h1 className="text-3xl font-bold">Reports</h1>
       <p className="text-base text-secondary-500">Le Reports.</p>
     </div>
-  )
-}
+  );
+};
 
-export default Reports
+export default Reports;

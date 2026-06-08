@@ -1,11 +1,11 @@
-import { useMapStore } from "@/stores/mapStore";
-import { Plus } from "lucide-react";
-import MapSection from "./MapSection";
-import ModeToggle from "./ModeToggle";
-import SearchBar from "./SearchBar";
-import FoodTagPicker from "./FoodTagPicker";
-import EateryPanel from "./EateryPanel";
-import SubmissionWizard from "./SubmissionWizard";
+import { useMapStore } from '@/stores/mapStore';
+import { Plus } from 'lucide-react';
+import MapSection from './MapSection';
+import ModeToggle from './ModeToggle';
+import SearchBar from './SearchBar';
+import FoodTagPicker from './FoodTagPicker';
+import EateryPanel from './EateryPanel';
+import SubmissionWizard from './SubmissionWizard';
 
 export default function HomePage() {
   const { mode, setWizardOpen } = useMapStore();
@@ -19,7 +19,7 @@ export default function HomePage() {
           <ModeToggle />
         </div>
         <div className="pointer-events-auto w-full max-w-md">
-          {mode === "eatery" ? <SearchBar /> : <FoodTagPicker />}
+          {mode === 'eatery' ? <SearchBar /> : <FoodTagPicker />}
         </div>
       </div>
 

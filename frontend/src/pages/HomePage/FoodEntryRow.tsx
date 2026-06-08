@@ -1,9 +1,9 @@
-import type { FoodPreview } from '@/shared/types/api'
-import { centsToSgd } from '@/shared/utils/format'
+import type { FoodPreview } from '@/shared/types/api';
+import { centsToSgd } from '@/shared/utils/format';
 
 interface FoodEntryRowProps {
-  entry: FoodPreview
-  onClick?: () => void
+  entry: FoodPreview;
+  onClick?: () => void;
 }
 
 export default function FoodEntryRow({ entry, onClick }: FoodEntryRowProps) {
@@ -18,21 +18,17 @@ export default function FoodEntryRow({ entry, onClick }: FoodEntryRowProps) {
         {entry.name.charAt(0)}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-secondary-900">
-          {entry.name}
-        </p>
+        <p className="truncate text-sm font-medium text-secondary-900">{entry.name}</p>
         <p className="text-xs text-secondary-400">
           {entry.submitterUsername} &middot; {new Date(entry.createdAt).toLocaleDateString()}
         </p>
       </div>
       <div className="text-right">
-        <p className="text-sm font-semibold text-primary-700">
-          {centsToSgd(entry.sgCents)}
-        </p>
+        <p className="text-sm font-semibold text-primary-700">{centsToSgd(entry.sgCents)}</p>
         <p className="text-xs text-secondary-400">
           +{entry.upvotes}/-{entry.downvotes}
         </p>
       </div>
     </button>
-  )
+  );
 }

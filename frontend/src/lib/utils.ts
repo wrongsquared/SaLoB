@@ -1,3 +1,3 @@
-import { cn } from "@/shared/utils"
+import { cn } from '@/shared/utils';
 
-export { cn }
+export { cn };

@@ -1,33 +1,33 @@
-import { useNavigate } from 'react-router-dom'
-import { useMapStore } from '@/stores/mapStore'
-import { useAuthStore } from '@/stores/authStore'
-import { useEateryDetail, useReportEateryClosed, useVote } from '@/shared/api/queries'
-import { X, Flag, Clock, ThumbsUp, ThumbsDown, Star } from 'lucide-react'
-import { centsToSgd } from '@/shared/utils/format'
-import type { FoodPreview } from '@/shared/types/api'
+import { useNavigate } from 'react-router-dom';
+import { useMapStore } from '@/stores/mapStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useEateryDetail, useReportEateryClosed, useVote } from '@/shared/api/queries';
+import { X, Flag, Clock, ThumbsUp, ThumbsDown, Star } from 'lucide-react';
+import { centsToSgd } from '@/shared/utils/format';
+import type { FoodPreview } from '@/shared/types/api';
 
 function computeRating(foodPreviews: FoodPreview[]) {
-  if (foodPreviews.length === 0) return { rating: 0, reviews: 0 }
-  const totalUp = foodPreviews.reduce((sum, f) => sum + f.upvotes, 0)
-  const totalDown = foodPreviews.reduce((sum, f) => sum + f.downvotes, 0)
-  const total = totalUp + totalDown
-  const rating = total > 0 ? (totalUp / total) * 5 : 0
-  return { rating: Math.round(rating * 10) / 10, reviews: total }
+  if (foodPreviews.length === 0) return { rating: 0, reviews: 0 };
+  const totalUp = foodPreviews.reduce((sum, f) => sum + f.upvotes, 0);
+  const totalDown = foodPreviews.reduce((sum, f) => sum + f.downvotes, 0);
+  const total = totalUp + totalDown;
+  const rating = total > 0 ? (totalUp / total) * 5 : 0;
+  return { rating: Math.round(rating * 10) / 10, reviews: total };
 }
 
 function FoodEntryCard({ entry }: { entry: FoodPreview }) {
-  const navigate = useNavigate()
-  const net = entry.upvotes - entry.downvotes
-  const voteMutation = useVote()
-  const currentUserId = useAuthStore((s) => s.user?.id)
-  const isOwnEntry = currentUserId === entry.submitterId
+  const navigate = useNavigate();
+  const net = entry.upvotes - entry.downvotes;
+  const voteMutation = useVote();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isOwnEntry = currentUserId === entry.submitterId;
 
   const handleVote = (e: React.MouseEvent, isUpvote: boolean) => {
-    e.stopPropagation()
-    if (isOwnEntry) return
-    const newVote = entry.currentUserVote === isUpvote ? null : isUpvote
-    voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote })
-  }
+    e.stopPropagation();
+    if (isOwnEntry) return;
+    const newVote = entry.currentUserVote === isUpvote ? null : isUpvote;
+    voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote });
+  };
 
   return (
     <div
@@ -35,7 +35,7 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
       tabIndex={0}
       onClick={() => navigate(`/food-entry/${entry.foodEntryId}`)}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           navigate(`/food-entry/${entry.foodEntryId}`);
         }
@@ -49,7 +49,7 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
             alt={entry.name}
             className="h-full w-full object-cover"
             onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = 'none'
+              (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
         ) : (
@@ -57,12 +57,8 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-secondary-900">
-          {entry.name}
-        </p>
-        <p className="text-sm font-bold text-accent-600">
-          {centsToSgd(entry.sgCents)}
-        </p>
+        <p className="truncate text-sm font-semibold text-secondary-900">{entry.name}</p>
+        <p className="text-sm font-bold text-accent-600">{centsToSgd(entry.sgCents)}</p>
       </div>
       <div className="flex flex-col items-end gap-0.5">
         <div className="flex items-center gap-1.5 text-xs">
@@ -70,7 +66,13 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
             type="button"
             onClick={(e) => handleVote(e, true)}
             disabled={isOwnEntry}
-            title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === true ? 'Remove upvote' : 'Upvote'}
+            title={
+              isOwnEntry
+                ? 'You cannot vote on your own entry'
+                : entry.currentUserVote === true
+                  ? 'Remove upvote'
+                  : 'Upvote'
+            }
             className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
               entry.currentUserVote === true
                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -84,7 +86,13 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
             type="button"
             onClick={(e) => handleVote(e, false)}
             disabled={isOwnEntry}
-            title={isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === false ? 'Remove downvote' : 'Downvote'}
+            title={
+              isOwnEntry
+                ? 'You cannot vote on your own entry'
+                : entry.currentUserVote === false
+                  ? 'Remove downvote'
+                  : 'Downvote'
+            }
             className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
               entry.currentUserVote === false
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -95,27 +103,25 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
           </button>
           <span className="text-red-500">{entry.downvotes}</span>
         </div>
-        <span
-          className={`text-xs font-semibold ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}
-        >
+        <span className={`text-xs font-semibold ${net >= 0 ? 'text-green-600' : 'text-red-500'}`}>
           NET {net >= 0 ? '+' : ''}
           {net}
         </span>
       </div>
     </div>
-  )
+  );
 }
 
 export default function EateryPanel() {
   const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen, setWizardOpen, reportedEateryIds } =
-    useMapStore()
-  const { data: eatery, isLoading, isError } = useEateryDetail(selectedEateryId)
-  const reportMutation = useReportEateryClosed()
+    useMapStore();
+  const { data: eatery, isLoading, isError } = useEateryDetail(selectedEateryId);
+  const reportMutation = useReportEateryClosed();
 
-  const isReported = selectedEateryId ? reportedEateryIds.has(selectedEateryId) : false
-  const { rating, reviews } = eatery ? computeRating(eatery.foodPreviews) : { rating: 0, reviews: 0 }
+  const isReported = selectedEateryId ? reportedEateryIds.has(selectedEateryId) : false;
+  const { rating, reviews } = eatery ? computeRating(eatery.foodPreviews) : { rating: 0, reviews: 0 };
 
-  if (!sidebarOpen) return null
+  if (!sidebarOpen) return null;
 
   return (
     <aside
@@ -131,7 +137,7 @@ export default function EateryPanel() {
             alt={eatery.name}
             className="h-full w-full object-cover"
             onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = 'none'
+              (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
         ) : (
@@ -147,8 +153,8 @@ export default function EateryPanel() {
         <button
           type="button"
           onClick={() => {
-            selectEatery(null)
-            setSidebarOpen(false)
+            selectEatery(null);
+            setSidebarOpen(false);
           }}
           className="absolute right-2 top-2 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
           aria-label="Close sidebar"
@@ -173,13 +179,9 @@ export default function EateryPanel() {
             <div className="mt-2 flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-semibold text-secondary-900">
-                  {rating.toFixed(1)}
-                </span>
+                <span className="text-sm font-semibold text-secondary-900">{rating.toFixed(1)}</span>
               </div>
-              <span className="text-xs text-secondary-400">
-                ({reviews.toLocaleString()} reviews)
-              </span>
+              <span className="text-xs text-secondary-400">({reviews.toLocaleString()} reviews)</span>
             </div>
           </>
         ) : null}
@@ -200,8 +202,8 @@ export default function EateryPanel() {
           <button
             type="button"
             onClick={() => {
-              reportMutation.mutate(eatery.eateryId)
-              useMapStore.getState().markEateryReported(eatery.eateryId)
+              reportMutation.mutate(eatery.eateryId);
+              useMapStore.getState().markEateryReported(eatery.eateryId);
             }}
             disabled={reportMutation.isPending}
             className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-secondary-500 transition-colors hover:text-red-500 disabled:opacity-40"
@@ -261,8 +263,8 @@ export default function EateryPanel() {
                   Intelligence Brief
                 </h4>
                 <p className="text-sm leading-relaxed text-accent-800">
-                  Price points at {eatery.name} remain resilient. The Weighted Trust Score
-                  for top items has seen steady engagement this week.
+                  Price points at {eatery.name} remain resilient. The Weighted Trust Score for top items has seen steady
+                  engagement this week.
                 </p>
               </div>
             )}
@@ -270,5 +272,5 @@ export default function EateryPanel() {
         )}
       </div>
     </aside>
-  )
+  );
 }

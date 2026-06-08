@@ -1,27 +1,29 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/authStore'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
   { label: 'Analytics', path: '/analytics' },
   { label: 'Reports', path: '/reports' },
-]
+];
 
 export default function Navbar() {
-  const navigate = useNavigate()
-  const { isAuthenticated, user, logout } = useAuthStore()
+  const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuthStore();
 
   const handleLogout = () => {
-    logout()
-    window.location.href = '/'
-  }
+    logout();
+    window.location.href = '/';
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background-50 min-h-full border-b-1 border-black">
       <div className="w-full flex items-center justify-between py-4 px-20">
         <div className="flex items-center gap-10">
-          <NavLink to="/" className="flex items-center gap-2"><div className="text-xl font-extrabold text-primary-700">SaLoB</div></NavLink>
+          <NavLink to="/" className="flex items-center gap-2">
+            <div className="text-xl font-extrabold text-primary-700">SaLoB</div>
+          </NavLink>
           <nav className="flex items-center space-x-4">
             {navItems.map((item) => (
               <NavLink
@@ -64,5 +66,5 @@ export default function Navbar() {
         </div>
       </div>
     </header>
-  )
+  );
 }

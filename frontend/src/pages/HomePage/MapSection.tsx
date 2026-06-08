@@ -1,14 +1,14 @@
-import { useEffect } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { useMapStore } from "@/stores/mapStore";
-import { EateryModeMarkers, FoodModeMarkers } from "./MarkerLayers";
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useMapStore } from '@/stores/mapStore';
+import { EateryModeMarkers, FoodModeMarkers } from './MarkerLayers';
 
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
 function syncBounds(map: L.Map) {
@@ -38,27 +38,28 @@ function syncBounds(map: L.Map) {
 }
 
 function BoundsTracker() {
-
   const map = useMap();
 
   const synbounds = (mapInstance: L.Map) => {
-    setTimeout(() => {syncBounds(mapInstance)},0);
+    setTimeout(() => {
+      syncBounds(mapInstance);
+    }, 0);
   };
 
   useEffect(() => {
     syncBounds(map);
   }, [map]);
   // Prevents excessive updates
-  useMapEvents({ 
+  useMapEvents({
     dragend: (e) => {
       synbounds(e.target);
     },
     zoomend: (e) => {
       synbounds(e.target);
-    }
-  })
+    },
+  });
 
-  return null
+  return null;
 }
 
 export default function MapSection() {
@@ -67,14 +68,22 @@ export default function MapSection() {
   return (
     <div className="absolute inset-0 isolate">
       {/* Map */}
-      <MapContainer center={[1.3521, 103.8198]} zoom={13} className="h-full w-full" zoomControl={false} keyboard={true} scrollWheelZoom={true} doubleClickZoom={false}>
+      <MapContainer
+        center={[1.3521, 103.8198]}
+        zoom={13}
+        className="h-full w-full"
+        zoomControl={false}
+        keyboard={true}
+        scrollWheelZoom={true}
+        doubleClickZoom={false}
+      >
         {/* Attribution */}
-        <TileLayer 
+        <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <BoundsTracker />
-        {mode === "eatery" ? <EateryModeMarkers /> : <FoodModeMarkers />}
+        {mode === 'eatery' ? <EateryModeMarkers /> : <FoodModeMarkers />}
       </MapContainer>
     </div>
   );

@@ -1,22 +1,22 @@
-import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 interface StepPriceProps {
-  onConfirm: (cents: number) => void
-  onBack: () => void
+  onConfirm: (cents: number) => void;
+  onBack: () => void;
 }
 
 export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState('');
 
-  const raw = input.replace(/[^0-9.]/g, '')
-  const decimal = parseFloat(raw) || 0
-  const cents = Math.round(decimal * 100)
-  const display = `$${(cents / 100).toFixed(2)}`
+  const raw = input.replace(/[^0-9.]/g, '');
+  const decimal = parseFloat(raw) || 0;
+  const cents = Math.round(decimal * 100);
+  const display = `$${(cents / 100).toFixed(2)}`;
 
   const handleConfirm = () => {
-    if (cents > 0) onConfirm(cents)
-  }
+    if (cents > 0) onConfirm(cents);
+  };
 
   return (
     <div className="space-y-4">
@@ -27,9 +27,7 @@ export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
       >
         <ArrowLeft size={14} /> Back
       </button>
-      <h2 className="text-lg font-semibold text-secondary-900">
-        Enter the price
-      </h2>
+      <h2 className="text-lg font-semibold text-secondary-900">Enter the price</h2>
       <div className="relative">
         <input
           type="text"
@@ -52,5 +50,5 @@ export default function StepPrice({ onConfirm, onBack }: StepPriceProps) {
         </button>
       </div>
     </div>
-  )
+  );
 }

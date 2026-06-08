@@ -1,13 +1,13 @@
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface StepConfirmProps {
-  eateryName: string
-  foodName: string
-  priceCents: number
-  isSubmitting: boolean
-  error: Error | null
-  onSubmit: () => void
-  onBack: () => void
+  eateryName: string;
+  foodName: string;
+  priceCents: number;
+  isSubmitting: boolean;
+  error: Error | null;
+  onSubmit: () => void;
+  onBack: () => void;
 }
 
 export default function StepConfirm({
@@ -29,34 +29,22 @@ export default function StepConfirm({
       >
         <ArrowLeft size={14} /> Back
       </button>
-      <h2 className="text-lg font-semibold text-secondary-900">
-        Confirm submission
-      </h2>
+      <h2 className="text-lg font-semibold text-secondary-900">Confirm submission</h2>
       <div className="space-y-3 rounded-lg border border-secondary-200 bg-secondary-50 p-4">
         <div className="flex justify-between">
           <span className="text-sm text-secondary-400">Eatery</span>
-          <span className="text-sm font-medium text-secondary-900">
-            {eateryName}
-          </span>
+          <span className="text-sm font-medium text-secondary-900">{eateryName}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-secondary-400">Food</span>
-          <span className="text-sm font-medium text-secondary-900">
-            {foodName}
-          </span>
+          <span className="text-sm font-medium text-secondary-900">{foodName}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-secondary-400">Price</span>
-          <span className="text-sm font-semibold text-primary-700">
-            ${(priceCents / 100).toFixed(2)}
-          </span>
+          <span className="text-sm font-semibold text-primary-700">${(priceCents / 100).toFixed(2)}</span>
         </div>
       </div>
-      {error && (
-        <p className="text-sm text-red-500">
-          Failed to submit. Please try again.
-        </p>
-      )}
+      {error && <p className="text-sm text-red-500">Failed to submit. Please try again.</p>}
       <div className="flex justify-end">
         <button
           type="button"
@@ -75,5 +63,5 @@ export default function StepConfirm({
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -1,12 +1,12 @@
-import { useMapStore } from '@/stores/mapStore'
+import { useMapStore } from '@/stores/mapStore';
 
 const modes = [
   { value: 'eatery' as const, label: 'Eatery' },
   { value: 'food' as const, label: 'Food' },
-]
+];
 
 export default function ModeToggle() {
-  const { mode, setMode } = useMapStore()
+  const { mode, setMode } = useMapStore();
 
   return (
     <div
@@ -22,14 +22,12 @@ export default function ModeToggle() {
           aria-checked={mode === m.value}
           onClick={() => setMode(m.value)}
           className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${
-            mode === m.value
-              ? 'bg-primary-700 text-primary-50 shadow-sm'
-              : 'text-secondary-500 hover:text-primary-700'
+            mode === m.value ? 'bg-primary-700 text-primary-50 shadow-sm' : 'text-secondary-500 hover:text-primary-700'
           }`}
         >
           {m.label}
         </button>
       ))}
     </div>
-  )
+  );
 }

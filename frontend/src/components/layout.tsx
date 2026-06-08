@@ -1,5 +1,5 @@
-import Navbar from './Navbar'
-import { Outlet } from 'react-router-dom'
+import Navbar from './Navbar';
+import { Outlet } from 'react-router-dom';
 
 const LeLayout = () => {
   return (
@@ -9,7 +9,7 @@ const LeLayout = () => {
         <Outlet />
       </main>
     </>
-  )
-}
+  );
+};
 
-export default LeLayout
+export default LeLayout;

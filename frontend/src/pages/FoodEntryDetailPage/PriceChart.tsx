@@ -1,35 +1,25 @@
-import { useState } from 'react'
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Dot,
-} from 'recharts'
-import { centsToSgd } from '@/shared/utils/format'
-import type { FoodHistoricalData } from '@/shared/types/api'
+import { useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Dot } from 'recharts';
+import { centsToSgd } from '@/shared/utils/format';
+import type { FoodHistoricalData } from '@/shared/types/api';
 
-type TimeRange = '1M' | '6M' | '12M'
+type TimeRange = '1M' | '6M' | '12M';
 
 export default function PriceChart({ history }: { history: FoodHistoricalData }) {
-  const [range, setRange] = useState<TimeRange>('1M')
+  const [range, setRange] = useState<TimeRange>('1M');
 
   const chartData = history.datePrices.map((dp) => ({
     date: dp.date,
     price: dp.sgCents,
-  }))
+  }));
 
-  const consensusSgd = centsToSgd(history.sgCentsConsensusPrice)
+  const consensusSgd = centsToSgd(history.sgCentsConsensusPrice);
 
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-5">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-secondary-400">
-            Current Benchmark
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wider text-secondary-400">Current Benchmark</p>
           <p className="text-3xl font-bold text-primary-700">{consensusSgd}</p>
         </div>
         <div className="inline-flex rounded-lg border border-secondary-200 bg-secondary-50 p-0.5">
@@ -39,9 +29,7 @@ export default function PriceChart({ history }: { history: FoodHistoricalData })
               type="button"
               onClick={() => setRange(r)}
               className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                range === r
-                  ? 'bg-primary-700 text-primary-50 shadow-sm'
-                  : 'text-secondary-500 hover:text-primary-700'
+                range === r ? 'bg-primary-700 text-primary-50 shadow-sm' : 'text-secondary-500 hover:text-primary-700'
               }`}
             >
               {r}
@@ -65,8 +53,8 @@ export default function PriceChart({ history }: { history: FoodHistoricalData })
               tickLine={false}
               axisLine={false}
               tickFormatter={(d) => {
-                const date = new Date(d)
-                return date.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })
+                const date = new Date(d);
+                return date.toLocaleDateString('en-SG', { month: 'short', day: 'numeric' });
               }}
             />
             <YAxis
@@ -84,13 +72,13 @@ export default function PriceChart({ history }: { history: FoodHistoricalData })
               }}
               formatter={(value) => [centsToSgd(value as number), 'Price']}
               labelFormatter={(label) => {
-                const date = new Date(label)
+                const date = new Date(label);
                 return date.toLocaleDateString('en-SG', {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
                   year: 'numeric',
-                })
+                });
               }}
             />
             <Area
@@ -100,8 +88,8 @@ export default function PriceChart({ history }: { history: FoodHistoricalData })
               strokeWidth={2}
               fill="url(#priceGradient)"
               dot={(props) => {
-                const { cx, cy } = props
-                return <Dot cx={cx} cy={cy} r={3} fill="rgb(var(--primary-700))" stroke="white" strokeWidth={2} />
+                const { cx, cy } = props;
+                return <Dot cx={cx} cy={cy} r={3} fill="rgb(var(--primary-700))" stroke="white" strokeWidth={2} />;
               }}
               activeDot={{ r: 5, fill: 'rgb(var(--primary-700))', stroke: 'white', strokeWidth: 2 }}
             />
@@ -109,5 +97,5 @@ export default function PriceChart({ history }: { history: FoodHistoricalData })
         </ResponsiveContainer>
       </div>
     </div>
-  )
+  );
 }

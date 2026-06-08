@@ -1,45 +1,48 @@
-import { useState } from 'react'
-import { useMapStore } from '@/stores/mapStore'
-import { useSubmitFoodEntry } from '@/shared/api/queries'
-import { X } from 'lucide-react'
-import StepEatery from './StepEatery'
-import StepFood from './StepFood'
-import StepPrice from './StepPrice'
-import StepConfirm from './StepConfirm'
+import { useState } from 'react';
+import { useMapStore } from '@/stores/mapStore';
+import { useSubmitFoodEntry } from '@/shared/api/queries';
+import { X } from 'lucide-react';
+import StepEatery from './StepEatery';
+import StepFood from './StepFood';
+import StepPrice from './StepPrice';
+import StepConfirm from './StepConfirm';
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 4;
 
 export default function SubmissionWizard() {
-  const { wizardOpen, setWizardOpen } =
-    useMapStore()
-  const [step, setStep] = useState(1)
-  const [eateryId, setEateryId] = useState<string | null>(null)
-  const [eateryName, setEateryName] = useState('')
-  const [foodId, setFoodId] = useState('')
-  const [foodName, setFoodName] = useState('')
-  const [priceCents, setPriceCents] = useState(0)
+  const { wizardOpen, setWizardOpen } = useMapStore();
+  const [step, setStep] = useState(1);
+  const [eateryId, setEateryId] = useState<string | null>(null);
+  const [eateryName, setEateryName] = useState('');
+  const [foodId, setFoodId] = useState('');
+  const [foodName, setFoodName] = useState('');
+  const [priceCents, setPriceCents] = useState(0);
 
-  const submitMutation = useSubmitFoodEntry()
+  const submitMutation = useSubmitFoodEntry();
 
   const handleClose = () => {
-    setWizardOpen(false)
-    setStep(1)
-    setEateryId(null)
-    setEateryName('')
-    setFoodId('')
-    setFoodName('')
-    setPriceCents(0)
-    submitMutation.reset()
-  }
+    setWizardOpen(false);
+    setStep(1);
+    setEateryId(null);
+    setEateryName('');
+    setFoodId('');
+    setFoodName('');
+    setPriceCents(0);
+    submitMutation.reset();
+  };
 
-  if (!wizardOpen) return null
+  if (!wizardOpen) return null;
 
-  const submitting = submitMutation.isPending
-  const submitError = submitMutation.error
-  const submitSuccess = submitMutation.isSuccess
+  const submitting = submitMutation.isPending;
+  const submitError = submitMutation.error;
+  const submitSuccess = submitMutation.isSuccess;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-label="Submission wizard">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      role="dialog"
+      aria-label="Submission wizard"
+    >
       <div className="relative w-full max-w-lg rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-secondary-100 px-6 py-4">
           <span className="text-sm text-secondary-400">
@@ -60,12 +63,9 @@ export default function SubmissionWizard() {
           {submitSuccess ? (
             <div className="space-y-4 py-8 text-center">
               <div className="text-4xl"></div>
-              <p className="text-lg font-semibold text-secondary-900">
-                Price submitted!
-              </p>
+              <p className="text-lg font-semibold text-secondary-900">Price submitted!</p>
               <p className="text-sm text-secondary-400">
-                {foodName} at {eateryName} &middot; $
-                {(priceCents / 100).toFixed(2)}
+                {foodName} at {eateryName} &middot; ${(priceCents / 100).toFixed(2)}
               </p>
               <button
                 type="button"
@@ -80,18 +80,18 @@ export default function SubmissionWizard() {
               {step === 1 && (
                 <StepEatery
                   onSelect={(id, name) => {
-                    setEateryId(id)
-                    setEateryName(name)
-                    setStep(2)
+                    setEateryId(id);
+                    setEateryName(name);
+                    setStep(2);
                   }}
                 />
               )}
               {step === 2 && (
                 <StepFood
                   onSelect={(id, name) => {
-                    setFoodId(id)
-                    setFoodName(name)
-                    setStep(3)
+                    setFoodId(id);
+                    setFoodName(name);
+                    setStep(3);
                   }}
                   onBack={() => setStep(1)}
                 />
@@ -99,8 +99,8 @@ export default function SubmissionWizard() {
               {step === 3 && (
                 <StepPrice
                   onConfirm={(cents) => {
-                    setPriceCents(cents)
-                    setStep(4)
+                    setPriceCents(cents);
+                    setStep(4);
                   }}
                   onBack={() => setStep(2)}
                 />
@@ -113,12 +113,12 @@ export default function SubmissionWizard() {
                   isSubmitting={submitting}
                   error={submitError}
                   onSubmit={() => {
-                    if (!eateryId || !foodId) return
+                    if (!eateryId || !foodId) return;
                     submitMutation.mutate({
                       eateryId,
                       foodId,
                       priceSgCents: priceCents,
-                    })
+                    });
                   }}
                   onBack={() => setStep(3)}
                 />
@@ -128,5 +128,5 @@ export default function SubmissionWizard() {
         </div>
       </div>
     </div>
-  )
+  );
 }

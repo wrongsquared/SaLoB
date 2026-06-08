@@ -1,24 +1,21 @@
-import { useState } from 'react'
-import { useMapStore } from '@/stores/mapStore'
-import { useFoodSearch } from '@/shared/api/queries'
-import { useDebounce } from '@/shared/hooks/useDebounce'
-import { Loader2 } from 'lucide-react'
+import { useState } from 'react';
+import { useMapStore } from '@/stores/mapStore';
+import { useFoodSearch } from '@/shared/api/queries';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { Loader2 } from 'lucide-react';
 
 export default function FoodTagPicker() {
-  const { selectedFoods, addFood, removeFood } = useMapStore()
-  const [input, setInput] = useState('')
-  const debouncedInput = useDebounce(input, 300)
-  const { data: results, isLoading } = useFoodSearch(debouncedInput)
+  const { selectedFoods, addFood, removeFood } = useMapStore();
+  const [input, setInput] = useState('');
+  const debouncedInput = useDebounce(input, 300);
+  const { data: results, isLoading } = useFoodSearch(debouncedInput);
 
-  const suggestions =
-    results?.filter(
-      (r) => !selectedFoods.includes(r.foodName),
-    ) ?? []
+  const suggestions = results?.filter((r) => !selectedFoods.includes(r.foodName)) ?? [];
 
   const handleSelect = (foodName: string) => {
-    addFood(foodName)
-    setInput('')
-  }
+    addFood(foodName);
+    setInput('');
+  };
 
   return (
     <div className="relative">
@@ -32,10 +29,7 @@ export default function FoodTagPicker() {
           className="w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2.5 pr-10 text-base text-secondary-900 backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {isLoading && (
-          <Loader2
-            size={20}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-secondary-400"
-          />
+          <Loader2 size={20} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-secondary-400" />
         )}
       </div>
       {input && suggestions.length > 0 && (
@@ -47,9 +41,7 @@ export default function FoodTagPicker() {
               onClick={() => handleSelect(s.foodName)}
               className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-primary-50"
             >
-              <span className="font-medium text-secondary-900">
-                {s.foodName}
-              </span>
+              <span className="font-medium text-secondary-900">{s.foodName}</span>
             </button>
           ))}
         </div>
@@ -75,5 +67,5 @@ export default function FoodTagPicker() {
         </div>
       )}
     </div>
-  )
+  );
 }

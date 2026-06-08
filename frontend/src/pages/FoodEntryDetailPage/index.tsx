@@ -1,35 +1,31 @@
-import { useParams, useNavigate } from 'react-router-dom'
-import { useFoodEntryDetail, useFoodHistoricalData } from '@/shared/api/queries'
-import { ArrowLeft } from 'lucide-react'
-import PriceChart from './PriceChart'
-import CommunityEntryRow from './CommunityEntryRow'
-import SubmitterPanel from './SubmitterPanel'
+import { useParams, useNavigate } from 'react-router-dom';
+import { useFoodEntryDetail, useFoodHistoricalData } from '@/shared/api/queries';
+import { ArrowLeft } from 'lucide-react';
+import PriceChart from './PriceChart';
+import CommunityEntryRow from './CommunityEntryRow';
+import SubmitterPanel from './SubmitterPanel';
 
 export default function FoodEntryDetailPage() {
-  const { foodEntryId } = useParams<{ foodEntryId: string }>()
-  const navigate = useNavigate()
+  const { foodEntryId } = useParams<{ foodEntryId: string }>();
+  const navigate = useNavigate();
 
-  const {
-    data: detail,
-    isLoading: detailLoading,
-    isError: detailError,
-  } = useFoodEntryDetail(foodEntryId ?? null)
+  const { data: detail, isLoading: detailLoading, isError: detailError } = useFoodEntryDetail(foodEntryId ?? null);
 
   const {
     data: history,
     isLoading: historyLoading,
     isError: historyError,
-  } = useFoodHistoricalData(foodEntryId ?? null)
+  } = useFoodHistoricalData(foodEntryId ?? null);
 
-  const isLoading = detailLoading || historyLoading
-  const isError = detailError || historyError
+  const isLoading = detailLoading || historyLoading;
+  const isError = detailError || historyError;
 
   if (isError) {
     return (
       <div className="flex h-64 items-center justify-center text-red-400">
         Failed to load food entry details. Please try again.
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -42,15 +38,11 @@ export default function FoodEntryDetailPage() {
           <div className="h-80 animate-pulse rounded-xl bg-secondary-50" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!detail || !history) {
-    return (
-      <div className="flex h-64 items-center justify-center text-secondary-400">
-        Food entry not found.
-      </div>
-    )
+    return <div className="flex h-64 items-center justify-center text-secondary-400">Food entry not found.</div>;
   }
 
   return (
@@ -67,12 +59,8 @@ export default function FoodEntryDetailPage() {
         </button>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-secondary-900">
-              {history.foodName}
-            </h1>
-            <p className="mt-1 text-sm text-secondary-400">
-              {history.eateryAddress}
-            </p>
+            <h1 className="text-3xl font-bold text-secondary-900">{history.foodName}</h1>
+            <p className="mt-1 text-sm text-secondary-400">{history.eateryAddress}</p>
           </div>
           <div className="mt-3 flex gap-2 sm:mt-0">
             <button
@@ -100,9 +88,7 @@ export default function FoodEntryDetailPage() {
           <PriceChart history={history} />
 
           <div>
-            <h2 className="mb-3 text-lg font-semibold text-secondary-900">
-              Community Entries
-            </h2>
+            <h2 className="mb-3 text-lg font-semibold text-secondary-900">Community Entries</h2>
             <div className="divide-y divide-secondary-100 rounded-xl border border-secondary-200 bg-white">
               {history.communityEntries.map((entry) => (
                 <CommunityEntryRow
@@ -121,5 +107,5 @@ export default function FoodEntryDetailPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
