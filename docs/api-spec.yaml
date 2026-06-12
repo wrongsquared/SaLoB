@@ -423,6 +423,7 @@ components:
         address: { type: string }
         typeLabel: { type: string }
         photoUrl: { type: string, format: uri }
+        hasUserReported: { type: boolean, nullable: true, description: "null if no X-User-Id header" }
         foodPreviews:
           type: array
           items:

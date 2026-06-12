@@ -6,5 +6,5 @@ import java.util.List;
 import java.util.UUID;
 
 public record EateryDetailedDTO(UUID eateryId, String name, String address, String typeLabel, String photoUrl,
-		List<FoodEntryPreviewDTO> foodPreviews) {
+		List<FoodEntryPreviewDTO> foodPreviews, Boolean hasUserReported) {
 }

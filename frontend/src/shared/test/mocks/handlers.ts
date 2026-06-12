@@ -161,6 +161,7 @@ export const handlers = [
       address: '1 Example St, Singapore',
       typeLabel: eatery.typeLabel,
       photoUrl: `/mock/eatery-${eatery.eateryId}.jpg`,
+      hasUserReported: false,
       foodPreviews: addCurrentUserVote(FOOD_PREVIEWS.slice(0, 3)),
     });
   }),

@@ -154,6 +154,8 @@ public class EateryService {
 	public EateryDetailedDTO getEateryDetailed(UUID eateryId, UUID userId) {
 		Eatery eatery = findById(eateryId);
 
+		boolean hasUserReported = userId != null && closureFlagRepo.existsByEateryIdAndFlaggerId(eateryId, userId);
+
 		// Fetch user's votes for this eatery's entries before building previews
 		Map<UUID, Boolean> userVotes = new HashMap<>();
 		if (userId != null) {
@@ -184,7 +186,8 @@ public class EateryService {
 
 		List<FoodEntryPreviewDTO> foodPreviews = new ArrayList<>(bestByFoodName.values());
 		return new EateryDetailedDTO(eatery.getId(), eatery.getName(), eatery.getAddress(), eatery.getType().getLabel(),
-				minioStorageService.getPresignedUrl(eatery.getPhotoObjKey(), Duration.ofMinutes(30)), foodPreviews);
+				minioStorageService.getPresignedUrl(eatery.getPhotoObjKey(), Duration.ofMinutes(30)), foodPreviews,
+				hasUserReported);
 	}
 
 	@Cacheable(key = "#search.toLowerCase()", value = "eateries_search")

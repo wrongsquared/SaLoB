@@ -90,7 +90,7 @@ class EateryControllerTest {
 	void getEateryDetailed_returnsOk() throws Exception {
 		UUID id = UUID.randomUUID();
 		var dto = new com.salob.food_service.api.eatery.dto.EateryDetailedDTO(id, "Test Hawker", "1 Test Street",
-				"Hawker Stall", "https://photo.url", List.of());
+				"Hawker Stall", "https://photo.url", List.of(), null);
 
 		when(eateryService.getEateryDetailed(id, null)).thenReturn(dto);
 

@@ -35,6 +35,7 @@ export interface EateryDetail {
   address: string;
   typeLabel: string;
   photoUrl: string;
+  hasUserReported: boolean | null;
   foodPreviews: FoodPreview[];
 }
 
