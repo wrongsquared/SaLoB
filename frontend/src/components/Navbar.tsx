@@ -2,42 +2,21 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const navItems = [
-  { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Analytics', path: '/analytics' },
-  { label: 'Reports', path: '/reports' },
-];
-
 export default function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
+    navigate('/');
   };
 
   return (
     <header className="sticky top-0 z-50 bg-background-50 min-h-full border-b-1 border-black">
       <div className="w-full flex items-center justify-between py-4 px-20">
-        <div className="flex items-center gap-10">
-          <NavLink to="/" className="flex items-center gap-2">
-            <div className="text-xl font-extrabold text-primary-700">SaLoB</div>
-          </NavLink>
-          <nav className="flex items-center space-x-4">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `text-sm ${isActive ? 'text-primary-700 underline underline-offset-6 font-bold' : 'text-secondary-400'} hover:text-primary-700`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
+        <NavLink to="/" className="flex items-center gap-2">
+          <div className="text-xl font-extrabold text-primary-700">SaLoB</div>
+        </NavLink>
         <div>
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3">

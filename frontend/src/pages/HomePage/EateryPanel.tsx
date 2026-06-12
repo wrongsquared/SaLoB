@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMapStore } from '@/stores/mapStore';
+import { useAuthGuard } from '@/shared/hooks/useAuthGuard';
 import { useEateryDetail, useReportEateryClosed } from '@/shared/api/queries';
 import { X, Flag, Clock, Star } from 'lucide-react';
 import { centsToSgd } from '@/shared/utils';
@@ -55,10 +56,16 @@ function FoodEntryCard({ entry }: { entry: FoodPreview }) {
 }
 
 export default function EateryPanel() {
-  const { selectedEateryId, sidebarOpen, selectEatery, setSidebarOpen, setWizardOpen, reportedEateryIds } =
-    useMapStore();
+  const selectedEateryId = useMapStore((s) => s.selectedEateryId);
+  const sidebarOpen = useMapStore((s) => s.sidebarOpen);
+  const selectEatery = useMapStore((s) => s.selectEatery);
+  const setSidebarOpen = useMapStore((s) => s.setSidebarOpen);
+  const setWizardOpen = useMapStore((s) => s.setWizardOpen);
+  const reportedEateryIds = useMapStore((s) => s.reportedEateryIds);
+
   const { data: eatery, isLoading, isError } = useEateryDetail(selectedEateryId);
   const reportMutation = useReportEateryClosed();
+  const guard = useAuthGuard();
 
   const isReported = selectedEateryId ? reportedEateryIds.has(selectedEateryId) : false;
   const { rating, reviews } = eatery ? computeRating(eatery.foodPreviews) : { rating: 0, reviews: 0 };
@@ -134,7 +141,7 @@ export default function EateryPanel() {
         {eatery && (
           <button
             type="button"
-            onClick={() => setWizardOpen(true, eatery.eateryId)}
+            onClick={() => guard(() => setWizardOpen(true, eatery.eateryId))}
             className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-primary-50 transition-colors hover:bg-primary-600"
           >
             + Submit Price
@@ -143,10 +150,12 @@ export default function EateryPanel() {
         {eatery && !isReported && (
           <button
             type="button"
-            onClick={() => {
-              reportMutation.mutate(eatery.eateryId);
-              useMapStore.getState().markEateryReported(eatery.eateryId);
-            }}
+            onClick={() =>
+              guard(() => {
+                reportMutation.mutate(eatery.eateryId);
+                useMapStore.getState().markEateryReported(eatery.eateryId);
+              })
+            }
             disabled={reportMutation.isPending}
             className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-secondary-500 transition-colors hover:text-red-500 disabled:opacity-40"
             aria-label="Report as closed"
@@ -196,18 +205,6 @@ export default function EateryPanel() {
             ) : (
               <div className="flex h-32 items-center justify-center p-8 text-center text-sm text-secondary-400">
                 No food entries yet for this eatery.
-              </div>
-            )}
-
-            {eatery.foodPreviews.length > 0 && (
-              <div className="mx-4 mb-4 rounded-xl border border-accent-100 bg-accent-50 p-4">
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent-700">
-                  Intelligence Brief
-                </h4>
-                <p className="text-sm leading-relaxed text-accent-800">
-                  Price points at {eatery.name} remain resilient. The Weighted Trust Score for top items has seen steady
-                  engagement this week.
-                </p>
               </div>
             )}
           </>

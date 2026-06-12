@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/authStore';
+import { useAuthGuard } from '@/shared/hooks/useAuthGuard';
 import { useVote } from '@/shared/api/queries';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { FoodPreview } from '@/shared/types/api';
@@ -23,47 +24,51 @@ export default function VoteButtonGroup({ entry, compact }: VoteButtonGroupProps
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isOwnEntry = currentUserId === entry.submitterId;
   const net = entry.upvotes - entry.downvotes;
+  const guard = useAuthGuard();
 
-  const handleVote = (e: React.MouseEvent, isUpvote: boolean) => {
+  const handleVote = (isUpvote: boolean) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isOwnEntry) return;
-    const newVote = entry.currentUserVote === isUpvote ? null : isUpvote;
-    voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote });
+    guard(() => {
+      if (isOwnEntry) return;
+      const newVote = entry.currentUserVote === isUpvote ? null : isUpvote;
+      voteMutation.mutate({ foodEntryId: entry.foodEntryId, isUpvote: newVote });
+    });
+  };
+
+  const voteTitle = (isUpvote: boolean, isActive: boolean): string => {
+    const action = isUpvote ? 'Upvote' : 'Downvote';
+    if (isOwnEntry) return 'You cannot vote on your own entry';
+    if (isActive) return `Remove ${action.toLowerCase()}`;
+    return action;
+  };
+
+  const voteClass = (isUpvote: boolean, isActive: boolean) => {
+    const upClasses = isActive
+      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+      : 'text-secondary-400 hover:scale-110 hover:bg-green-50 hover:text-green-600';
+    const downClasses = isActive
+      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+      : 'text-secondary-400 hover:scale-110 hover:bg-red-50 hover:text-red-500';
+    return `cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${isUpvote ? upClasses : downClasses} active:scale-90`;
   };
 
   const upBtn = (
     <VoteBtn
       isUpvote
-      onClick={(e) => handleVote(e, true)}
+      onClick={handleVote(true)}
       disabled={isOwnEntry}
-      title={
-        isOwnEntry ? 'You cannot vote on your own entry' : entry.currentUserVote === true ? 'Remove upvote' : 'Upvote'
-      }
-      className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
-        entry.currentUserVote === true
-          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-          : 'text-secondary-400 hover:scale-110 hover:bg-green-50 hover:text-green-600'
-      } active:scale-90`}
+      title={voteTitle(true, entry.currentUserVote === true)}
+      className={voteClass(true, entry.currentUserVote === true)}
     />
   );
 
   const downBtn = (
     <VoteBtn
       isUpvote={false}
-      onClick={(e) => handleVote(e, false)}
+      onClick={handleVote(false)}
       disabled={isOwnEntry}
-      title={
-        isOwnEntry
-          ? 'You cannot vote on your own entry'
-          : entry.currentUserVote === false
-            ? 'Remove downvote'
-            : 'Downvote'
-      }
-      className={`cursor-pointer rounded p-1 transition-all duration-100 disabled:cursor-not-allowed ${
-        entry.currentUserVote === false
-          ? 'bg-red-100 text-red-700 hover:bg-red-200'
-          : 'text-secondary-400 hover:scale-110 hover:bg-red-50 hover:text-red-500'
-      } active:scale-90`}
+      title={voteTitle(false, entry.currentUserVote === false)}
+      className={voteClass(false, entry.currentUserVote === false)}
     />
   );
 
