@@ -1,4 +1,4 @@
-import { centsToSgd } from '@/shared/utils/format';
+import { centsToSgd } from '@/shared/utils';
 import type { FoodEntryDetail, FoodHistoricalData } from '@/shared/types/api';
 
 interface SubmitterPanelProps {

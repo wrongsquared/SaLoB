@@ -1,14 +1,21 @@
-import SubmissionWizardTrigger from './SubmissionWizardTrigger';
+import { useMapStore } from '@/stores/mapStore';
+import { Plus } from 'lucide-react';
 import SubmissionWizardContent from './SubmissionWizardContent';
-import { Dialog } from '@/components/ui/dialog';
 
-const SubmissionWizard = () => {
+export default function SubmissionWizard() {
+  const { setWizardOpen, wizardOpen } = useMapStore();
+
   return (
-    <Dialog>
-      <SubmissionWizardTrigger />
-      <SubmissionWizardContent />
-    </Dialog>
+    <>
+      <button
+        type="button"
+        onClick={() => setWizardOpen(true)}
+        className="absolute bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary-700 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600"
+        aria-label="Submit price"
+      >
+        <Plus size={24} />
+      </button>
+      {wizardOpen && <SubmissionWizardContent />}
+    </>
   );
-};
-
-export default SubmissionWizard;
+}

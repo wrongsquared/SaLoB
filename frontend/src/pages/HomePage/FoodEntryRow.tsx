@@ -1,5 +1,5 @@
 import type { FoodPreview } from '@/shared/types/api';
-import { centsToSgd } from '@/shared/utils/format';
+import { centsToSgd } from '@/shared/utils';
 
 interface FoodEntryRowProps {
   entry: FoodPreview;

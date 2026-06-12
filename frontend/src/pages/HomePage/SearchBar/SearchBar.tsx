@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import SearchResultsDropdown from './SearchResultsDropdown';
 import { useEaterySearchInput } from '@/shared/api/queries';
 import { useMapStore } from '@/stores/mapStore';
-import SearchResultsDropdown from './SearchResultsDropdown';
 
 interface SearchBarProps {
+  // For whatever reason, if you want to display some text in the search bar
+  customDisplayValue?: string;
+
   placeholder?: string;
   inputClassName?: string;
   icon?: ReactNode;
@@ -73,7 +76,8 @@ export default function SearchBar({
         placeholder={placeholder}
         className={
           inputClassName ??
-          'w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2.5 pl-11 text-base text-secondary-900 backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500'
+          `w-full rounded-lg border border-white/30 bg-white/70 px-4 py-2.5 pl-11 text-base text-secondary-900
+          backdrop-blur-sm placeholder-secondary-400 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500`
         }
       />
       {icon ?? defaultIcon}

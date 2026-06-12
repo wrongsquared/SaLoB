@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Dot } from 'recharts';
-import { centsToSgd } from '@/shared/utils/format';
+import { centsToSgd } from '@/shared/utils';
 import type { FoodHistoricalData } from '@/shared/types/api';
 
 type TimeRange = '1M' | '6M' | '12M';
